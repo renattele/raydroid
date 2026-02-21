@@ -1,0 +1,3 @@
+interface:
+  display_name: "Compose Architect"
+  short_description: "Compose MPP MVVM architecture for Android 16 and Kotlin 2"

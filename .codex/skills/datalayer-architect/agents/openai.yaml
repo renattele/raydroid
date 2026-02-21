@@ -1,0 +1,3 @@
+interface:
+  display_name: "DataLayer Architect"
+  short_description: "KMP repository and data-source architecture with Ktor, Room, and Koin"
