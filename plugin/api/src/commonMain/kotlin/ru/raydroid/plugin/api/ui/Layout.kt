@@ -1,0 +1,97 @@
+package ru.raydroid.plugin.api.ui
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+enum class Spacing {
+    Zero,
+    ExtraSmall,
+    Small,
+    Medium,
+    Large,
+    ExtraLarge
+}
+
+@Serializable
+enum class Alignment {
+    Start,
+    Center,
+    End
+}
+
+@Serializable
+enum class BoxAlignment {
+    TopStart,
+    TopCenter,
+    TopEnd,
+    CenterStart,
+    Center,
+    CenterEnd,
+    BottomStart,
+    BottomCenter,
+    BottomEnd
+}
+
+
+@Serializable
+enum class Orientation {
+    Vertical,
+    Horizontal
+}
+
+
+@Serializable
+enum class Arrangement {
+    Start,
+    Center,
+    End,
+    SpaceBetween,
+    SpaceAround,
+    SpaceEvenly
+}
+
+@Serializable
+data class BoxData(
+    val alignment: BoxAlignment,
+    val children: List<RayNodeData>
+): RayNodeData()
+
+@Ray
+fun RayScope.Box(
+    alignment: BoxAlignment = BoxAlignment.TopStart,
+    content: RayScope.() -> Unit
+) {
+    val children = fork(content)
+    add(BoxData(alignment, children))
+}
+
+@Serializable
+data class OrientedBoxData(
+    val orientation: Orientation,
+    val alignment: Alignment,
+    val arrangement: Arrangement,
+    val spacing: Spacing,
+    val children: List<RayNodeData>
+): RayNodeData()
+
+@Ray
+fun RayScope.Row(
+    spacing: Spacing = Spacing.Zero,
+    alignment: Alignment = Alignment.Start,
+    arrangement: Arrangement = Arrangement.Start,
+    content: RayScope.() -> Unit
+) {
+    val children = fork(content)
+    add(OrientedBoxData(Orientation.Horizontal, alignment, arrangement, spacing, children))
+}
+
+@Ray
+fun RayScope.Column(
+    spacing: Spacing = Spacing.Zero,
+    alignment: Alignment = Alignment.Start,
+    arrangement: Arrangement = Arrangement.Start,
+    content: RayScope.() -> Unit
+) {
+    val children = fork(content)
+    add(OrientedBoxData(Orientation.Vertical, alignment, arrangement, spacing, children))
+}

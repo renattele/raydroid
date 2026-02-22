@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.zipline)
 }
 
 kotlin {
@@ -26,10 +27,6 @@ kotlin {
         }
     }
 
-    js {
-        browser()
-    }
-    
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
@@ -44,7 +41,10 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.zipline)
+            implementation(libs.zipline.loader)
             implementation(projects.shared)
+            implementation(projects.plugin.api)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

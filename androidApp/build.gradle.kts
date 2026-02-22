@@ -33,5 +33,8 @@ android {
 dependencies {
     implementation(libs.compose.uiToolingPreview)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.zipline.loader)
+    implementation(libs.okHttp.core)
     implementation(projects.composeApp)
+    implementation(projects.plugin.api)
 }
