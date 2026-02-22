@@ -1,7 +1,7 @@
 [versions]
-agp = "8.13.2"
+agp = "9.0.1"
 android-compileSdk = "36"
-android-minSdk = "24"
+android-minSdk = "26"
 android-targetSdk = "36"
 androidx-activity = "1.12.4"
 androidx-appcompat = "1.7.1"
@@ -15,6 +15,7 @@ kotlin = "2.3.10"
 ktor = "3.4.0"
 logback = "1.5.32"
 material3 = "1.10.0-alpha05"
+zipline = "1.25.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -41,9 +42,10 @@ ktor-serverTestHost = { module = "io.ktor:ktor-server-test-host-jvm", version.re
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
-androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+zipline = { id = "app.cash.zipline:zipline-gradle-plugin", version.ref = "zipline" }

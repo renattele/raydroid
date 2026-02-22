@@ -6,9 +6,10 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+    android {
+        namespace = "ru.raydroid"
+        compileSdk {
+            version = release(36)
         }
     }
     
@@ -16,6 +17,10 @@ kotlin {
     iosSimulatorArm64()
     
     jvm()
+
+    js {
+        browser()
+    }
     
     sourceSets {
         commonMain.dependencies {
@@ -24,17 +29,5 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
-    }
-}
-
-android {
-    namespace = "ru.raydroid.shared"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
     }
 }
