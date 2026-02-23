@@ -1,13 +1,12 @@
-package ru.raydroid.plugin.api.host
+package ru.raydroid.plugin.api.host.bridge
 
 import app.cash.zipline.ZiplineService
 import kotlinx.coroutines.flow.Flow
 
-interface Cache: ZiplineService {
+interface CacheServiceBridge: ZiplineService {
     suspend operator fun get(key: String): String?
     suspend operator fun set(key: String, value: String)
-    suspend fun has(key: String): Boolean
 
     suspend fun clear()
-    suspend fun <T: Any> flowOf(key: String): Flow<T>
+    suspend fun flowOf(key: String): Flow<String?>
 }

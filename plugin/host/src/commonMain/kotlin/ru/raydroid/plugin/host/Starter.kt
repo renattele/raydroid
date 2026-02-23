@@ -1,4 +1,4 @@
-package ru.raydroid
+package ru.raydroid.plugin.host
 
 import app.cash.zipline.loader.DefaultFreshnessCheckerNotFresh
 import app.cash.zipline.loader.LoadResult
@@ -10,12 +10,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.ZiplineServices
+import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.CommandServiceBridge
 import ru.raydroid.plugin.api.core.ManifestService
-import ru.raydroid.plugin.api.ui.RayNodeData
+import ru.raydroid.plugin.api.core.RayItems
 
 fun startPlugin(
     scope: CoroutineScope,
@@ -23,7 +23,7 @@ fun startPlugin(
     loader: ZiplineLoader,
     manifestUrl: String,
     query: Flow<String>,
-    nodes: MutableStateFlow<List<RayNodeData>>
+    nodes: MutableStateFlow<RayItems>
 ) {
     scope.launch(dispatcher + SupervisorJob()) {
         val loadResultFlow = loader.load(
@@ -56,7 +56,7 @@ fun startPlugin(
                     query.collect { query ->
                         manifest.commands.forEach { command ->
                             val service = zipline.take<CommandServiceBridge>(command.service)
-                            service.update(query)
+                            service.update(query, CommandAction.Type())
                         }
                     }
                 }

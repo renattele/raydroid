@@ -1,18 +1,24 @@
 package ru.raydroid.plugin.api.core
 
 import app.cash.zipline.ZiplineService
+import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.ui.Ray
-import ru.raydroid.plugin.api.ui.RayNodeData
-import ru.raydroid.plugin.api.ui.RayScope
 
+@Serializable
+sealed class CommandAction {
+    @Serializable
+    data class Enter(val hoveredId: ItemId): CommandAction()
+
+    @Serializable
+    data class Type(val key: Char? = null): CommandAction()
+}
 interface CommandServiceBridge: ZiplineService {
-    @Ray
-    fun content(): List<RayNodeData>
-
-    suspend fun execute()
+    suspend fun cachedItems(): List<ListItem>
+    fun content(): RayItems
 
     fun initialize(request: RenderRequest)
-    suspend fun update(query: String)
+
+    suspend fun update(query: String, action: CommandAction)
 
     interface RenderRequest: ZiplineService {
         fun requestRender()
@@ -20,13 +26,17 @@ interface CommandServiceBridge: ZiplineService {
 }
 
 abstract class CommandService {
-    @Ray
-    abstract fun RayScope.content()
+    open suspend fun cachedItems(): List<ListItem> {
+        return emptyList()
+    }
 
-    abstract suspend fun execute()
+    @Ray
+    abstract fun RayListScope.content()
+
+    abstract suspend fun execute(action: CommandAction)
 
     fun render() {
-        val onRenderRequest = _onRenderRequest
+        val onRenderRequest = onRenderRequest
         if (onRenderRequest != null) {
             onRenderRequest()
         }
@@ -35,12 +45,12 @@ abstract class CommandService {
     val query: String
         get() = _query
 
-    suspend fun update(query: String) {
+    suspend fun update(query: String, action: CommandAction) {
         _query = query
-        execute()
+        execute(action)
     }
 
-    internal var _onRenderRequest: (() -> Unit)? = null
+    internal var onRenderRequest: (() -> Unit)? = null
 
     private var _query: String = ""
 }

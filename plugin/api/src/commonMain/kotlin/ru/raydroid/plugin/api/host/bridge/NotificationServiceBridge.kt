@@ -1,0 +1,42 @@
+package ru.raydroid.plugin.api.host.bridge
+
+import app.cash.zipline.ZiplineService
+import kotlinx.serialization.Serializable
+import ru.raydroid.plugin.api.core.UiText
+
+interface NotificationServiceBridge: ZiplineService {
+    suspend fun alert(
+        title: UiText,
+        message: UiText,
+        actions: List<AlertAction>,
+        primaryAction: AlertAction
+    ): AlertAction?
+
+    suspend fun showToast(toast: Toast)
+    suspend fun hideToast(toast: Toast)
+
+    @Serializable
+    data class AlertAction(
+        val title: UiText,
+        val style: Style
+    ) {
+        enum class Style {
+            Default,
+            Destructive,
+            Cancel
+        }
+    }
+
+
+    @Serializable
+    data class Toast(
+        val message: UiText,
+        val style: Style
+    ) {
+        enum class Style {
+            Animated,
+            Success,
+            Failure
+        }
+    }
+}

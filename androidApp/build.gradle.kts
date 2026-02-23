@@ -37,4 +37,5 @@ dependencies {
     implementation(libs.okHttp.core)
     implementation(projects.composeApp)
     implementation(projects.plugin.api)
+    implementation(projects.plugin.host)
 }

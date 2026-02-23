@@ -3,6 +3,7 @@ package ru.raydroid.plugin.api.core
 import app.cash.zipline.Zipline
 import ru.raydroid.plugin.api.ZiplineServices
 import ru.raydroid.plugin.api.ui.RayNodeData
+import ru.raydroid.plugin.api.ui.RayScope
 import ru.raydroid.plugin.api.ui.buildRayNodes
 
 @DslMarker
@@ -71,7 +72,10 @@ fun manifest(content: ManifestScope.() -> Unit) {
         override var categories: List<String> = emptyList()
         override var license: String = ""
         val commands: MutableList<Command> = mutableListOf()
-        override fun command(service: CommandService, content: ManifestScope.CommandScope.() -> Unit) {
+        override fun command(
+            service: CommandService,
+            content: ManifestScope.CommandScope.() -> Unit
+        ) {
             val scope = object : ManifestScope.CommandScope {
                 override var title: UiText = UiText.Empty
                 override var description: UiText = UiText.Empty
@@ -152,29 +156,36 @@ fun manifest(content: ManifestScope.() -> Unit) {
     zipline.bind<ManifestService>(ZiplineServices.Manifest.toString(), manifestService)
 }
 
-internal class ManifestServiceImpl(val manifest: Manifest): ManifestService {
+internal class ManifestServiceImpl(val manifest: Manifest) : ManifestService {
     override fun getManifest(): Manifest {
         return manifest
     }
 }
 
 internal fun CommandService.toBridge(): CommandServiceBridge = object : CommandServiceBridge {
-    override fun content(): List<RayNodeData> {
-        return buildRayNodes {
-            content()
-        }
+    override suspend fun cachedItems(): List<ListItem> {
+        return this@toBridge.cachedItems()
     }
 
-    override suspend fun execute() {
-        this@toBridge.execute()
+    override fun content(): RayItems {
+        val items = mutableMapOf<ItemId, List<RayNodeData>>()
+        val scope = object : RayListScope {
+            override fun item(
+                id: ItemId,
+                content: RayScope.() -> Unit
+            ) {
+                items[id] = buildRayNodes(content)
+            }
+        }
+        scope.content()
+        return items
     }
 
     override fun initialize(request: CommandServiceBridge.RenderRequest) {
-        _onRenderRequest = request::requestRender
+        onRenderRequest = request::requestRender
     }
 
-    override suspend fun update(query: String) {
-        this@toBridge.update(query)
+    override suspend fun update(query: String, action: CommandAction) {
+        this@toBridge.update(query, action)
     }
-
 }

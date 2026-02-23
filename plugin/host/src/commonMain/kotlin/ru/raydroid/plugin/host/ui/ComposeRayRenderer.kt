@@ -1,4 +1,4 @@
-package ru.raydroid
+package ru.raydroid.plugin.host.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import ru.raydroid.plugin.api.core.RayItem
+import ru.raydroid.plugin.api.core.RayItems
 import ru.raydroid.plugin.api.ui.BoxAlignment
 import ru.raydroid.plugin.api.ui.BoxData
 import ru.raydroid.plugin.api.ui.Orientation
@@ -17,7 +20,16 @@ import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
 
 @Composable
-fun ComposeRayRenderer(
+fun ComposeRayItemRenderer(
+    data: State<RayItems>
+) {
+    data.value.forEach { (_, nodes) ->
+        ComposeRayItemRenderer(nodes)
+    }
+}
+
+@Composable
+fun ComposeRayItemRenderer(
     data: List<RayNodeData>
 ) {
     data.forEach { node ->
@@ -32,7 +44,7 @@ fun ComposeRayRenderer(
 @Composable
 private fun BoxRenderer(data: BoxData) {
     Box(contentAlignment = data.alignment.toComposeAlignment()) {
-        ComposeRayRenderer(data.children)
+        ComposeRayItemRenderer(data.children)
     }
 }
 
@@ -56,7 +68,7 @@ private fun OrientedBoxRenderer(data: OrientedBoxData) {
             verticalArrangement = if (data.spacing != Spacing.Zero) Arrangement.spacedBy(0.dp, data.alignment.toComposeVerticalAlignment())
             else data.arrangement.toComposeVerticalArrangement(),
         ) {
-           ComposeRayRenderer(data.children)
+            ComposeRayItemRenderer(data.children)
         }
     } else {
         Row(
@@ -65,7 +77,7 @@ private fun OrientedBoxRenderer(data: OrientedBoxData) {
                 else data.arrangement.toComposeHorizontalArrangement(),
             verticalAlignment = data.alignment.toComposeVerticalAlignment()
         ) {
-            ComposeRayRenderer(data.children)
+            ComposeRayItemRenderer(data.children)
         }
     }
 }

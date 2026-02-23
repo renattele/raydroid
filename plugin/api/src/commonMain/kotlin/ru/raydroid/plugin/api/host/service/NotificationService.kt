@@ -1,22 +1,18 @@
-package ru.raydroid.plugin.api.host
+package ru.raydroid.plugin.api.host.service
 
-import app.cash.zipline.ZiplineService
 import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.core.UiText
 
-interface Notification: ZiplineService {
-    suspend fun alert(options: AlertOptions): AlertAction?
+interface NotificationService {
+    suspend fun alert(
+        title: UiText,
+        message: UiText,
+        actions: List<AlertAction>,
+        primaryAction: AlertAction
+    ): AlertAction?
 
     suspend fun showToast(toast: Toast)
     suspend fun hideToast(toast: Toast)
-
-    @Serializable
-    data class AlertOptions(
-        val title: UiText,
-        val message: UiText,
-        val actions: List<AlertAction>,
-        val primaryAction: AlertAction
-    )
 
     @Serializable
     data class AlertAction(
@@ -43,3 +39,5 @@ interface Notification: ZiplineService {
         }
     }
 }
+
+
