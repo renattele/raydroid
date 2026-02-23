@@ -14,26 +14,16 @@ extensions.configure<KotlinMultiplatformExtension> {
 
     sourceSets {
         androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-            implementation(libs.androidx.activity.compose)
+            implementation(libs.bundles.composeAndroid)
             implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.material3)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(libs.zipline)
-            implementation(libs.zipline.loader)
+            implementation(libs.bundles.composeCommon)
+            implementation(libs.bundles.lifecycleCompose)
+            implementation(libs.bundles.ziplineRuntime)
             implementation(libs.ktor.client.core)
-            implementation(libs.datastore)
-            implementation(libs.datastore.preferences)
-            implementation(libs.kotlinx.io.core)
-            implementation(libs.kotlinx.io.okio)
+            implementation(libs.bundles.dataStore)
+            implementation(libs.bundles.kotlinxIo)
             implementation(libs.kotlinx.atomicfu)
             implementation(projects.plugin.api)
         }

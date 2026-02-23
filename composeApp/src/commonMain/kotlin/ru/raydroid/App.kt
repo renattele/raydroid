@@ -1,8 +1,11 @@
 package ru.raydroid
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
@@ -18,13 +21,13 @@ fun App(field: String, data: State<RayItems>, onFieldUpdate: (String) -> Unit) {
     MaterialTheme {
         Column(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
+                .imePadding()
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Bottom
         ) {
-            TextField(field, onFieldUpdate)
             ComposeRayItemRenderer(data)
+            TextField(field, onFieldUpdate, Modifier.fillMaxWidth())
         }
     }
 }

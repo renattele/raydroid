@@ -1,6 +1,10 @@
 package ru.raydroid
 
+import android.content.Context
+import android.hardware.input.InputManager
+import android.os.Build
 import android.os.Bundle
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -8,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import app.cash.zipline.loader.ManifestVerifier
 import app.cash.zipline.loader.ZiplineLoader
@@ -65,6 +70,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             val query by queryFlow.collectAsState()
             val nodes = nodeFlow.collectAsState()

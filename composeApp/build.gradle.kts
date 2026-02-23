@@ -1,11 +1,8 @@
-import org.gradle.kotlin.dsl.configure
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-
 plugins {
     alias(libs.plugins.raydroidComposeMultiplatform)
 }
 
-extensions.configure<KotlinMultiplatformExtension> {
+kotlin {
     android {
         namespace = "ru.raydroid"
     }
@@ -22,18 +19,11 @@ extensions.configure<KotlinMultiplatformExtension> {
 
     sourceSets {
         androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-            implementation(libs.androidx.activity.compose)
+            implementation(libs.bundles.composeAndroid)
         }
         commonMain.dependencies {
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.material3)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.bundles.composeCommon)
+            implementation(libs.bundles.lifecycleCompose)
             implementation(projects.shared)
             implementation(projects.plugin.api)
             implementation(projects.plugin.host)

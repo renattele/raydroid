@@ -16,8 +16,7 @@ extensions.configure<ApplicationExtension> {
 }
 
 dependencies {
-    implementation(libs.compose.uiToolingPreview)
-    implementation(libs.androidx.activity.compose)
+    implementation(libs.bundles.composeAndroid)
     implementation(libs.zipline.loader)
     implementation(libs.okHttp.core)
     implementation(projects.composeApp)
