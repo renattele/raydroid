@@ -23,10 +23,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
-            implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.okhttp)
-            implementation(libs.kotlinx.io.core)
-            implementation(libs.kotlinx.io.okio)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -44,6 +41,7 @@ kotlin {
             implementation(libs.datastore.preferences)
             implementation(libs.kotlinx.io.core)
             implementation(libs.kotlinx.io.okio)
+            implementation(libs.kotlinx.atomicfu)
             implementation(projects.plugin.api)
         }
         commonTest.dependencies {

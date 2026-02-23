@@ -18,6 +18,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.zipline)
+            implementation(libs.kotlinx.serialization.json)
         }
     }
 }
