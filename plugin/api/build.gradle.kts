@@ -1,19 +1,17 @@
+import org.gradle.kotlin.dsl.configure
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.raydroidZipline)
+    alias(libs.plugins.raydroidMultiplatform)
     alias(libs.plugins.serialization)
-    alias(libs.plugins.zipline)
 }
 
-kotlin {
-    jvm()
-
+extensions.configure<KotlinMultiplatformExtension> {
     js {
         browser()
         binaries.executable()
     }
-
-    iosArm64()
-    iosSimulatorArm64()
 
     sourceSets {
         commonMain.dependencies {

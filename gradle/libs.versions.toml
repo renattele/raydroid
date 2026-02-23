@@ -77,3 +77,10 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 zipline = { id = "app.cash.zipline", version.ref = "zipline" }
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 atomicfu = { id = "org.jetbrains.kotlinx.atomicfu", version.ref = "kotlinx-atomicfu" }
+
+raydroidAndroidApp = { id = "raydroid.android.app" }
+raydroidAndroidLib = { id = "raydroid.android.lib" }
+raydroidMultiplatform = { id = "raydroid.multiplatform" }
+raydroidComposeMultiplatform = { id = "raydroid.compose.multiplatform" }
+raydroidZipline = { id = "raydroid.zipline" }
+raydroidJvm = { id = "raydroid.jvm" }

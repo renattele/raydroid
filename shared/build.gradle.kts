@@ -1,33 +1,23 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.kotlin.dsl.configure
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.raydroidAndroidLib)
+    alias(libs.plugins.raydroidMultiplatform)
 }
 
-kotlin {
+extensions.configure<KotlinMultiplatformExtension> {
     android {
         namespace = "ru.raydroid"
-        compileSdk {
-            version = release(36)
-        }
     }
-    
-    iosArm64()
-    iosSimulatorArm64()
-    
-    jvm()
 
     js {
         browser()
     }
-    
+
     sourceSets {
         commonMain.dependencies {
             // put your Multiplatform dependencies here
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
         }
     }
 }

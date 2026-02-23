@@ -1,8 +1,6 @@
-rootProject.name = "Raydroid"
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+rootProject.name = "build-logic"
 
 pluginManagement {
-    includeBuild("build-logic")
     repositories {
         google {
             mavenContent {
@@ -15,9 +13,6 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
 
 dependencyResolutionManagement {
     repositories {
@@ -29,17 +24,11 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        gradlePluginPortal()
+    }
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
     }
 }
-
-include(":composeApp")
-include(":server")
-include(":shared")
-include(":androidApp")
-include(":core:designsystem")
-include(":core:model")
-include(":core:domain")
-include(":core:ui")
-include(":plugin:api")
-include(":plugin:host")
-include(":plugin:impl:calculator")

@@ -1,0 +1,17 @@
+package ru.raydroid.gradle
+
+import org.gradle.api.Project
+import org.gradle.api.artifacts.MinimalExternalModuleDependency
+import org.gradle.api.artifacts.VersionCatalog
+import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.provider.Provider
+import org.gradle.kotlin.dsl.getByType
+
+internal fun Project.libsCatalog(): VersionCatalog =
+    extensions.getByType<VersionCatalogsExtension>().named("libs")
+
+internal fun VersionCatalog.versionInt(alias: String): Int =
+    findVersion(alias).get().requiredVersion.toInt()
+
+internal fun VersionCatalog.library(alias: String): Provider<MinimalExternalModuleDependency> =
+    findLibrary(alias).get()

@@ -1,23 +1,16 @@
+import org.gradle.kotlin.dsl.configure
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.zipline)
+    alias(libs.plugins.raydroidComposeMultiplatform)
+    alias(libs.plugins.raydroidMultiplatform)
+    alias(libs.plugins.raydroidZipline)
 }
 
-kotlin {
+extensions.configure<KotlinMultiplatformExtension> {
     android {
         namespace = "ru.raydroid.plugin.host"
-        compileSdk {
-            version = release(36)
-        }
-        minSdk = libs.versions.android.minSdk.get()?.toInt()
     }
-    jvm()
-
-    iosArm64()
-    iosSimulatorArm64()
 
     sourceSets {
         androidMain.dependencies {
@@ -43,9 +36,6 @@ kotlin {
             implementation(libs.kotlinx.io.okio)
             implementation(libs.kotlinx.atomicfu)
             implementation(projects.plugin.api)
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
