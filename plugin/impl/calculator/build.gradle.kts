@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
-    alias(libs.plugins.raydroidZipline)
+    alias(libs.plugins.raydroidPlugin)
     alias(libs.plugins.serialization)
 }
 

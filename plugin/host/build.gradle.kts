@@ -25,6 +25,8 @@ extensions.configure<KotlinMultiplatformExtension> {
             implementation(libs.bundles.dataStore)
             implementation(libs.bundles.kotlinxIo)
             implementation(libs.kotlinx.atomicfu)
+            implementation(libs.okio)
+            implementation(libs.okio.fakefilesystem)
             implementation(projects.plugin.api)
         }
         iosMain.dependencies {

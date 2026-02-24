@@ -46,6 +46,10 @@ gradlePlugin {
             id = "raydroid.zipline"
             implementationClass = "ru.raydroid.gradle.RaydroidKmpZiplineConventionPlugin"
         }
+        register("raydroidPlugin") {
+            id = "raydroid.plugin"
+            implementationClass = "ru.raydroid.gradle.RaydroidPluginConventionPlugin"
+        }
         register("raydroidJvm") {
             id = "raydroid.jvm"
             implementationClass = "ru.raydroid.gradle.RaydroidKotlinJvmConventionPlugin"

@@ -2,6 +2,8 @@ package ru.raydroid.plugin.host
 
 import app.cash.zipline.loader.DefaultFreshnessCheckerNotFresh
 import app.cash.zipline.loader.LoadResult
+import app.cash.zipline.loader.ManifestVerifier
+import app.cash.zipline.loader.ZiplineHttpClient
 import app.cash.zipline.loader.ZiplineLoader
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -11,11 +13,21 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import okio.ByteString
+import okio.FileSystem
+import okio.Path
+import okio.Path.Companion.toPath
+import okio.buffer
+import okio.fakefilesystem.FakeFileSystem
+import okio.openZip
+import okio.use
 import ru.raydroid.plugin.api.ZiplineServices
 import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.CommandServiceBridge
 import ru.raydroid.plugin.api.core.ManifestService
 import ru.raydroid.plugin.api.core.RayItems
+
+
 
 fun startPlugin(
     scope: CoroutineScope,
@@ -25,6 +37,19 @@ fun startPlugin(
     query: Flow<String>,
     nodes: MutableStateFlow<RayItems>
 ) {
+    val fs = FakeFileSystem()
+    ZiplineLoader(
+        dispatcher,
+        manifestVerifier = ManifestVerifier.NO_SIGNATURE_CHECKS,
+        httpClient = object : ZiplineHttpClient() {
+            override suspend fun download(
+                url: String,
+                requestHeaders: List<Pair<String, String>>
+            ): ByteString {
+
+            }
+        }
+    )
     scope.launch(dispatcher + SupervisorJob()) {
         val loadResultFlow = loader.load(
             applicationName = "Raydroid",

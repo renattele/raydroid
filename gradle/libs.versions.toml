@@ -22,6 +22,7 @@ datastore = "1.2.0"
 kotlinx-io = "0.9.0"
 kotlinx-serialization = "1.10.0"
 kotlinx-atomicfu = "0.31.0"
+okio = "3.16.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -66,6 +67,9 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
 koin-ktor = { module = "io.insert-koin:koin-ktor" }
 koin-test = { module = "io.insert-koin:koin-test" }
 
+okio = { module = "com.squareup.okio:okio", version.ref = "okio"}
+okio-fakefilesystem = { module = "com.squareup.okio:okio-fakefilesystem", version.ref = "okio"}
+
 [bundles]
 composeAndroid = ["compose-uiToolingPreview", "androidx-activity-compose"]
 composeCommon = [
@@ -100,4 +104,5 @@ raydroidAndroidLib = { id = "raydroid.android.lib" }
 raydroidMultiplatform = { id = "raydroid.multiplatform" }
 raydroidComposeMultiplatform = { id = "raydroid.compose.multiplatform" }
 raydroidZipline = { id = "raydroid.zipline" }
+raydroidPlugin = { id = "raydroid.plugin" }
 raydroidJvm = { id = "raydroid.jvm" }

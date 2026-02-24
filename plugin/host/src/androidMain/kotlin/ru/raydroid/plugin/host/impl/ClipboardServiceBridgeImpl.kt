@@ -4,12 +4,12 @@ import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
-import android.net.Uri
 import android.os.Build
 import android.os.PersistableBundle
 import androidx.core.net.toFile
-import ru.raydroid.plugin.api.host.bridge.ClipboardServiceBridge
 import androidx.core.net.toUri
+import ru.raydroid.plugin.api.host.bridge.ClipboardServiceBridge
+
 
 internal class ClipboardServiceBridgeImpl(
     private val context: Context
