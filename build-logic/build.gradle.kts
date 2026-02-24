@@ -42,6 +42,10 @@ gradlePlugin {
             id = "raydroid.compose.multiplatform"
             implementationClass = "ru.raydroid.gradle.RaydroidKmpComposeAndroidLibraryConventionPlugin"
         }
+        register("raydroidComposePluginRextResources") {
+            id = "raydroid.compose.plugin.rext.resources"
+            implementationClass = "ru.raydroid.gradle.RaydroidComposePluginRextResourcesConventionPlugin"
+        }
         register("raydroidZipline") {
             id = "raydroid.zipline"
             implementationClass = "ru.raydroid.gradle.RaydroidKmpZiplineConventionPlugin"
@@ -61,4 +65,5 @@ dependencies {
     compileOnly("com.android.tools.build:gradle:${libs.versions.agp.get()}")
     compileOnly("com.android.tools.build:gradle-api:${libs.versions.agp.get()}")
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:${libs.versions.kotlin.get()}")
+    compileOnly("org.jetbrains.compose:compose-gradle-plugin:${libs.versions.composeMultiplatform.get()}")
 }

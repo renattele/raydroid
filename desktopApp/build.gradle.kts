@@ -13,9 +13,11 @@ version = "1.0-SNAPSHOT"
 
 dependencies {
     implementation(libs.bundles.composeCommon)
+    implementation(libs.bundles.ziplineRuntime)
     implementation(compose.desktop.currentOs)
     implementation(projects.composeApp)
     implementation(projects.plugin.api)
+    implementation(projects.plugin.host)
 }
 kotlin {
     compilerOptions {

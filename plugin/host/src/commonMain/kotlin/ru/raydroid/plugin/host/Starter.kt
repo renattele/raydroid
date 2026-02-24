@@ -32,23 +32,14 @@ import ru.raydroid.plugin.api.core.RayItems
 fun startPlugin(
     scope: CoroutineScope,
     dispatcher: CoroutineDispatcher,
-    loader: ZiplineLoader,
     manifestUrl: String,
     query: Flow<String>,
     nodes: MutableStateFlow<RayItems>
 ) {
-    val fs = FakeFileSystem()
-    ZiplineLoader(
+    val loader = ZiplineLoader(
         dispatcher,
         manifestVerifier = ManifestVerifier.NO_SIGNATURE_CHECKS,
-        httpClient = object : ZiplineHttpClient() {
-            override suspend fun download(
-                url: String,
-                requestHeaders: List<Pair<String, String>>
-            ): ByteString {
-
-            }
-        }
+        httpClient = ResourceZiplineHttpClient("calculator.rext")
     )
     scope.launch(dispatcher + SupervisorJob()) {
         val loadResultFlow = loader.load(

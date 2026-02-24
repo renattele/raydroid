@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
     alias(libs.plugins.raydroidComposeMultiplatform)
+    alias(libs.plugins.raydroidComposePluginRextResources)
     alias(libs.plugins.raydroidMultiplatform)
     alias(libs.plugins.raydroidZipline)
 }

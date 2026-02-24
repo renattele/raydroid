@@ -21,9 +21,9 @@ import ru.raydroid.plugin.api.ui.TextData
 
 @Composable
 fun ComposeRayItemRenderer(
-    data: State<RayItems>
+    data: RayItems
 ) {
-    data.value.forEach { (_, nodes) ->
+    data.forEach { (_, nodes) ->
         ComposeRayItemRenderer(nodes)
     }
 }

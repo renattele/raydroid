@@ -103,6 +103,7 @@ raydroidAndroidApp = { id = "raydroid.android.app" }
 raydroidAndroidLib = { id = "raydroid.android.lib" }
 raydroidMultiplatform = { id = "raydroid.multiplatform" }
 raydroidComposeMultiplatform = { id = "raydroid.compose.multiplatform" }
+raydroidComposePluginRextResources = { id = "raydroid.compose.plugin.rext.resources" }
 raydroidZipline = { id = "raydroid.zipline" }
 raydroidPlugin = { id = "raydroid.plugin" }
 raydroidJvm = { id = "raydroid.jvm" }
