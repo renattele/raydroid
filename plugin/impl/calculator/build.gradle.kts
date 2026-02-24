@@ -32,4 +32,5 @@ plugins.withType<YarnPlugin> {
 
 extensions.configure<ZiplineExtension> {
     mainFunction = "main"
+    optimizeForSmallArtifactSize()
 }

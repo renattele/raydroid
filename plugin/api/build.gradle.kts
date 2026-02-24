@@ -11,6 +11,11 @@ extensions.configure<KotlinMultiplatformExtension> {
     js {
         browser()
         binaries.executable()
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions.freeCompilerArgs.add("-Xir-minimized-member-names=false")
+            }
+        }
     }
 
     sourceSets {

@@ -10,9 +10,13 @@ import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import ru.raydroid.plugin.api.core.RayItems
 import ru.raydroid.plugin.host.ui.ComposeRayItemRenderer
 
@@ -24,10 +28,14 @@ fun App(field: String, data: State<RayItems>, onFieldUpdate: (String) -> Unit) {
                 .imePadding()
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Bottom
+            verticalArrangement = Arrangement.Top
         ) {
             ComposeRayItemRenderer(data)
-            TextField(field, onFieldUpdate, Modifier.fillMaxWidth())
+            val focus = remember { FocusRequester() }
+            LaunchedEffect(Unit) {
+                focus.requestFocus()
+            }
+            TextField(field, onFieldUpdate, Modifier.focusRequester(focus).fillMaxWidth())
         }
     }
 }
