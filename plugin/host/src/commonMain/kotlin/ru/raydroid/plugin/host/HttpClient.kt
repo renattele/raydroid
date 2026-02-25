@@ -32,7 +32,7 @@ class ResourceZiplineHttpClient(private val pluginPath: String): ZiplineHttpClie
 private val REXT_VIRTUAL_FS_PATH = "/plugin.rext".toPath()
 private val REXT_UNPACKED_VIRTUAL_FS_PATH = "/plugin".toPath()
 class RextZiplineHttpClient(private val rextFileContent: ByteString): ZiplineHttpClient() {
-    private val fs: FileSystem = FakeFileSystem()
+    val fs: FileSystem = FakeFileSystem()
     override suspend fun download(
         url: String,
         requestHeaders: List<Pair<String, String>>

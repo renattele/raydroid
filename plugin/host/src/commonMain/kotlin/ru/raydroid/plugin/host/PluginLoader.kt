@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.host
 
 import kotlinx.coroutines.flow.Flow
+import okio.FileSystem
 import ru.raydroid.plugin.api.core.CommandServiceBridge
 import ru.raydroid.plugin.api.core.Manifest
 
@@ -13,8 +14,7 @@ interface PluginLoader {
 
 sealed class PluginLoadResult {
     data class Success(
-        val manifest: Manifest,
-        val commandServices: List<CommandServiceBridge>
+        val plugin: Plugin
     ): PluginLoadResult()
 
 

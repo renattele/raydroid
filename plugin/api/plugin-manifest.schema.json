@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raydroid.local/schemas/plugin-manifest.schema.json",
   "title": "Raydroid Plugin Manifest",
   "type": "object",
@@ -24,13 +24,13 @@
       "type": "string"
     },
     "title": {
-      "$ref": "#/$defs/resourceKey"
+      "$ref": "#/definitions/resourceKey"
     },
     "description": {
-      "$ref": "#/$defs/resourceKey"
+      "$ref": "#/definitions/resourceKey"
     },
     "author": {
-      "$ref": "#/$defs/resourceKey"
+      "$ref": "#/definitions/resourceKey"
     },
     "version": {
       "type": "integer"
@@ -38,7 +38,7 @@
     "platforms": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/platform"
+        "$ref": "#/definitions/platform"
       }
     },
     "categories": {
@@ -53,14 +53,14 @@
     "commands": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/command"
+        "$ref": "#/definitions/command"
       }
     },
     "resources": {
-      "$ref": "#/$defs/resourceBuckets"
+      "$ref": "#/definitions/resourceBuckets"
     }
   },
-  "$defs": {
+  "definitions": {
     "platform": {
       "type": "string",
       "enum": [
@@ -103,10 +103,10 @@
           "type": "string"
         },
         "title": {
-          "$ref": "#/$defs/resourceKey"
+          "$ref": "#/definitions/resourceKey"
         },
         "description": {
-          "$ref": "#/$defs/resourceKey"
+          "$ref": "#/definitions/resourceKey"
         },
         "mode": {
           "type": "string",
@@ -125,13 +125,13 @@
         "arguments": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/commandArgument"
+            "$ref": "#/definitions/commandArgument"
           }
         },
         "preferences": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/commandPreference"
+            "$ref": "#/definitions/commandPreference"
           }
         }
       }
@@ -150,7 +150,7 @@
           "type": "string"
         },
         "placeholder": {
-          "$ref": "#/$defs/resourceKey"
+          "$ref": "#/definitions/resourceKey"
         },
         "type": {
           "type": "string",
@@ -181,10 +181,10 @@
           "type": "string"
         },
         "title": {
-          "$ref": "#/$defs/resourceKey"
+          "$ref": "#/definitions/resourceKey"
         },
         "description": {
-          "$ref": "#/$defs/resourceKey"
+          "$ref": "#/definitions/resourceKey"
         },
         "type": {
           "type": "string",
@@ -201,7 +201,7 @@
         "placeholder": {
           "anyOf": [
             {
-              "$ref": "#/$defs/resourceKey"
+              "$ref": "#/definitions/resourceKey"
             },
             {
               "type": "null"

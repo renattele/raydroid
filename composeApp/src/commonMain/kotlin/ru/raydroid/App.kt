@@ -21,11 +21,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import ru.raydroid.plugin.api.core.Manifest
 import ru.raydroid.plugin.api.core.RayItems
+import ru.raydroid.plugin.host.Plugin
 import ru.raydroid.plugin.host.ui.ComposeRayItemRenderer
 import ru.raydroid.plugin.host.ui.ComposeRayRenderer
 
 @Composable
-fun App(field: String, data: RayItems, manifest: Manifest, onFieldUpdate: (String) -> Unit) {
+fun App(field: String, data: RayItems, plugin: Plugin, onFieldUpdate: (String) -> Unit) {
     MaterialTheme {
         Column(
             modifier = Modifier
@@ -35,7 +36,7 @@ fun App(field: String, data: RayItems, manifest: Manifest, onFieldUpdate: (Strin
             verticalArrangement = Arrangement.Bottom
         ) {
             Box(Modifier.heightIn(min = 50.dp).background(MaterialTheme.colorScheme.background).fillMaxWidth()) {
-                ComposeRayRenderer(manifest, data.values.flatten())
+                ComposeRayRenderer(plugin, data.values.flatten())
             }
             val focus = remember { FocusRequester() }
             LaunchedEffect(Unit) {

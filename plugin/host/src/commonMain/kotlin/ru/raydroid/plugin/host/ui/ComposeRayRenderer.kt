@@ -7,49 +7,62 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import okio.FileSystem
+import okio.Path.Companion.toPath
 import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.core.RayItem
-import ru.raydroid.plugin.api.core.RayItems
 import ru.raydroid.plugin.api.core.Resources
 import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.ui.BoxAlignment
 import ru.raydroid.plugin.api.ui.BoxData
+import ru.raydroid.plugin.api.ui.Icon
+import ru.raydroid.plugin.api.ui.IconData
+import ru.raydroid.plugin.api.ui.Image
+import ru.raydroid.plugin.api.ui.ImageData
 import ru.raydroid.plugin.api.ui.Orientation
 import ru.raydroid.plugin.api.ui.OrientedBoxData
 import ru.raydroid.plugin.api.ui.RayNodeData
 import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
+import ru.raydroid.plugin.host.Plugin
 
 @Composable
 fun ComposeRayRenderer(
-    manifest: Manifest,
+    plugin: Plugin,
     data: List<RayNodeData>,
     modifier: Modifier = Modifier
 ) {
     val locale = Locale.current
-    val resolver = remember { ResourceResolverImpl(manifest.resources, locale) }
+    val resolver = remember { ResourceResolverImpl(plugin, locale) }
     CompositionLocalProvider(LocalResourceResolver provides resolver) {
         ComposeRayItemRenderer(data, modifier)
     }
 }
 
 private class ResourceResolverImpl(
-    private val resources: Resources,
-    private val locale: Locale
+    private val plugin: Plugin,
+    private val locale: Locale,
 ): ResourceResolver {
     override fun resolveString(resource: String): String {
         val language = locale.language
-        val resources = resources["strings-$language"] ?: resources["strings"]
+        val resources = plugin.manifest.resources["strings-$language"]
+            ?: plugin.manifest.resources["strings"]
         if (resources == null) {
             return "NOT FOUND"
         }
         return resources[resource] ?: "NOT FOUND"
+    }
+
+    override fun resolveImage(resource: String): ByteArray? {
+        val imageData = plugin.resources.read("plugin/resources/$resource".toPath()) {
+            readByteArray()
+        }
+        return imageData
     }
 }
 
@@ -63,8 +76,45 @@ fun ComposeRayItemRenderer(
             is BoxData -> BoxRenderer(node, modifier)
             is OrientedBoxData -> OrientedBoxRenderer(node, modifier)
             is TextData -> TextRenderer(node, modifier)
+            is IconData -> IconRenderer(node, modifier)
+            is ImageData -> ImageRenderer(node, modifier)
         }
     }
+}
+
+@Composable
+private fun ImageRenderer(data: ImageData, modifier: Modifier = Modifier) {
+    val resourceResolver = LocalResourceResolver.current
+    val resource = remember(data.image) {
+        when (val image = data.image) {
+            is Image.Resource -> resourceResolver.resolveImage(image.resource)
+            is Image.Url -> image.url
+        }
+    }
+    AsyncImage(
+        resource,
+        contentDescription = data.contentDescription,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun IconRenderer(data: IconData, modifier: Modifier = Modifier) {
+    val resourceResolver = LocalResourceResolver.current
+    val resource = remember(data.icon) {
+        when (val icon = data.icon) {
+            // TODO: Fix app icon resolving
+            is Icon.App -> icon.appId
+            is Icon.Base64 -> icon.value
+            is Icon.Resource -> resourceResolver.resolveImage(icon.resource)
+            is Icon.Url -> icon.url
+        }
+    }
+    AsyncImage(
+        resource,
+        contentDescription = data.contentDescription,
+        modifier = modifier
+    )
 }
 
 @Composable

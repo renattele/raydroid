@@ -38,12 +38,19 @@ class PluginLoaderImpl(
                 is LoadResult.Failure -> {
                     return@withContext PluginLoadResult.Failure(loadResult.exception)
                 }
+
                 is LoadResult.Success -> {
                     val zipline = loadResult.zipline
                     val services = manifest.commands.map { command ->
                         zipline.take<CommandServiceBridge>(command.service)
                     }
-                    return@withContext PluginLoadResult.Success(manifest, services)
+                    return@withContext PluginLoadResult.Success(
+                        Plugin(
+                            manifest = manifest,
+                            commandServices = services,
+                            resources = httpClient.fs
+                        )
+                    )
                 }
             }
         }
