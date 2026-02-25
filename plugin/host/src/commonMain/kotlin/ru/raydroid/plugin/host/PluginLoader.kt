@@ -6,7 +6,7 @@ import ru.raydroid.plugin.api.core.Manifest
 
 interface PluginLoader {
     suspend fun loadPlugin(
-        url: String
+        pluginBytes: ByteArray
     ): PluginLoadResult
 }
 

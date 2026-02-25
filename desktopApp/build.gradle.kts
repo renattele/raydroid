@@ -6,6 +6,7 @@ plugins {
     kotlin("jvm")
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.serialization)
 }
 
 group = "ru.raydroid"
@@ -14,6 +15,7 @@ version = "1.0-SNAPSHOT"
 dependencies {
     implementation(libs.bundles.composeCommon)
     implementation(libs.bundles.ziplineRuntime)
+    implementation(libs.kotlinx.serialization.json)
     implementation(compose.desktop.currentOs)
     implementation(projects.composeApp)
     implementation(projects.plugin.api)

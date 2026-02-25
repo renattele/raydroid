@@ -28,6 +28,7 @@ extensions.configure<KotlinMultiplatformExtension> {
             implementation(libs.kotlinx.atomicfu)
             implementation(libs.okio)
             implementation(libs.okio.fakefilesystem)
+            implementation(libs.kotlinx.serialization.json)
             implementation(projects.plugin.api)
         }
         iosMain.dependencies {

@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raydroid.local/schemas/plugin-manifest.schema.json",
+  "title": "Raydroid Plugin Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "title",
+    "description",
+    "author",
+    "version",
+    "platforms",
+    "categories",
+    "license",
+    "commands",
+    "resources"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "title": {
+      "$ref": "#/$defs/resourceKey"
+    },
+    "description": {
+      "$ref": "#/$defs/resourceKey"
+    },
+    "author": {
+      "$ref": "#/$defs/resourceKey"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "platforms": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/platform"
+      }
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "license": {
+      "type": "string"
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/command"
+      }
+    },
+    "resources": {
+      "$ref": "#/$defs/resourceBuckets"
+    }
+  },
+  "$defs": {
+    "platform": {
+      "type": "string",
+      "enum": [
+        "Android",
+        "IOS"
+      ]
+    },
+    "resourceKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "String resource key from a strings bucket (for example resources.strings or resources.strings-ru)"
+    },
+    "resourceBuckets": {
+      "type": "object",
+      "description": "Android-like resource buckets, for example strings, strings-ru, images, images-night",
+      "patternProperties": {
+        "^(strings|images)(-[A-Za-z0-9_]+)*$": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service",
+        "title",
+        "description",
+        "mode",
+        "match",
+        "arguments",
+        "preferences"
+      ],
+      "properties": {
+        "service": {
+          "type": "string"
+        },
+        "title": {
+          "$ref": "#/$defs/resourceKey"
+        },
+        "description": {
+          "$ref": "#/$defs/resourceKey"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "View",
+            "NoView",
+            "Inline"
+          ]
+        },
+        "match": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "arguments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/commandArgument"
+          }
+        },
+        "preferences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/commandPreference"
+          }
+        }
+      }
+    },
+    "commandArgument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "placeholder",
+        "type",
+        "required"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "placeholder": {
+          "$ref": "#/$defs/resourceKey"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Text",
+            "Password",
+            "Dropdown"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "commandPreference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "title",
+        "description",
+        "type",
+        "placeholder",
+        "default"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "$ref": "#/$defs/resourceKey"
+        },
+        "description": {
+          "$ref": "#/$defs/resourceKey"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Text",
+            "Password",
+            "Checkbox",
+            "Dropdown",
+            "AppPicker",
+            "File",
+            "Directory"
+          ]
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/resourceKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "default": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

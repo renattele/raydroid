@@ -6,11 +6,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
+import ru.raydroid.plugin.api.core.Manifest
 import ru.raydroid.plugin.api.core.RayItem
 import ru.raydroid.plugin.api.core.RayItems
+import ru.raydroid.plugin.api.core.Resources
+import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.ui.BoxAlignment
 import ru.raydroid.plugin.api.ui.BoxData
 import ru.raydroid.plugin.api.ui.Orientation
@@ -20,30 +27,49 @@ import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
 
 @Composable
-fun ComposeRayItemRenderer(
-    data: RayItems
+fun ComposeRayRenderer(
+    manifest: Manifest,
+    data: List<RayNodeData>,
+    modifier: Modifier = Modifier
 ) {
-    data.forEach { (_, nodes) ->
-        ComposeRayItemRenderer(nodes)
+    val locale = Locale.current
+    val resolver = remember { ResourceResolverImpl(manifest.resources, locale) }
+    CompositionLocalProvider(LocalResourceResolver provides resolver) {
+        ComposeRayItemRenderer(data, modifier)
+    }
+}
+
+private class ResourceResolverImpl(
+    private val resources: Resources,
+    private val locale: Locale
+): ResourceResolver {
+    override fun resolveString(resource: String): String {
+        val language = locale.language
+        val resources = resources["strings-$language"] ?: resources["strings"]
+        if (resources == null) {
+            return "NOT FOUND"
+        }
+        return resources[resource] ?: "NOT FOUND"
     }
 }
 
 @Composable
 fun ComposeRayItemRenderer(
-    data: List<RayNodeData>
+    data: List<RayNodeData>,
+    modifier: Modifier = Modifier
 ) {
     data.forEach { node ->
         when (node) {
-            is BoxData -> BoxRenderer(node)
-            is OrientedBoxData -> OrientedBoxRenderer(node)
-            is TextData -> TextRenderer(node)
+            is BoxData -> BoxRenderer(node, modifier)
+            is OrientedBoxData -> OrientedBoxRenderer(node, modifier)
+            is TextData -> TextRenderer(node, modifier)
         }
     }
 }
 
 @Composable
-private fun BoxRenderer(data: BoxData) {
-    Box(contentAlignment = data.alignment.toComposeAlignment()) {
+private fun BoxRenderer(data: BoxData, modifier: Modifier = Modifier) {
+    Box(modifier, contentAlignment = data.alignment.toComposeAlignment()) {
         ComposeRayItemRenderer(data.children)
     }
 }
@@ -61,9 +87,10 @@ private fun BoxAlignment.toComposeAlignment() = when (this) {
 }
 
 @Composable
-private fun OrientedBoxRenderer(data: OrientedBoxData) {
+private fun OrientedBoxRenderer(data: OrientedBoxData, modifier: Modifier = Modifier) {
     if (data.orientation == Orientation.Vertical) {
         Column(
+            modifier,
             horizontalAlignment = data.alignment.toComposeHorizontalAlignment(),
             verticalArrangement = if (data.spacing != Spacing.Zero) Arrangement.spacedBy(0.dp, data.alignment.toComposeVerticalAlignment())
             else data.arrangement.toComposeVerticalArrangement(),
@@ -72,6 +99,7 @@ private fun OrientedBoxRenderer(data: OrientedBoxData) {
         }
     } else {
         Row(
+            modifier,
             horizontalArrangement =
                 if (data.spacing != Spacing.Zero) Arrangement.spacedBy(0.dp, data.alignment.toComposeHorizontalAlignment())
                 else data.arrangement.toComposeHorizontalArrangement(),
@@ -113,6 +141,12 @@ private fun ru.raydroid.plugin.api.ui.Arrangement.toComposeVerticalArrangement()
 }
 
 @Composable
-private fun TextRenderer(data: TextData) {
-    Text(data.text)
+private fun TextRenderer(data: TextData, modifier: Modifier = Modifier) {
+    Text(data.text.asText())
+}
+
+@Composable
+internal fun UiText.asText(): String = when (type) {
+    UiText.Type.Plain -> this.text
+    UiText.Type.Resource -> LocalResourceResolver.current.resolveString(this.text)
 }

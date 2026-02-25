@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.api.ui
 
 import kotlinx.serialization.Serializable
+import ru.raydroid.plugin.api.core.UiText
 
 @Serializable
 enum class FontSize {
@@ -12,12 +13,12 @@ enum class FontSize {
 }
 @Serializable
 data class TextData(
-    val text: String,
+    val text: UiText,
     val fontSize: FontSize
 ): RayNodeData()
 
 @Ray
-fun RayScope.Text(text: String, fontSize: FontSize = FontSize.Medium) {
+fun RayScope.Text(text: UiText, fontSize: FontSize = FontSize.Medium) {
     add(TextData(text, fontSize))
 }
 

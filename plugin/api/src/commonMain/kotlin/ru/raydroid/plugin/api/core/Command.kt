@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Command(
     val service: String,
-    val title: UiText,
-    val description: UiText,
+    val title: String,
+    val description: String,
     val mode: Mode,
     val match: String?,
     val arguments: List<Argument>,
@@ -23,7 +23,7 @@ data class Command(
     @Serializable
     data class Argument(
         val name: String,
-        val placeholder: UiText,
+        val placeholder: String,
         val type: Type,
         val required: Boolean
     ) {
@@ -38,10 +38,10 @@ data class Command(
     @Serializable
     data class Preference(
         val name: String,
-        val title: UiText,
-        val description: UiText,
+        val title: String,
+        val description: String,
         val type: Type,
-        val placeholder: UiText?,
+        val placeholder: String?,
         val default: String
     ) {
         enum class Type {

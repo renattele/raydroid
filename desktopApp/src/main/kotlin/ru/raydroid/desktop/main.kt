@@ -18,9 +18,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import raydroid.plugin.host.generated.resources.Res
 import ru.raydroid.App
 import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.CommandServiceBridge
+import ru.raydroid.plugin.api.core.Manifest
 import ru.raydroid.plugin.api.core.RayItems
 import ru.raydroid.plugin.host.PluginLoadResult
 import ru.raydroid.plugin.host.PluginLoaderImpl
@@ -34,26 +36,23 @@ fun main() {
             /* task = */ it,
             /* name = */ "Zipline",
             // Need increased stack size because otherwise we get stack overflow on really simple extensions
-            /* stackSize = */ 2048
+            /* stackSize = */ 512000
         )
     }
     val dispatcher = executorService.asCoroutineDispatcher()
     val queryFlow = MutableStateFlow("")
     val nodeFlow = MutableStateFlow<RayItems>(mapOf())
-    val loader = ZiplineLoader(
-        dispatcher = dispatcher,
-        manifestVerifier = ManifestVerifier.NO_SIGNATURE_CHECKS,
-        httpClient = ResourceZiplineHttpClient("calculator.rext")
-    )
-    val pluginLoader = PluginLoaderImpl(dispatcher, loader)
+    val manifestFlow = MutableStateFlow<Manifest?>(null)
+    val pluginLoader = PluginLoaderImpl(dispatcher)
     CoroutineScope(Dispatchers.IO).launch {
-        val result = pluginLoader.loadPlugin("https://a.com/manifest.zipline.json")
-        when (result) {
+        val res = Res.readBytes("files/calculator.rext")
+        when (val result = pluginLoader.loadPlugin(res)) {
             is PluginLoadResult.Failure -> {
                 result.exception.printStackTrace()
             }
 
             is PluginLoadResult.Success -> {
+                manifestFlow.value = result.manifest
                 result.commandServices.forEach { command ->
                     command.initialize(object : CommandServiceBridge.RenderRequest {
                         override fun requestRender() {
@@ -85,7 +84,11 @@ fun main() {
         ) {
             val query by queryFlow.collectAsState()
             val nodes by nodeFlow.collectAsState()
-            App(query, nodes, onFieldUpdate = { queryFlow.value = it })
+            val manifest by manifestFlow.collectAsState()
+            manifest?.let { manifest ->
+                App(query, nodes,
+                    manifest, onFieldUpdate = { queryFlow.value = it })
+            }
         }
     }
 }

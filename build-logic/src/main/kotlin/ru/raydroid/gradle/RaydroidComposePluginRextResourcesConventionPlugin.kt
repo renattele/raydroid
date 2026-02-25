@@ -31,8 +31,11 @@ abstract class PreparePluginComposeResourcesTask @Inject constructor(
     @TaskAction
     fun run() {
         fileSystemOperations.sync {
-            into(outputDir.dir("files"))
-            from(rextFiles)
+            into(outputDir)
+
+            into("files") {
+                from(rextFiles)
+            }
         }
     }
 }
@@ -62,7 +65,6 @@ private fun Project.configurePluginRextComposeResources() {
 
     val pluginBuildTaskVariant = pluginBuildOutputVariant.replaceFirstChar { it.uppercase() }
     val pluginImplProjects = rootProject.subprojects.filter { it.path.startsWith(":plugin:impl:") }
-
     val preparePluginComposeResources = tasks.register<PreparePluginComposeResourcesTask>("preparePluginComposeResources") {
         group = "build setup"
         description = "Builds plugin .rext artifacts and copies them into generated Compose resources"

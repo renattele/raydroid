@@ -36,6 +36,10 @@ private fun Project.registerPluginVariantTasks(
 
         dependsOn(compileTaskName)
         from(layout.buildDirectory.dir("zipline/$variantName"))
+        from(layout.projectDirectory.dir("src/jsMain/resources")) {
+            into("resources")
+            includeEmptyDirs = true
+        }
 
         destinationDirectory.set(layout.buildDirectory.dir("output/$outputVariantName"))
         archiveFileName.set("${project.name}.rext")
