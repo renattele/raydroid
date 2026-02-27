@@ -1,9 +1,11 @@
 package ru.raydroid.plugin.host.impl
 
 import app.cash.zipline.Zipline
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import okio.FileSystem
 import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.CommandServiceBridge
@@ -17,7 +19,8 @@ class SinglePluginRuntimeImpl(
     override val manifest: Manifest,
     override val resources: FileSystem,
     private val commandServices: List<CommandServiceBridge>,
-    private val zipline: Zipline
+    private val zipline: Zipline,
+    private val dispatcher: CoroutineDispatcher
 ) : SinglePluginRuntime {
     private val contentFlow = MutableStateFlow<List<RayItems>>(List(commandServices.size) {
         emptyMap()
@@ -48,8 +51,10 @@ class SinglePluginRuntimeImpl(
     override suspend fun update(
         query: String, action: CommandAction
     ) {
-        commandServices.forEach { command ->
-            command.update(query, action)
+        withContext(dispatcher) {
+            commandServices.forEach { command ->
+                command.update(query, action)
+            }
         }
     }
 

@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -33,12 +35,14 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
         LaunchedEffect(Unit) {
             focus.requestFocus()
         }
-        state.content.forEach { pluginContent ->
-            ComposeRayRenderer(
-                resources = pluginContent.resources,
-                manifest = pluginContent.manifest,
-                data = pluginContent.data
-            )
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            state.content.forEach { pluginContent ->
+                ComposeRayRenderer(
+                    resources = pluginContent.resources,
+                    manifest = pluginContent.manifest,
+                    data = pluginContent.data
+                )
+            }
         }
         TextField(
             value = state.query,

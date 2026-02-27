@@ -72,7 +72,8 @@ class PluginLoaderImpl(
                         manifest = manifest,
                         commandServices = services,
                         resources = fs,
-                        zipline = zipline
+                        zipline = zipline,
+                        dispatcher = dispatcher
                     )
                 }
             }
