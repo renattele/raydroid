@@ -1,5 +1,8 @@
 package ru.raydroid.core.data
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
@@ -9,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val coreDataModule = module {
@@ -28,5 +32,11 @@ val coreDataModule = module {
 
     single<CoroutineScope> {
         CoroutineScope(Dispatchers.IO + SupervisorJob())
+    }
+
+    single<DataStore<Preferences>> {
+        PreferenceDataStoreFactory.createWithPath {
+            get(named("localPath"))
+        }
     }
 }

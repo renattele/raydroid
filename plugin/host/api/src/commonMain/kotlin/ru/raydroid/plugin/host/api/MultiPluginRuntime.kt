@@ -8,7 +8,7 @@ import ru.raydroid.plugin.api.core.RayItems
 interface MultiPluginRuntime {
     suspend fun cachedItems(): List<ListItem>
 
-    fun content(): StateFlow<List<List<RayItems>>>
+    fun content(): StateFlow<Map<SinglePluginRuntime, List<RayItems>>>
 
     suspend fun update(query: String, action: CommandAction)
 }

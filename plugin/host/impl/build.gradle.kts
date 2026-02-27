@@ -30,6 +30,8 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.coil.compose)
             implementation(libs.koin.core)
+            implementation(libs.datastore)
+            implementation(libs.datastore.preferences)
             implementation(projects.plugin.api)
             implementation(projects.plugin.host.api)
         }

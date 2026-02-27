@@ -13,6 +13,8 @@ import ru.raydroid.plugin.host.impl.datasource.LocalPluginDataSource
 import ru.raydroid.plugin.host.impl.datasource.LocalPluginDataSourceImpl
 import ru.raydroid.plugin.host.impl.datasource.RemotePluginDataSource
 import ru.raydroid.plugin.host.impl.datasource.RemotePluginDataSourceImpl
+import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSource
+import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSourceImpl
 import ru.raydroid.plugin.host.impl.services.hostServiceModule
 
 internal expect val pluginPlatformModule: Module
@@ -20,13 +22,18 @@ val pluginHostModule = module {
     includes(pluginPlatformModule)
     includes(hostServiceModule)
     single<PluginLoader> {
-        PluginLoaderImpl(get(), get(), get(), get())
+        PluginLoaderImpl({
+            get()
+        }, get(), get(), get())
     }
     single<LocalPluginDataSource> {
         LocalPluginDataSourceImpl(
             localFs = get(named("localFileSystem")),
             basePath = get(named("localPath"))
         )
+    }
+    single<ResourcePluginDataSource> {
+        ResourcePluginDataSourceImpl(get())
     }
     singleOf(::RemotePluginDataSourceImpl) {
         bind<RemotePluginDataSource>()

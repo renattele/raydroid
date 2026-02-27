@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../../api/plugin-manifest.schema.json",
-  "name": "calculator",
+  "name": "ru.raydroid.plugin.impl.calculator",
   "title": "app.name",
   "description": "app.description",
   "author": "app.author",

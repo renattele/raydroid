@@ -19,7 +19,6 @@ import okio.use
 import ru.raydroid.plugin.api.ZiplineServices
 import ru.raydroid.plugin.api.core.CommandServiceBridge
 import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.host.bridge.HostServiceBridge
 import ru.raydroid.plugin.host.api.HostFactory
 import ru.raydroid.plugin.host.api.MultiPluginRuntime
 import ru.raydroid.plugin.host.api.Plugin
@@ -35,7 +34,7 @@ internal val REXT_UNPACKED_VIRTUAL_FS_PATH = "/plugin".toPath()
 internal const val NONEXISTENT_URL = "https://nonexistent.jkjk"
 
 class PluginLoaderImpl(
-    private val dispatcher: CoroutineDispatcher,
+    private val dispatcher: () -> CoroutineDispatcher,
     private val json: Json = Json {
         ignoreUnknownKeys = true
     },
@@ -43,6 +42,7 @@ class PluginLoaderImpl(
     private val hostFactory: HostFactory
 ) : PluginLoader {
     override suspend fun loadPlugin(plugin: Plugin): SinglePluginRuntime {
+        val dispatcher = dispatcher()
         val fs = pluginFs(plugin)
         val httpClient = RextZiplineHttpClient(fs)
         val loader = ZiplineLoader(
@@ -61,7 +61,6 @@ class PluginLoaderImpl(
 
             when (loadResult) {
                 is LoadResult.Failure -> throw loadResult.exception
-
                 is LoadResult.Success -> {
                     val zipline = loadResult.zipline
                     val host = hostFactory.get(pluginId)

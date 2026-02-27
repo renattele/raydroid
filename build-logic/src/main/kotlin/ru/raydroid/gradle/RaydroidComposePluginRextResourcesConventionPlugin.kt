@@ -6,7 +6,9 @@ import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.plugins.ExtensionAware
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
@@ -21,6 +23,9 @@ import javax.inject.Inject
 abstract class PreparePluginComposeResourcesTask @Inject constructor(
     private val fileSystemOperations: FileSystemOperations,
 ) : DefaultTask() {
+    @get:Input
+    abstract val pluginIds: ListProperty<String>
+
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val rextFiles: ConfigurableFileCollection
@@ -37,6 +42,20 @@ abstract class PreparePluginComposeResourcesTask @Inject constructor(
                 from(rextFiles)
             }
         }
+
+        val pluginListFile = outputDir.file("files/plugin-list.json").get().asFile
+        pluginListFile.parentFile.mkdirs()
+        pluginListFile.writeText(pluginIds.asJsonArray())
+    }
+}
+
+private fun ListProperty<String>.asJsonArray(): String {
+    return get().joinToString(
+        prefix = "[\n",
+        postfix = "\n]\n",
+        separator = ",\n",
+    ) { pluginId ->
+        "  \"$pluginId\""
     }
 }
 
@@ -65,15 +84,18 @@ private fun Project.configurePluginRextComposeResources() {
 
     val pluginBuildTaskVariant = pluginBuildOutputVariant.replaceFirstChar { it.uppercase() }
     val pluginImplProjects = rootProject.subprojects.filter { it.path.startsWith(":plugin:impl:") }
+    val pluginIds = pluginImplProjects.map { it.pluginPackageName() }
+
     val preparePluginComposeResources = tasks.register<PreparePluginComposeResourcesTask>("preparePluginComposeResources") {
         group = "build setup"
         description = "Builds plugin .rext artifacts and copies them into generated Compose resources"
 
         dependsOn(pluginImplProjects.map { "${it.path}:raydroidPlugin${pluginBuildTaskVariant}Build" })
+        this.pluginIds.set(pluginIds)
 
         rextFiles.from(
-            pluginImplProjects.map { pluginProject ->
-                pluginProject.layout.buildDirectory.file("output/$pluginBuildOutputVariant/${pluginProject.name}.rext")
+            pluginImplProjects.zip(pluginIds).map { (pluginProject, pluginId) ->
+                pluginProject.layout.buildDirectory.file("output/$pluginBuildOutputVariant/$pluginId.rext")
             }
         )
         outputDir.set(layout.buildDirectory.dir("generated/composeResources/pluginRext/$pluginBuildOutputVariant"))

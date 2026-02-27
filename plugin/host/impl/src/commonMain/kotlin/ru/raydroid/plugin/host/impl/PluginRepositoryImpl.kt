@@ -7,10 +7,12 @@ import ru.raydroid.plugin.host.api.PluginRepository
 import ru.raydroid.plugin.host.api.exception.NonMatchingSignatureException
 import ru.raydroid.plugin.host.impl.datasource.LocalPluginDataSource
 import ru.raydroid.plugin.host.impl.datasource.RemotePluginDataSource
+import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSource
 
 class PluginRepositoryImpl(
     private val remotePluginDataSource: RemotePluginDataSource,
     private val localPluginDataSource: LocalPluginDataSource,
+    private val resourcePluginDataSource: ResourcePluginDataSource,
     private val pluginLoader: PluginLoader
 ) : PluginRepository {
     override suspend fun installPlugin(url: String) {
@@ -23,11 +25,14 @@ class PluginRepositoryImpl(
     }
 
     override suspend fun listInstalledPlugins(): List<PluginId> {
-        return localPluginDataSource.listPlugins()
+        return resourcePluginDataSource.listPlugins() + localPluginDataSource.listPlugins()
     }
 
     override suspend fun loadPlugin(pluginId: PluginId): Plugin? {
-        val data = localPluginDataSource.load(pluginId) ?: return null
+        val data = resourcePluginDataSource.load(pluginId)
+            ?: localPluginDataSource.load(pluginId)
+            ?: return null
+
         return Plugin(data)
     }
 

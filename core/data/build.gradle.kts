@@ -16,6 +16,8 @@ kotlin {
             implementation(libs.bundles.ktorClient)
             implementation(libs.bundles.ktorClient)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.datastore)
+            implementation(libs.datastore.preferences)
             implementation(projects.core.model)
             implementation(projects.core.domain)
         }

@@ -14,10 +14,11 @@ import ru.raydroid.plugin.host.api.SinglePluginRuntime
 class MultiPluginRuntimeImpl(
     coroutineScope: CoroutineScope,
     private val pluginRuntimes: StateFlow<List<SinglePluginRuntime>>
-): MultiPluginRuntime {
-    private val contentFlow = MutableStateFlow<List<List<RayItems>>>(
-       emptyList()
+) : MultiPluginRuntime {
+    private val contentFlow = MutableStateFlow<Map<SinglePluginRuntime, List<RayItems>>>(
+        mapOf()
     )
+
     init {
         coroutineScope.launch {
             var previousJob: Job? = null
@@ -27,7 +28,7 @@ class MultiPluginRuntimeImpl(
                     runtimes.forEach { runtime ->
                         launch {
                             runtime.content().collect { _ ->
-                                val newContent = runtimes.map {
+                                val newContent = runtimes.associateWith {
                                     it.content().value
                                 }
                                 contentFlow.value = newContent
@@ -38,11 +39,12 @@ class MultiPluginRuntimeImpl(
             }
         }
     }
+
     override suspend fun cachedItems(): List<ListItem> {
         return pluginRuntimes.value.flatMap { it.cachedItems() }
     }
 
-    override fun content(): StateFlow<List<List<RayItems>>> = contentFlow
+    override fun content(): StateFlow<Map<SinglePluginRuntime, List<RayItems>>> = contentFlow
 
     override suspend fun update(
         query: String,

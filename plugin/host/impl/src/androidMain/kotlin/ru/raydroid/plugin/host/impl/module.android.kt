@@ -25,7 +25,7 @@ internal actual val pluginPlatformModule = module {
         FileSystem.SYSTEM
     }
     single<Path>(named("localPath")) {
-        androidContext().dataDir.absolutePath.toPath()
+        androidContext().filesDir.absolutePath.toPath()
     }
     factory<CoroutineDispatcher> {
         Executors.newSingleThreadExecutor {

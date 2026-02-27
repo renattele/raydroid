@@ -1,5 +1,6 @@
 package ru.raydroid.search
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import ru.raydroid.plugin.host.impl.ui.ComposeRayRenderer
 
 @Composable
 fun SearchScreen(modifier: Modifier = Modifier) {
@@ -26,10 +28,17 @@ fun SearchScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
         val focus = remember { FocusRequester() }
         LaunchedEffect(Unit) {
             focus.requestFocus()
+        }
+        state.content.forEach { pluginContent ->
+            ComposeRayRenderer(
+                resources = pluginContent.resources,
+                manifest = pluginContent.manifest,
+                data = pluginContent.data
+            )
         }
         TextField(
             value = state.query,

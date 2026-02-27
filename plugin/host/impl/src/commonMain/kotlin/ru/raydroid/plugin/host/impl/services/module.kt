@@ -26,8 +26,8 @@ internal val hostServiceModule = module {
     factory<CacheServiceBridge> { RuntimeCacheServiceImpl() }
     factory<StorageServiceBridge> {
         StorageServiceBridgeImpl(
-            basePath = get(named("localFileSystem")),
-            filePrefix = get(named("localPath"))
+            basePath = get(named("localPath")),
+            filePrefix = "plugin"
         )
     }
 }

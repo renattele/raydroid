@@ -16,7 +16,7 @@ val appModule = module {
     includes(pluginHostModule)
 
     viewModel<SearchViewModel> {
-        SearchViewModel(get<PluginRepository>())
+        SearchViewModel(get<PluginRepository>(), get())
     }
 }
 

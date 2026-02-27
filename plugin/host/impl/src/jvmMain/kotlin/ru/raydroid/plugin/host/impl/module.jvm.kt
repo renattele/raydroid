@@ -32,7 +32,7 @@ internal actual val pluginPlatformModule = module {
                 /* group = */ null,
                 /* task = */ it,
                 /* name = */ "Zipline Executor",
-                /* stackSize = */ 512000
+                /* stackSize = */ 128000
             )
         }.asCoroutineDispatcher()
     }

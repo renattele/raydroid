@@ -42,7 +42,7 @@ private fun Project.registerPluginVariantTasks(
         }
 
         destinationDirectory.set(layout.buildDirectory.dir("output/$outputVariantName"))
-        archiveFileName.set("${project.name}.rext")
+        archiveFileName.set("${pluginPackageName()}.rext")
     }
 
     tasks.register<DefaultTask>(serveAliasTaskName) {
