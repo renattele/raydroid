@@ -16,10 +16,12 @@ dependencies {
     implementation(libs.bundles.composeCommon)
     implementation(libs.bundles.ziplineRuntime)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.koin.compose)
     implementation(compose.desktop.currentOs)
     implementation(projects.composeApp)
     implementation(projects.plugin.api)
-    implementation(projects.plugin.host)
+    implementation(projects.plugin.host.api)
+    implementation(projects.plugin.host.impl)
 }
 kotlin {
     compilerOptions {

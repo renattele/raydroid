@@ -24,9 +24,14 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.bundles.composeCommon)
             implementation(libs.bundles.lifecycleCompose)
+            implementation(libs.bundles.koin)
+            implementation(libs.bundles.koin.compose)
             implementation(projects.shared)
             implementation(projects.plugin.api)
-            implementation(projects.plugin.host)
+            implementation(projects.plugin.host.api)
+            implementation(projects.plugin.host.impl)
+            implementation(projects.core.data)
+            implementation(projects.core.domain)
         }
     }
 }

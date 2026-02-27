@@ -6,7 +6,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class Platform {
     Android,
-    IOS
+    IOS,
+    Linux,
+    Windows,
+    MacOS
 }
 
 @Serializable

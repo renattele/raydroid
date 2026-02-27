@@ -12,6 +12,7 @@ sealed class CommandAction {
     @Serializable
     data class Type(val key: Char? = null): CommandAction()
 }
+
 interface CommandServiceBridge: ZiplineService {
     suspend fun cachedItems(): List<ListItem>
     fun content(): RayItems

@@ -19,7 +19,8 @@ dependencies {
     implementation(libs.bundles.composeAndroid)
     implementation(libs.zipline.loader)
     implementation(libs.okHttp.core)
+    implementation(libs.koin.android)
     implementation(projects.composeApp)
     implementation(projects.plugin.api)
-    implementation(projects.plugin.host)
+    implementation(projects.plugin.host.api)
 }
