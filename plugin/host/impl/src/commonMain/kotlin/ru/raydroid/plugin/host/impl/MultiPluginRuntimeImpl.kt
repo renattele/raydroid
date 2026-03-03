@@ -2,16 +2,23 @@ package ru.raydroid.plugin.host.impl
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.ListItem
 import ru.raydroid.plugin.api.core.RayItems
+import ru.raydroid.plugin.host.api.ListItemUpdate
 import ru.raydroid.plugin.host.api.MultiPluginRuntime
 import ru.raydroid.plugin.host.api.SinglePluginRuntime
 
-class MultiPluginRuntimeImpl(
+internal class MultiPluginRuntimeImpl(
     coroutineScope: CoroutineScope,
     private val pluginRuntimes: StateFlow<List<SinglePluginRuntime>>
 ) : MultiPluginRuntime {
@@ -19,19 +26,30 @@ class MultiPluginRuntimeImpl(
         mapOf()
     )
 
+    private val cacheItemsFlow = MutableStateFlow<Map<SinglePluginRuntime, List<ListItemUpdate>>>(
+        mapOf()
+    )
+
     init {
         coroutineScope.launch {
             var previousJob: Job? = null
-            pluginRuntimes.collect { runtimes ->
+            pluginRuntimes.collectLatest { runtimes ->
                 previousJob?.cancel()
                 previousJob = launch {
                     runtimes.forEach { runtime ->
                         launch {
-                            runtime.content().collect { _ ->
+                            runtime.content().collectLatest { _ ->
                                 val newContent = runtimes.associateWith {
                                     it.content().value
                                 }
                                 contentFlow.value = newContent
+                            }
+                        }
+                        launch {
+                            runtime.cachedItems().collectLatest { newCacheItems ->
+                                cacheItemsFlow.update { oldCacheItems ->
+                                    oldCacheItems + (runtime to newCacheItems)
+                                }
                             }
                         }
                     }
@@ -40,9 +58,8 @@ class MultiPluginRuntimeImpl(
         }
     }
 
-    override suspend fun cachedItems(): List<ListItem> {
-        return pluginRuntimes.value.flatMap { it.cachedItems() }
-    }
+    override fun cachedItems(): Flow<Map<SinglePluginRuntime, List<ListItemUpdate>>> =
+        cacheItemsFlow
 
     override fun content(): StateFlow<Map<SinglePluginRuntime, List<RayItems>>> = contentFlow
 

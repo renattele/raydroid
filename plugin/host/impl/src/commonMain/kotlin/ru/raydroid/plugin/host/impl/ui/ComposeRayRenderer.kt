@@ -16,7 +16,6 @@ import coil3.compose.AsyncImage
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.core.Resources
 import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.ui.BoxAlignment
 import ru.raydroid.plugin.api.ui.BoxData
@@ -29,7 +28,6 @@ import ru.raydroid.plugin.api.ui.OrientedBoxData
 import ru.raydroid.plugin.api.ui.RayNodeData
 import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
-import ru.raydroid.plugin.host.api.Plugin
 
 @Composable
 fun ComposeRayRenderer(
@@ -104,12 +102,12 @@ private fun ImageRenderer(data: ImageData, modifier: Modifier = Modifier) {
 private fun IconRenderer(data: IconData, modifier: Modifier = Modifier) {
     val resourceResolver = LocalResourceResolver.current
     val resource = remember(data.icon) {
-        when (val icon = data.icon) {
+        when (val iconType = data.icon.type) {
             // TODO: Fix app icon resolving
-            is Icon.App -> icon.appId
-            is Icon.Base64 -> icon.value
-            is Icon.Resource -> resourceResolver.resolveImage(icon.resource)
-            is Icon.Url -> icon.url
+            Icon.Type.App -> data.icon.value
+            Icon.Type.Url -> data.icon.value
+            Icon.Type.Resource -> resourceResolver.resolveImage(data.icon.value)
+            Icon.Type.Base64 -> data.icon.value
         }
     }
     AsyncImage(

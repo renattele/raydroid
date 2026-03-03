@@ -1,35 +1,49 @@
 package ru.raydroid.plugin.api.core
 
 import app.cash.zipline.ZiplineService
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.ui.Ray
 
 @Serializable
 sealed class CommandAction {
     @Serializable
-    data class Enter(val hoveredId: ItemId): CommandAction()
+    data class Enter(val hoveredId: ItemId) : CommandAction()
 
     @Serializable
-    data class Type(val key: Char? = null): CommandAction()
+    data class Type(val key: Char? = null) : CommandAction()
 }
 
-interface CommandServiceBridge: ZiplineService {
-    suspend fun cachedItems(): List<ListItem>
+interface CommandServiceBridge : ZiplineService {
+    val serviceName: String
+    suspend fun cachedItems(
+        requestedItems: List<ItemId>? = null,
+        chunkSize: Int = 100
+    ): Flow<List<ListItem>>
+
     fun content(): RayItems
 
-    fun initialize(request: RenderRequest)
+    fun initialize(request: RenderRequest, invalidateCacheRequest: InvalidateCacheRequest)
 
     suspend fun update(query: String, action: CommandAction)
 
-    interface RenderRequest: ZiplineService {
+    interface RenderRequest : ZiplineService {
         fun requestRender()
+    }
+
+    interface InvalidateCacheRequest : ZiplineService {
+        fun requestInvalidation(invalidatedIds: List<ItemId>? = null)
     }
 }
 
 abstract class CommandService {
-    open suspend fun cachedItems(): List<ListItem> {
-        return emptyList()
-    }
+    open suspend fun cachedItems(
+        requestedItems: List<ItemId>? = null,
+        chunkSize: Int = 100
+    ): Flow<List<ListItem>> =
+        emptyFlow()
 
     @Ray
     abstract fun RayListScope.content()
@@ -43,6 +57,10 @@ abstract class CommandService {
         }
     }
 
+    fun invalidateCache(invalidatedIds: List<ItemId>? = null) {
+        onInvalidateCacheRequest?.invoke(invalidatedIds)
+    }
+
     val query: String
         get() = _query
 
@@ -52,6 +70,8 @@ abstract class CommandService {
     }
 
     internal var onRenderRequest: (() -> Unit)? = null
+
+    internal var onInvalidateCacheRequest: ((List<ItemId>?) -> Unit)? = null
 
     private var _query: String = ""
 }

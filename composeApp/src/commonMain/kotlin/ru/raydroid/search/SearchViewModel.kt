@@ -3,23 +3,29 @@ package ru.raydroid.search
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okio.FileSystem
-import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.core.RayItems
 import ru.raydroid.plugin.api.ui.RayNodeData
-import ru.raydroid.plugin.host.api.PluginId
-import ru.raydroid.plugin.host.api.PluginLoader
-import ru.raydroid.plugin.host.api.PluginRepository
-import ru.raydroid.plugin.host.api.SinglePluginRuntime
+import ru.raydroid.plugin.host.api.usecase.LoadRuntimesUseCase
+import ru.raydroid.plugin.host.api.usecase.SearchUseCase
+import ru.raydroid.plugin.host.api.usecase.SyncCacheUseCase
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModel(
-    private val pluginRepository: PluginRepository,
-    private val pluginLoader: PluginLoader
+    private val syncCacheUseCase: SyncCacheUseCase,
+    private val loadRuntimesUseCase: LoadRuntimesUseCase,
+    private val searchUseCase: SearchUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         SearchScreenState(
@@ -29,35 +35,15 @@ class SearchViewModel(
     val state = _state.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            val pluginIds = pluginRepository.listInstalledPlugins()
-            val runtimes = pluginIds.associateWith { pluginId ->
-                val rawPlugin = pluginRepository.loadPlugin(pluginId) ?: return@associateWith null
-                pluginLoader.loadPlugin(rawPlugin)
-            }.filter { (_, runtime) -> runtime != null } as Map<PluginId, SinglePluginRuntime>
-            val multiRuntime = pluginLoader.join(MutableStateFlow(runtimes.values.toList()))
-            launch {
-                multiRuntime.content().collect { content ->
-                    val newContent = content.map { (runtime, items) ->
-                        SearchScreenState.PluginResultContent(
-                            resources = runtime.resources,
-                            manifest = runtime.manifest,
-                            data = items.flatMap { it.values }.flatten()
-                        )
-                    }
-                    _state.update {
-                        it.copy(content = newContent)
-                    }
-                }
-            }
-            var lastChangedQuery = state.value.query
-            state.collect { state ->
-                // Check needed to prevent infinite loops like this:
-                // query update -> content update -> query update -> content update
-                if (state.query != lastChangedQuery) {
-                    println("UPDATING")
-                    multiRuntime.update(query = state.query, action = CommandAction.Type())
-                    lastChangedQuery = state.query
+        viewModelScope.launch(Dispatchers.IO  + SupervisorJob()) {
+            launch { syncCacheUseCase() }
+            launch { loadRuntimesUseCase() }
+            _state
+                .map { it.query }
+                .distinctUntilChanged()
+                .collectLatest { query ->
+                searchUseCase(query).collect { searchResults ->
+                    println(searchResults)
                 }
             }
         }

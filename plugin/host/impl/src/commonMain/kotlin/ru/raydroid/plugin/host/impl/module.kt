@@ -9,18 +9,26 @@ import org.koin.dsl.module
 import ru.raydroid.plugin.host.api.HostFactory
 import ru.raydroid.plugin.host.api.PluginLoader
 import ru.raydroid.plugin.host.api.PluginRepository
+import ru.raydroid.plugin.host.api.PluginRuntimeManager
+import ru.raydroid.plugin.host.api.SearchRepository
+import ru.raydroid.plugin.host.api.usecase.LoadRuntimesUseCase
+import ru.raydroid.plugin.host.api.usecase.SearchUseCase
+import ru.raydroid.plugin.host.api.usecase.SyncCacheUseCase
 import ru.raydroid.plugin.host.impl.datasource.LocalPluginDataSource
 import ru.raydroid.plugin.host.impl.datasource.LocalPluginDataSourceImpl
 import ru.raydroid.plugin.host.impl.datasource.RemotePluginDataSource
 import ru.raydroid.plugin.host.impl.datasource.RemotePluginDataSourceImpl
 import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSource
 import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSourceImpl
+import ru.raydroid.plugin.host.impl.datasource.cache.dbModule
 import ru.raydroid.plugin.host.impl.services.hostServiceModule
 
 internal expect val pluginPlatformModule: Module
+
 val pluginHostModule = module {
     includes(pluginPlatformModule)
     includes(hostServiceModule)
+    includes(dbModule)
     single<PluginLoader> {
         PluginLoaderImpl({
             get()
@@ -38,7 +46,16 @@ val pluginHostModule = module {
     singleOf(::RemotePluginDataSourceImpl) {
         bind<RemotePluginDataSource>()
     }
-    singleOf(::PluginRepositoryImpl) bind PluginRepository::class
+    singleOf(::PluginRepositoryImpl) {
+        bind<PluginRepository>()
+    }
+    singleOf(::SearchRepositoryImpl) bind SearchRepository::class
+    singleOf(::PluginRuntimeManagerImpl) bind PluginRuntimeManager::class
+
+    singleOf(::SyncCacheUseCase)
+    singleOf(::LoadRuntimesUseCase)
+    singleOf(::SearchUseCase)
+
     single<HostFactory> {
         HostFactoryImpl(
             networkBridge = { get() },

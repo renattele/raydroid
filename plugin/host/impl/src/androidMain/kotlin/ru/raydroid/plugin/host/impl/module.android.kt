@@ -36,4 +36,5 @@ internal actual val pluginPlatformModule = module {
                 /* stackSize = */ 512000
             )
         }.asCoroutineDispatcher()
-    }}
+    }
+}

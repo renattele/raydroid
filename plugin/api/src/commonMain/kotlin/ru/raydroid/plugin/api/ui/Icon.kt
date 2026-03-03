@@ -3,18 +3,22 @@ package ru.raydroid.plugin.api.ui
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class Icon {
-    @Serializable
-    data class App(val appId: String): Icon()
+data class Icon(val value: String, val type: Type) {
+    enum class Type {
+        App,
+        Url,
+        Resource,
+        Base64
+    }
+    companion object {
+        fun App(appId: String) = Icon(appId, Type.App)
 
-    @Serializable
-    data class Url(val url: String): Icon()
+        fun Url(url: String) = Icon(url, Type.Url)
 
-    @Serializable
-    data class Resource(val resource: String): Icon()
+        fun Resource(resource: String) = Icon(resource, Type.Resource)
 
-    @Serializable
-    data class Base64(val value: String): Icon()
+        fun Base64(base64: String) = Icon(base64, Type.Base64)
+    }
 }
 
 enum class IconSize {

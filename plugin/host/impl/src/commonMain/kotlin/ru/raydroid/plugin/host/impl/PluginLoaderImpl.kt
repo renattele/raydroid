@@ -33,7 +33,7 @@ internal val REXT_UNPACKED_VIRTUAL_FS_PATH = "/plugin".toPath()
 // Need baseurl because otherwise loader won't accept url
 internal const val NONEXISTENT_URL = "https://nonexistent.jkjk"
 
-class PluginLoaderImpl(
+internal class PluginLoaderImpl(
     private val dispatcher: () -> CoroutineDispatcher,
     private val json: Json = Json {
         ignoreUnknownKeys = true
@@ -73,14 +73,15 @@ class PluginLoaderImpl(
                         commandServices = services,
                         resources = fs,
                         zipline = zipline,
-                        dispatcher = dispatcher
+                        pluginRuntimeDispatcher = dispatcher,
+                        coroutineScope = coroutineScope
                     )
                 }
             }
         }
     }
 
-    override suspend fun loadPluginMetadata(plugin: Plugin): PluginMetadata? {
+    override suspend fun loadPluginMetadata(plugin: Plugin): PluginMetadata {
         val pluginFs = pluginFs(plugin)
         val httpClient = RextZiplineHttpClient(pluginFs)
         val manifest = loadManifest(httpClient)
@@ -123,9 +124,6 @@ class PluginLoaderImpl(
                 write(plugin.data)
             }
             fs.unpackZip(REXT_VIRTUAL_FS_PATH, REXT_UNPACKED_VIRTUAL_FS_PATH)
-            fs.listRecursively("/".toPath()).forEach {
-                println(it)
-            }
         }
     }
 }

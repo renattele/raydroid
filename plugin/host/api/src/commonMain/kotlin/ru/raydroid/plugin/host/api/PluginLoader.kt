@@ -9,7 +9,7 @@ interface PluginLoader {
 
     suspend fun loadPluginMetadata(
         plugin: Plugin
-    ): PluginMetadata?
+    ): PluginMetadata
 
     suspend fun join(
         plugins: StateFlow<List<SinglePluginRuntime>>

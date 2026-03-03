@@ -4,14 +4,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.CommandService
 import ru.raydroid.plugin.api.core.ItemId
+import ru.raydroid.plugin.api.core.ListItem
 import ru.raydroid.plugin.api.core.RayListScope
 import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.host.Host
 import ru.raydroid.plugin.api.ui.Column
+import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.Text
 
 class CalculatorCommand : CommandService() {
@@ -19,6 +23,20 @@ class CalculatorCommand : CommandService() {
     private var label: UiText = UiText.Resource("app.main")
     private var previous: Job? = null
     private var apps = emptyList<String>()
+    override suspend fun cachedItems(requestedItems: List<ItemId>?, chunkSize: Int) = flow {
+        val apps = Host.system.getApps()
+        apps.map { app ->
+            ListItem(
+                ItemId(app.id),
+                Icon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
+                title = UiText.Plain(app.name),
+                description = UiText.Plain(app.id)
+            )
+        }.chunked(chunkSize).forEach { chunk ->
+            emit(chunk)
+        }
+    }
+
     override fun RayListScope.content() {
         item(ItemId.Static) {
 
@@ -34,7 +52,6 @@ class CalculatorCommand : CommandService() {
 
     override suspend fun execute(action: CommandAction) {
         if (query.any { it.isDigit() }) {
-            apps = Host.system.getApps().map { it.id }
             previous?.cancel()
             previous = CoroutineScope(Dispatchers.Unconfined).launch {
                 repeat(12) { dotsCount ->
