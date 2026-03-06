@@ -58,6 +58,9 @@
     },
     "resources": {
       "$ref": "#/definitions/resourceBuckets"
+    },
+    "access": {
+      "$ref": "#/definitions/access"
     }
   },
   "definitions": {
@@ -65,7 +68,10 @@
       "type": "string",
       "enum": [
         "Android",
-        "IOS"
+        "IOS",
+        "Linux",
+        "Windows",
+        "MacOS"
       ]
     },
     "resourceKey": {
@@ -210,6 +216,149 @@
         },
         "default": {
           "type": "string"
+        }
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clipboard": {
+          "$ref": "#/definitions/clipboardAccess"
+        },
+        "cache": {
+          "$ref": "#/definitions/sizedAccess"
+        },
+        "environment": {
+          "$ref": "#/definitions/environmentAccess"
+        },
+        "network": {
+          "$ref": "#/definitions/networkAccess"
+        },
+        "preferences": {
+          "$ref": "#/definitions/sizedAccess"
+        },
+        "storage": {
+          "$ref": "#/definitions/sizedAccess"
+        },
+        "system": {
+          "$ref": "#/definitions/systemAccess"
+        },
+        "runtime": {
+          "$ref": "#/definitions/runtimeAccess"
+        }
+      }
+    },
+    "clipboardAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    "sizedAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "manage"
+            ]
+          }
+        },
+        "requested_size": {
+          "type": "string"
+        }
+      }
+    },
+    "environmentAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "read"
+            ]
+          }
+        },
+        "access": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "networkAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "manage"
+            ]
+          }
+        },
+        "allowed_urls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "systemAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "get_apps",
+              "open_resource"
+            ]
+          }
+        },
+        "visible_apps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowed_urls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runtimeAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requested_stack_size": {
+          "type": "integer"
         }
       }
     }

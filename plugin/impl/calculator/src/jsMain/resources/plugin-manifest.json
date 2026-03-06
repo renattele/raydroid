@@ -32,5 +32,38 @@
     "strings-ru": {
       "app.description": "Калькулятор"
     }
+  },
+  "access": {
+    "clipboard": {
+      "permissions": ["read", "write"]
+    },
+    "cache": {
+      "permissions": ["manage"],
+      "requested_size": "1mb"
+    },
+    "environment": {
+      "permissions": ["read"],
+      "access": ["*"]
+    },
+    "network": {
+      "permissions": ["manage"],
+      "allowed_urls": ["https://example.com/*", "https://.*"]
+    },
+    "preferences": {
+      "permissions": ["manage"],
+      "requested_size": "1mb"
+    },
+    "storage": {
+      "permissions": ["manage"],
+      "requested_size": "1mb"
+    },
+    "system": {
+      "permissions": ["get_apps", "open_resource"],
+      "visible_apps": [".*"],
+      "allowed_urls": [".*"]
+    },
+    "runtime": {
+      "requested_stack_size": 1024
+    }
   }
 }
