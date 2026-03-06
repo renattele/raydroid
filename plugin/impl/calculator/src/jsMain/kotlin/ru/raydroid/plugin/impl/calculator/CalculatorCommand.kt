@@ -35,6 +35,12 @@ class CalculatorCommand : CommandService() {
         }.chunked(chunkSize).forEach { chunk ->
             emit(chunk)
         }
+        emit(listOf(ListItem(
+            ItemId("12333456787"),
+            Icon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
+            title = UiText.Resource("app.description"),
+            description = UiText.Resource("app.description")
+        )))
     }
 
     override fun RayListScope.content() {

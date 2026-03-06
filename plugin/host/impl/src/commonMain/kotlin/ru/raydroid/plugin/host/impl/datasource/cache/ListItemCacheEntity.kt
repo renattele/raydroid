@@ -37,6 +37,12 @@ internal data class ListItemCacheWithContent(
 )
 
 internal data class ListItemCacheSearchEntity(
+    @ColumnInfo("plugin_id")
+    val pluginId: String,
+
+    @ColumnInfo("command")
+    val command: String,
+
     @ColumnInfo("item_id")
     val itemId: String,
 

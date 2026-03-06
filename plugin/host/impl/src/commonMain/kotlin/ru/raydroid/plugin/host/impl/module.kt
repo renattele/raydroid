@@ -43,6 +43,7 @@ val pluginHostModule = module {
     single<ResourcePluginDataSource> {
         ResourcePluginDataSourceImpl(get())
     }
+    singleOf(::SearchResourceResolverImpl) bind SearchResourceResolver::class
     singleOf(::RemotePluginDataSourceImpl) {
         bind<RemotePluginDataSource>()
     }

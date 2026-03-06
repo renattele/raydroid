@@ -62,17 +62,31 @@ internal abstract class ListItemCacheDao {
     @Query(
         """
         SELECT
+            list_item_cache.plugin_id AS plugin_id,
+            list_item_cache.command AS command,
             list_item_cache.item_id AS item_id,
             list_item_cache.icon AS icon,
             list_item_cache.icon_type AS icon_type,
             list_item_cache_content.title AS title,
             list_item_cache_content.description AS description
         FROM list_item_cache
+        INNER JOIN (
+            SELECT
+                list_item_cache.id AS list_item_cache_id,
+                MIN(list_item_cache_content.id) AS content_id
+            FROM list_item_cache
+            INNER JOIN list_item_cache_content
+                ON list_item_cache.id = list_item_cache_content.list_item_cache_id
+            WHERE list_item_cache_content.title LIKE '%' || :query || '%'
+                OR list_item_cache_content.description LIKE '%' || :query || '%'
+            GROUP BY list_item_cache.id
+            ORDER BY MIN(list_item_cache_content.id)
+            LIMIT :limit
+        ) AS matched_items
+            ON list_item_cache.id = matched_items.list_item_cache_id
         INNER JOIN list_item_cache_content
-            ON list_item_cache.id = list_item_cache_content.list_item_cache_id
-        WHERE list_item_cache_content.title LIKE '%' || :query || '%'
-            OR list_item_cache_content.description LIKE '%' || :query || '%'
-        LIMIT :limit
+            ON list_item_cache_content.id = matched_items.content_id
+        ORDER BY matched_items.content_id
         """
     )
     abstract fun search(query: String, limit: Int): Flow<List<ListItemCacheSearchEntity>>

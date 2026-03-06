@@ -4,7 +4,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.raydroid.plugin.api.core.ItemId
 import ru.raydroid.plugin.api.core.ListItem
-import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.host.api.ListItemUpdate
 import ru.raydroid.plugin.host.api.SearchRepository
@@ -15,12 +14,14 @@ import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheSearchEntity
 import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheWithContent
 
 internal class SearchRepositoryImpl(
-    private val cacheDao: ListItemCacheDao
+    private val cacheDao: ListItemCacheDao,
+    private val resourceResolver: SearchResourceResolver
 ) : SearchRepository {
     override suspend fun update(updateList: List<ListItemUpdate>) {
+        val session = resourceResolver.session()
         updateList.forEach { updateItem ->
             if (updateItem is ListItemUpdate.Upsert) {
-                cacheDao.insert(updateItem.toCacheEntity())
+                cacheDao.insert(updateItem.toCacheEntity(session))
             } else if (updateItem is ListItemUpdate.Delete) {
                 cacheDao.delete(
                     pluginId = updateItem.pluginId.id,
@@ -40,29 +41,38 @@ internal class SearchRepositoryImpl(
         }
     }
 
-    private fun ListItemUpdate.Upsert.toCacheEntity(): ListItemCacheWithContent =
-        ListItemCacheWithContent(
+    private suspend fun ListItemUpdate.Upsert.toCacheEntity(
+        session: SearchResourceResolver.Session
+    ): ListItemCacheWithContent {
+        val resolvedIcon = session.resolveIcon(pluginId, item.icon)
+        val resolvedContent = session.resolveContent(
+            pluginId = pluginId,
+            title = item.title,
+            description = item.description
+        )
+        return ListItemCacheWithContent(
             listItemCache = ListItemCacheEntity(
                 pluginId = pluginId.id,
                 command = commandName,
                 itemId = item.id.value,
-                icon = item.icon.value,
-                iconType = item.icon.type.name
+                icon = resolvedIcon.value,
+                iconType = resolvedIcon.type.name
             ),
-            content = listOf(
+            content = resolvedContent.map { content ->
                 ListItemCacheContentEntity(
-                    title = item.title.text,
-                    description = item.description.text
+                    title = content.title,
+                    description = content.description
                 )
-            )
+            }
         )
+    }
 
     private fun ListItemCacheSearchEntity.toListItem(): ListItem {
         return ListItem(
             id = ItemId(itemId),
             icon = Icon(icon, Icon.Type.valueOf(iconType)),
-            title = UiText.Plain(title),
-            description = UiText.Plain(description)
+            title = ru.raydroid.plugin.api.core.UiText.Plain(title),
+            description = ru.raydroid.plugin.api.core.UiText.Plain(description)
         )
     }
 }

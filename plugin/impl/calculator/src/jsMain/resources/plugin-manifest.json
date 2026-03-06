@@ -28,6 +28,9 @@
       "app.label": "Your results lol:",
       "command.calculator.title": "Calculator",
       "command.calculator.description": "Calculator extension"
+    },
+    "strings-ru": {
+      "app.description": "Калькулятор"
     }
   }
 }
