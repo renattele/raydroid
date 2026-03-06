@@ -22,6 +22,7 @@ import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSource
 import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSourceImpl
 import ru.raydroid.plugin.host.impl.datasource.cache.dbModule
 import ru.raydroid.plugin.host.impl.services.hostServiceModule
+import kotlin.time.Clock
 
 internal expect val pluginPlatformModule: Module
 
@@ -40,9 +41,11 @@ val pluginHostModule = module {
             basePath = get(named("localPath"))
         )
     }
+    single<Clock> { Clock.System }
     single<ResourcePluginDataSource> {
         ResourcePluginDataSourceImpl(get())
     }
+    singleOf(::CachedSearchRanker) bind SearchRanker::class
     singleOf(::SearchResourceResolverImpl) bind SearchResourceResolver::class
     singleOf(::RemotePluginDataSourceImpl) {
         bind<RemotePluginDataSource>()

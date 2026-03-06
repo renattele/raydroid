@@ -63,7 +63,13 @@ internal class SinglePluginRuntimeImpl(
     ): Flow<List<ListItemUpdate>> = channelFlow {
         commandServices.forEach { command ->
             val commandName =
-                manifest.commands.find { it.service == command.serviceName }
+                manifest.commands.find {
+                    // Using plugin context because
+                    // command.serviceName is actually a function
+                    withContext(pluginRuntimeDispatcher) {
+                        it.service == command.serviceName
+                    }
+                }
                     ?.service ?: return@forEach
             withContext(pluginRuntimeDispatcher) {
                 command.cachedItems(chunkSize = chunkSize)

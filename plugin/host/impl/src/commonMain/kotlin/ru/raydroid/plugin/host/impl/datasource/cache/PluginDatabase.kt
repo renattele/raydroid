@@ -8,8 +8,14 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 
-
-@Database(entities = [ListItemCacheEntity::class, ListItemCacheContentEntity::class], version = 1)
+@Database(
+    entities = [
+        ListItemCacheEntity::class,
+        ListItemCacheContentEntity::class,
+        ListItemCacheContentFtsEntity::class
+    ],
+    version = 2
+)
 @ConstructedBy(AppDatabaseConstructor::class)
 internal abstract class PluginDatabase : RoomDatabase() {
     abstract fun getListItemCacheDao(): ListItemCacheDao
@@ -24,6 +30,7 @@ internal fun getAppDatabase(
     builder: RoomDatabase.Builder<PluginDatabase>
 ): PluginDatabase {
     return builder
+        .fallbackToDestructiveMigration(dropAllTables = true)
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
