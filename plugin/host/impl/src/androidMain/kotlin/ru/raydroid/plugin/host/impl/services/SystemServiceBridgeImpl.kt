@@ -16,6 +16,7 @@ internal class SystemServiceBridgeImpl(
     override suspend fun getApps(): List<SystemServiceBridge.RawApplication> {
         val installedApps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
         return installedApps.map { app ->
+            println("APP: ${app.packageName} ${app.name}")
             SystemServiceBridge.RawApplication(
                 name = app.name,
                 id = app.packageName

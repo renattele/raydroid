@@ -44,6 +44,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 )
             }
         }
+        println(state.searchResults)
         SearchField(state.searchFieldState, onEvent = { event ->
             when (event) {
                 is SearchFieldEvent.QueryChanged -> state.eventSink(

@@ -14,7 +14,7 @@ interface SystemService {
 
     @Serializable
     data class Application(
-        val name: String,
+        val name: String?,
         val id: String,
     )
 }

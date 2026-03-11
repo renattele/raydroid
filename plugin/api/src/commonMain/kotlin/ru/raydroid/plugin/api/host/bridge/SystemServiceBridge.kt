@@ -15,7 +15,7 @@ interface SystemServiceBridge: ZiplineService {
 
     @Serializable
     data class RawApplication(
-        val name: String,
+        val name: String?,
         val id: String,
     )
 }

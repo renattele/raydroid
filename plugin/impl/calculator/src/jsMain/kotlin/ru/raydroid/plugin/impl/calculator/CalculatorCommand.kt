@@ -29,7 +29,7 @@ class CalculatorCommand : CommandService() {
             ListItem(
                 ItemId(app.id),
                 Icon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
-                title = UiText.Plain(app.name),
+                title = UiText.Plain(app.name ?: "Unknown"),
                 description = UiText.Plain(app.id)
             )
         }.chunked(chunkSize).forEach { chunk ->

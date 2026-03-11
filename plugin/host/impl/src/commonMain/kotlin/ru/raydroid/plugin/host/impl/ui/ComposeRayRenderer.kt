@@ -151,13 +151,13 @@ private fun BoxAlignment.toComposeAlignment() = when (this) {
 
 @Composable
 private fun OrientedBoxRenderer(data: OrientedBoxData, modifier: Modifier = Modifier) {
+    val themeResolver = LocalThemeResolver.current
     if (data.orientation == Orientation.Vertical) {
         Column(
             modifier,
             horizontalAlignment = data.alignment.toComposeHorizontalAlignment(),
             verticalArrangement = if (data.spacing != Spacing.Zero) Arrangement.spacedBy(
-                0.dp,
-                data.alignment.toComposeVerticalAlignment()
+                themeResolver.spacing(data.spacing),
             )
             else data.arrangement.toComposeVerticalArrangement(),
         ) {
@@ -168,8 +168,7 @@ private fun OrientedBoxRenderer(data: OrientedBoxData, modifier: Modifier = Modi
             modifier,
             horizontalArrangement =
                 if (data.spacing != Spacing.Zero) Arrangement.spacedBy(
-                    0.dp,
-                    data.alignment.toComposeHorizontalAlignment()
+                    themeResolver.spacing(data.spacing)
                 )
                 else data.arrangement.toComposeHorizontalArrangement(),
             verticalAlignment = data.alignment.toComposeVerticalAlignment()
@@ -211,7 +210,8 @@ private fun ru.raydroid.plugin.api.ui.Arrangement.toComposeVerticalArrangement()
 
 @Composable
 private fun TextRenderer(data: TextData, modifier: Modifier = Modifier) {
-    Text(data.text.asText())
+    val themeResolver = LocalThemeResolver.current
+    Text(data.text.asText(), modifier, fontSize = themeResolver.fontSize(data.fontSize))
 }
 
 @Composable

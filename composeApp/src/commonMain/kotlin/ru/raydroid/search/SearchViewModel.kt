@@ -2,6 +2,7 @@ package ru.raydroid.search
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 import okio.FileSystem
 import ru.raydroid.plugin.api.core.Manifest
 import ru.raydroid.plugin.api.ui.RayNodeData
+import ru.raydroid.plugin.host.api.SearchResults
 import ru.raydroid.plugin.host.api.usecase.LoadRuntimesUseCase
 import ru.raydroid.plugin.host.api.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.usecase.SyncCacheUseCase
@@ -37,17 +39,18 @@ class SearchViewModel(
     val state = _state.asStateFlow()
 
     init {
-        viewModelScope.launch(Dispatchers.IO  + SupervisorJob()) {
+        viewModelScope.launch(Dispatchers.IO + SupervisorJob()) {
             launch { syncCacheUseCase() }
             launch { loadRuntimesUseCase() }
-            _state
-                .map { it.searchFieldState.fieldState.text.toString() }
+            snapshotFlow { _state.value.searchFieldState.fieldState.text }
                 .distinctUntilChanged()
                 .collectLatest { query ->
-                searchUseCase(query).collect { searchResults ->
-                    println(searchResults)
+                    searchUseCase(query.toString()).collectLatest { searchResults ->
+                        _state.update {
+                            it.copy(searchResults = searchResults)
+                        }
+                    }
                 }
-            }
         }
     }
 
@@ -64,6 +67,7 @@ data class SearchScreenState(
         fieldState = TextFieldState()
     ),
     val content: List<PluginResultContent> = emptyList(),
+    val searchResults: SearchResults? = null,
     val eventSink: (SearchScreenEvent) -> Unit
 ) {
     data class PluginResultContent(
