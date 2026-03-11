@@ -1,10 +1,13 @@
 package ru.raydroid.plugin.host.impl.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -30,6 +33,16 @@ import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
 
 @Composable
+fun ThemeProvider(content: @Composable () -> Unit) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()
+    val themeResolver = remember { ThemeResolverImpl(colorScheme) }
+    CompositionLocalProvider(LocalThemeResolver provides themeResolver) {
+        content()
+    }
+}
+
+@Composable
 fun ComposeRayRenderer(
     resources: FileSystem,
     manifest: Manifest,
@@ -47,7 +60,7 @@ private class ResourceResolverImpl(
     private val manifest: Manifest,
     private val resources: FileSystem,
     private val locale: Locale,
-): ResourceResolver {
+) : ResourceResolver {
     override fun resolveString(resource: String): String {
         val language = locale.language
         val resources = manifest.resources["strings-$language"]
@@ -142,7 +155,10 @@ private fun OrientedBoxRenderer(data: OrientedBoxData, modifier: Modifier = Modi
         Column(
             modifier,
             horizontalAlignment = data.alignment.toComposeHorizontalAlignment(),
-            verticalArrangement = if (data.spacing != Spacing.Zero) Arrangement.spacedBy(0.dp, data.alignment.toComposeVerticalAlignment())
+            verticalArrangement = if (data.spacing != Spacing.Zero) Arrangement.spacedBy(
+                0.dp,
+                data.alignment.toComposeVerticalAlignment()
+            )
             else data.arrangement.toComposeVerticalArrangement(),
         ) {
             ComposeRayItemRenderer(data.children)
@@ -151,7 +167,10 @@ private fun OrientedBoxRenderer(data: OrientedBoxData, modifier: Modifier = Modi
         Row(
             modifier,
             horizontalArrangement =
-                if (data.spacing != Spacing.Zero) Arrangement.spacedBy(0.dp, data.alignment.toComposeHorizontalAlignment())
+                if (data.spacing != Spacing.Zero) Arrangement.spacedBy(
+                    0.dp,
+                    data.alignment.toComposeHorizontalAlignment()
+                )
                 else data.arrangement.toComposeHorizontalArrangement(),
             verticalAlignment = data.alignment.toComposeVerticalAlignment()
         ) {

@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class Spacing {
     Zero,
+    Minimal,
     ExtraSmall,
     Small,
     Medium,

@@ -1,5 +1,6 @@
 package ru.raydroid.search
 
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,6 +21,7 @@ import ru.raydroid.plugin.api.ui.RayNodeData
 import ru.raydroid.plugin.host.api.usecase.LoadRuntimesUseCase
 import ru.raydroid.plugin.host.api.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.usecase.SyncCacheUseCase
+import ru.raydroid.plugin.host.impl.ui.SearchFieldState
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModel(
@@ -39,7 +41,7 @@ class SearchViewModel(
             launch { syncCacheUseCase() }
             launch { loadRuntimesUseCase() }
             _state
-                .map { it.query }
+                .map { it.searchFieldState.fieldState.text.toString() }
                 .distinctUntilChanged()
                 .collectLatest { query ->
                 searchUseCase(query).collect { searchResults ->
@@ -52,16 +54,15 @@ class SearchViewModel(
     private fun onEvent(event: SearchScreenEvent) {
         when (event) {
             is SearchScreenEvent.QueryChanged -> {
-                _state.update { state ->
-                    state.copy(query = event.query)
-                }
             }
         }
     }
 }
 
 data class SearchScreenState(
-    val query: String = "",
+    val searchFieldState: SearchFieldState = SearchFieldState(
+        fieldState = TextFieldState()
+    ),
     val content: List<PluginResultContent> = emptyList(),
     val eventSink: (SearchScreenEvent) -> Unit
 ) {

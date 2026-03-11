@@ -28,6 +28,10 @@ abstract class PreparePluginComposeResourcesTask @Inject constructor(
 
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val composeResourceFiles: ConfigurableFileCollection
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val rextFiles: ConfigurableFileCollection
 
     @get:OutputDirectory
@@ -37,6 +41,8 @@ abstract class PreparePluginComposeResourcesTask @Inject constructor(
     fun run() {
         fileSystemOperations.sync {
             into(outputDir)
+
+            from(composeResourceFiles)
 
             into("files") {
                 from(rextFiles)
@@ -92,6 +98,7 @@ private fun Project.configurePluginRextComposeResources() {
 
         dependsOn(pluginImplProjects.map { "${it.path}:raydroidPlugin${pluginBuildTaskVariant}Build" })
         this.pluginIds.set(pluginIds)
+        composeResourceFiles.from(layout.projectDirectory.dir("src/commonMain/composeResources"))
 
         rextFiles.from(
             pluginImplProjects.zip(pluginIds).map { (pluginProject, pluginId) ->
