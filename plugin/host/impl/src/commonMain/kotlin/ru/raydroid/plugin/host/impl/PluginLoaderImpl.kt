@@ -63,7 +63,7 @@ internal class PluginLoaderImpl(
                 is LoadResult.Failure -> throw loadResult.exception
                 is LoadResult.Success -> {
                     val zipline = loadResult.zipline
-                    val host = hostFactory.get(pluginId)
+                    val host = hostFactory.get(pluginId, manifest)
                     zipline.bind(ZiplineServices.Host.toString(), host)
                     val services = manifest.commands.map { command ->
                         zipline.take<CommandServiceBridge>(command.service)

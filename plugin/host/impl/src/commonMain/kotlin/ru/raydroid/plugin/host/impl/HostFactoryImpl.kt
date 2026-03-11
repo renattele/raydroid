@@ -1,5 +1,6 @@
 package ru.raydroid.plugin.host.impl
 
+import ru.raydroid.plugin.api.core.Manifest
 import ru.raydroid.plugin.api.host.bridge.CacheServiceBridge
 import ru.raydroid.plugin.api.host.bridge.ClipboardServiceBridge
 import ru.raydroid.plugin.api.host.bridge.EnvironmentServiceBridge
@@ -11,6 +12,8 @@ import ru.raydroid.plugin.api.host.bridge.StorageServiceBridge
 import ru.raydroid.plugin.api.host.bridge.SystemServiceBridge
 import ru.raydroid.plugin.host.api.HostFactory
 import ru.raydroid.plugin.host.api.PluginId
+import ru.raydroid.plugin.host.api.PluginLoader
+import ru.raydroid.plugin.host.impl.permission.PermissionHostServiceBridge
 import ru.raydroid.plugin.host.impl.services.HostServiceBridgeImpl
 
 class HostFactoryImpl(
@@ -23,8 +26,8 @@ class HostFactoryImpl(
     private val environmentBridge: () -> EnvironmentServiceBridge,
     private val systemBridge: () -> SystemServiceBridge
 ): HostFactory {
-    override fun get(pluginId: PluginId): HostServiceBridge {
-        return HostServiceBridgeImpl(
+    override fun get(pluginId: PluginId, manifest: Manifest): HostServiceBridge {
+         val bridge = HostServiceBridgeImpl(
             cacheBridge = cacheBridge(),
             clipboardBridge = clipboardBridge(),
             environmentBridge = environmentBridge(),
@@ -34,5 +37,7 @@ class HostFactoryImpl(
             storageBridge = storageBridge(),
             systemBridge = systemBridge()
         )
+        val permissionBridge = PermissionHostServiceBridge(bridge, manifest)
+        return permissionBridge
     }
 }
