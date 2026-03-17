@@ -20,8 +20,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import raydroid.plugin.host.impl.generated.resources.Res
@@ -41,17 +47,34 @@ fun SearchField(
     val isEmpty = remember { derivedStateOf { state.fieldState.text.isEmpty() } }
     val textStyle = TextStyle(
         color = themeResolver.color(Color.OnSurface),
-        fontSize = themeResolver.fontSize(FontSize.Medium)
+        fontSize = themeResolver.fontSize(FontSize.Small)
     )
     BasicTextField(
         state.fieldState,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().onPreviewKeyEvent { event ->
+            if (event.type == KeyEventType.KeyDown) {
+                when (event.key) {
+                    Key.DirectionUp -> {
+                        onEvent(SearchFieldEvent.MoveFocusUp)
+                        true
+                    }
+                    Key.DirectionDown -> {
+                        onEvent(SearchFieldEvent.MoveFocusDown)
+                        true
+                    }
+                    else -> false
+                }
+            } else false
+        },
         textStyle = textStyle,
         keyboardOptions = KeyboardOptions(
             autoCorrectEnabled = false,
             showKeyboardOnFocus = true,
             imeAction = if (state.canGoOnEnter) ImeAction.Go else ImeAction.None
         ),
+        onKeyboardAction = {
+            onEvent(SearchFieldEvent.Enter)
+        },
         lineLimits = TextFieldLineLimits.SingleLine,
         cursorBrush = SolidColor(themeResolver.color(Color.Primary)),
         decorator = { content ->
@@ -69,11 +92,10 @@ fun SearchField(
             val shadowOffset = themeResolver.spacing(Spacing.Small)
             Box(
                 decoratorModifier
-                    .padding(20.dp)
                     .border(
                         BorderStroke(
-                            themeResolver.spacing(Spacing.ExtraSmall),
-                            color = themeResolver.color(Color.OutlineVariant)
+                            themeResolver.spacing(Spacing.ExtraSmall) / 2,
+                            color = themeResolver.color(Color.Outline)
                         ),
                         shape
                     )
@@ -88,7 +110,7 @@ fun SearchField(
                         )
                     }
                     .background(themeResolver.color(Color.SurfaceContainer), shape)
-                    .padding(themeResolver.spacing(Spacing.Medium))
+                    .padding(themeResolver.spacing(Spacing.Large),)
                     .fillMaxWidth()
             ) {
                 content()
@@ -112,5 +134,20 @@ data class SearchFieldState(
 )
 
 sealed class SearchFieldEvent {
-    data class QueryChanged(val newQuery: String) : SearchFieldEvent()
+    data object Enter : SearchFieldEvent()
+    data object MoveFocusUp: SearchFieldEvent()
+    data object MoveFocusDown: SearchFieldEvent()
+}
+
+@Preview
+@Composable
+private fun SearchFieldPreview() {
+    RaydroidPreviewTheme {
+        SearchField(
+            state = SearchFieldState(
+                fieldState = TextFieldState()
+            ),
+            onEvent = {}
+        )
+    }
 }

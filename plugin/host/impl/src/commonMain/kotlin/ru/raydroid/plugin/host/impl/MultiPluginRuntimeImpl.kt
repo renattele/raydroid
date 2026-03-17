@@ -61,6 +61,8 @@ internal class MultiPluginRuntimeImpl(
     override fun cachedItems(): Flow<Map<SinglePluginRuntime, List<ListItemUpdate>>> =
         cacheItemsFlow
 
+    override fun runtimes(): StateFlow<List<SinglePluginRuntime>> = pluginRuntimes
+
     override fun content(): StateFlow<Map<SinglePluginRuntime, List<RayItems>>> = contentFlow
 
     override suspend fun update(

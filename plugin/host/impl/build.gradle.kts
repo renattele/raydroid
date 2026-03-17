@@ -11,6 +11,7 @@ plugins {
 kotlin {
     android {
         namespace = "ru.raydroid.plugin.host.impl"
+        experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
     }
     sourceSets {
         androidMain.dependencies {
@@ -21,6 +22,7 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(libs.bundles.composeCommon)
+            implementation(libs.compose.uiToolingPreview)
             implementation(libs.bundles.lifecycleCompose)
             implementation(libs.bundles.ziplineRuntime)
             implementation(libs.ktor.client.core)
@@ -54,6 +56,7 @@ kotlin {
 }
 
 dependencies {
+    androidRuntimeClasspath(libs.compose.uiTooling)
     add("kspCommonMainMetadata", libs.room.compiler)
     add("kspAndroid", libs.room.compiler)
     add("kspJvm", libs.room.compiler)

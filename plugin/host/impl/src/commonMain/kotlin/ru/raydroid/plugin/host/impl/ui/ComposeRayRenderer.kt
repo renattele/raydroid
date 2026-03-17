@@ -31,6 +31,8 @@ import ru.raydroid.plugin.api.ui.OrientedBoxData
 import ru.raydroid.plugin.api.ui.RayNodeData
 import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
+import ru.raydroid.plugin.host.api.MultiPluginRuntime
+import ru.raydroid.plugin.host.api.SinglePluginRuntime
 
 @Composable
 fun ThemeProvider(content: @Composable () -> Unit) {
@@ -43,28 +45,56 @@ fun ThemeProvider(content: @Composable () -> Unit) {
 }
 
 @Composable
+fun PreviewResourceResolverProvider(content: @Composable () -> Unit) {
+    val resolver = remember {
+        object : ResourceResolver {
+            override fun resolveString(resource: String): String {
+                return "Nothing"
+            }
+
+            override fun resolveImage(resource: String): ByteArray? {
+                return null
+            }
+        }
+    }
+    CompositionLocalProvider(LocalResourceResolver provides resolver) {
+        content()
+    }
+}
+
+@Composable
+fun ResourceResolverProvider(
+    runtime: SinglePluginRuntime,
+    content: @Composable () -> Unit
+) {
+    val locale = Locale.current
+    val resolver = remember { ResourceResolverImpl(runtime, locale) }
+    CompositionLocalProvider(LocalResourceResolver provides resolver) {
+        content()
+    }
+}
+
+@Composable
 fun ComposeRayRenderer(
-    resources: FileSystem,
-    manifest: Manifest,
+    runtime: SinglePluginRuntime,
     data: List<RayNodeData>,
     modifier: Modifier = Modifier
 ) {
     val locale = Locale.current
-    val resolver = remember { ResourceResolverImpl(manifest, resources, locale) }
+    val resolver = remember { ResourceResolverImpl(runtime, locale) }
     CompositionLocalProvider(LocalResourceResolver provides resolver) {
         ComposeRayItemRenderer(data, modifier)
     }
 }
 
 private class ResourceResolverImpl(
-    private val manifest: Manifest,
-    private val resources: FileSystem,
+    private val runtime: SinglePluginRuntime,
     private val locale: Locale,
 ) : ResourceResolver {
     override fun resolveString(resource: String): String {
         val language = locale.language
-        val resources = manifest.resources["strings-$language"]
-            ?: manifest.resources["strings"]
+        val resources = runtime.manifest.resources["strings-$language"]
+            ?: runtime.manifest.resources["strings"]
         if (resources == null) {
             return "NOT FOUND"
         }
@@ -72,7 +102,7 @@ private class ResourceResolverImpl(
     }
 
     override fun resolveImage(resource: String): ByteArray? {
-        val imageData = resources.read("plugin/resources/$resource".toPath()) {
+        val imageData = runtime.resources.read("plugin/resources/$resource".toPath()) {
             readByteArray()
         }
         return imageData
@@ -96,7 +126,7 @@ fun ComposeRayItemRenderer(
 }
 
 @Composable
-private fun ImageRenderer(data: ImageData, modifier: Modifier = Modifier) {
+internal fun ImageRenderer(data: ImageData, modifier: Modifier = Modifier) {
     val resourceResolver = LocalResourceResolver.current
     val resource = remember(data.image) {
         when (val image = data.image) {
@@ -112,7 +142,7 @@ private fun ImageRenderer(data: ImageData, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun IconRenderer(data: IconData, modifier: Modifier = Modifier) {
+internal fun IconRenderer(data: IconData, modifier: Modifier = Modifier) {
     val resourceResolver = LocalResourceResolver.current
     val resource = remember(data.icon) {
         when (val iconType = data.icon.type) {
@@ -131,7 +161,7 @@ private fun IconRenderer(data: IconData, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun BoxRenderer(data: BoxData, modifier: Modifier = Modifier) {
+internal fun BoxRenderer(data: BoxData, modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = data.alignment.toComposeAlignment()) {
         ComposeRayItemRenderer(data.children)
     }
@@ -209,9 +239,14 @@ private fun ru.raydroid.plugin.api.ui.Arrangement.toComposeVerticalArrangement()
 }
 
 @Composable
-private fun TextRenderer(data: TextData, modifier: Modifier = Modifier) {
+internal fun TextRenderer(data: TextData, modifier: Modifier = Modifier) {
     val themeResolver = LocalThemeResolver.current
-    Text(data.text.asText(), modifier, fontSize = themeResolver.fontSize(data.fontSize))
+    Text(
+        data.text.asText(),
+        modifier,
+        fontSize = themeResolver.fontSize(data.fontSize),
+        color = themeResolver.color(data.color)
+    )
 }
 
 @Composable

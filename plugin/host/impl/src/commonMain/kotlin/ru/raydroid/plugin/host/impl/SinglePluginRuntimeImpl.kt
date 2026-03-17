@@ -19,6 +19,7 @@ import ru.raydroid.plugin.api.core.ItemId
 import ru.raydroid.plugin.api.core.ListItem
 import ru.raydroid.plugin.api.core.Manifest
 import ru.raydroid.plugin.api.core.RayItems
+import ru.raydroid.plugin.host.api.ListItemId
 import ru.raydroid.plugin.host.api.ListItemUpdate
 import ru.raydroid.plugin.host.api.PluginId
 import ru.raydroid.plugin.host.api.SinglePluginRuntime
@@ -35,6 +36,8 @@ internal class SinglePluginRuntimeImpl(
         MutableStateFlow<List<RayItems>>(List(commandServices.size) { emptyMap() })
 
     private val invalidationChannel = Channel<List<ItemId>?>()
+    override val pluginId: PluginId
+        get() = PluginId(manifest.name)
 
     init {
         commandServices.forEachIndexed { index, command ->
@@ -82,9 +85,11 @@ internal class SinglePluginRuntimeImpl(
                     if (invalidatedIds != null) {
                         val deleteUpdate = invalidatedIds.map { invalidatedId ->
                             ListItemUpdate.Delete(
-                                pluginId = PluginId(manifest.name),
-                                commandName = commandName,
-                                itemId = invalidatedId
+                                listItemId = ListItemId(
+                                    pluginId = PluginId(manifest.name),
+                                    commandName = commandName,
+                                    itemId = invalidatedId
+                                )
                             )
                         }
                         send(deleteUpdate)
@@ -99,8 +104,11 @@ internal class SinglePluginRuntimeImpl(
     }
 
     private fun ListItem.toItemUpdate(commandName: String) = ListItemUpdate.Upsert(
-        pluginId = PluginId(manifest.name),
-        commandName = commandName,
+        listItemId = ListItemId(
+            PluginId(manifest.name),
+            commandName = commandName,
+            itemId = id
+        ),
         item = this
     )
 

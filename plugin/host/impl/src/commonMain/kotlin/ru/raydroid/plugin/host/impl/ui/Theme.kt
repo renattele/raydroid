@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.host.impl.ui
 
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -116,5 +117,16 @@ internal class ThemeResolverImpl(
         Color.InverseOnSurface -> colorScheme.inverseOnSurface
         Color.InversePrimary -> colorScheme.inversePrimary
         Color.Scrim -> colorScheme.scrim
+    }
+}
+
+@Composable
+fun RaydroidPreviewTheme(content: @Composable () -> Unit) {
+    MaterialTheme {
+        ThemeProvider {
+            PreviewResourceResolverProvider {
+                content()
+            }
+        }
     }
 }

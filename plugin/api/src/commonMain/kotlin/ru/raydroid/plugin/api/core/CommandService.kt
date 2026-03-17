@@ -13,7 +13,7 @@ sealed class CommandAction {
     data class Enter(val hoveredId: ItemId) : CommandAction()
 
     @Serializable
-    data class Type(val key: Char? = null) : CommandAction()
+    class Type : CommandAction()
 }
 
 interface CommandServiceBridge : ZiplineService {

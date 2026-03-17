@@ -11,7 +11,9 @@ import ru.raydroid.plugin.host.api.PluginLoader
 import ru.raydroid.plugin.host.api.PluginRepository
 import ru.raydroid.plugin.host.api.PluginRuntimeManager
 import ru.raydroid.plugin.host.api.SearchRepository
+import ru.raydroid.plugin.host.api.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.usecase.LoadRuntimesUseCase
+import ru.raydroid.plugin.host.api.usecase.OpenItemUseCase
 import ru.raydroid.plugin.host.api.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.usecase.SyncCacheUseCase
 import ru.raydroid.plugin.host.impl.datasource.LocalPluginDataSource
@@ -59,6 +61,8 @@ val pluginHostModule = module {
     singleOf(::SyncCacheUseCase)
     singleOf(::LoadRuntimesUseCase)
     singleOf(::SearchUseCase)
+    singleOf(::OpenItemUseCase)
+    singleOf(::GetPluginsUseCase)
 
     single<HostFactory> {
         HostFactoryImpl(

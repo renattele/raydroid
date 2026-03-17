@@ -1,10 +1,13 @@
 package ru.raydroid.search
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,10 +19,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
-import raydroid.composeapp.generated.resources.Res
 import ru.raydroid.plugin.host.impl.ui.ComposeRayRenderer
+import ru.raydroid.plugin.host.impl.ui.ResourceResolverProvider
 import ru.raydroid.plugin.host.impl.ui.SearchField
 import ru.raydroid.plugin.host.impl.ui.SearchFieldEvent
+import ru.raydroid.plugin.host.impl.ui.SearchListItem
 
 @Composable
 fun SearchScreen(modifier: Modifier = Modifier) {
@@ -35,25 +39,53 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
         LaunchedEffect(Unit) {
             focus.requestFocus()
         }
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            state.content.forEach { pluginContent ->
-                ComposeRayRenderer(
-                    resources = pluginContent.resources,
-                    manifest = pluginContent.manifest,
-                    data = pluginContent.data
-                )
+        val listState = rememberLazyListState()
+        LaunchedEffect(state.focusedItemIndex) {
+            if (state.focusedItemIndex != null) {
+                val offset = state.searchResults?.content?.size ?: 0
+                listState.scrollToItem(state.focusedItemIndex + offset)
             }
         }
-        println(state.searchResults)
-        SearchField(state.searchFieldState, onEvent = { event ->
-            when (event) {
-                is SearchFieldEvent.QueryChanged -> state.eventSink(
-                    SearchScreenEvent.QueryChanged(
-                        event.newQuery
-                    )
-                )
+        LazyColumn(
+            Modifier
+                .background(MaterialTheme.colorScheme.background)
+                .weight(1f),
+            reverseLayout = true,
+            state = listState
+        ) {
+            if (state.searchResults != null) {
+                state.searchResults.content.forEach { (runtime, rayItemsList) ->
+                    item {
+                        rayItemsList.forEach { rayItems ->
+                            ComposeRayRenderer(
+                                runtime,
+                                rayItems.values.flatten()
+                            )
+                        }
+                    }
+                }
+                itemsIndexed(state.searchResults.cachedResults) { index, searchResult ->
+                    state.plugins[searchResult.listItemId.pluginId]?.let { runtime ->
+                        ResourceResolverProvider(runtime) {
+                            SearchListItem(searchResult, onClick = {
+                                state.eventSink(SearchScreenEvent.Enter(searchResult.listItemId))
+                            }, focused = index == state.focusedItemIndex)
+                        }
+                    }
+                }
             }
-        }, Modifier.focusRequester(focus))
+        }
+        SearchField(
+            state.searchFieldState.copy(canGoOnEnter = state.focusedItemIndex != null),
+            onEvent = { event ->
+                when (event) {
+                    SearchFieldEvent.Enter -> state.eventSink(SearchScreenEvent.Enter())
+                    SearchFieldEvent.MoveFocusDown -> state.eventSink(SearchScreenEvent.MoveFocusPrevious)
+                    SearchFieldEvent.MoveFocusUp -> state.eventSink(SearchScreenEvent.MoveFocusNext)
+                }
+            },
+            Modifier.focusRequester(focus)
+        )
     }
 }
 

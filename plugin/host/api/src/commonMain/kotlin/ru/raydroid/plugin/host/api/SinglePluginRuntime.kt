@@ -8,6 +8,7 @@ import ru.raydroid.plugin.api.core.Manifest
 import ru.raydroid.plugin.api.core.RayItems
 
 interface SinglePluginRuntime {
+    val pluginId: PluginId
     val manifest: Manifest
     val resources: FileSystem
 

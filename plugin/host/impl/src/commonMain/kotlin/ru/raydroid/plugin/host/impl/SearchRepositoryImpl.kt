@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.map
 import ru.raydroid.plugin.api.core.ItemId
 import ru.raydroid.plugin.api.core.ListItem
 import ru.raydroid.plugin.api.ui.Icon
+import ru.raydroid.plugin.host.api.ListItemId
 import ru.raydroid.plugin.host.api.ListItemUpdate
 import ru.raydroid.plugin.host.api.PluginId
 import ru.raydroid.plugin.host.api.SearchRepository
@@ -32,19 +33,19 @@ internal class SearchRepositoryImpl(
                 cacheDao.insert(updateItem.toCacheEntity(session))
             } else if (updateItem is ListItemUpdate.Delete) {
                 cacheDao.delete(
-                    pluginId = updateItem.pluginId.id,
-                    command = updateItem.commandName,
-                    itemId = updateItem.itemId.value
+                    pluginId = updateItem.listItemId.pluginId.id,
+                    command = updateItem.listItemId.commandName,
+                    itemId = updateItem.listItemId.itemId.value
                 )
             }
         }
     }
 
-    override suspend fun updateUsage(pluginId: PluginId, commandName: String, itemId: ItemId) {
+    override suspend fun updateUsage(listItemId: ListItemId) {
         cacheDao.updateUsage(
-            pluginId = pluginId.id,
-            command = commandName,
-            itemId = itemId.value,
+            pluginId = listItemId.pluginId.id,
+            command = listItemId.commandName,
+            itemId = listItemId.itemId.value,
             nowEpochMs = clock.now().toEpochMilliseconds()
         )
     }
@@ -86,16 +87,16 @@ internal class SearchRepositoryImpl(
     private suspend fun ListItemUpdate.Upsert.toCacheEntity(
         session: SearchResourceResolver.Session
     ): ListItemCacheWithContent {
-        val resolvedIcon = session.resolveIcon(pluginId, item.icon)
+        val resolvedIcon = session.resolveIcon(listItemId.pluginId, item.icon)
         val resolvedContent = session.resolveContent(
-            pluginId = pluginId,
+            pluginId = listItemId.pluginId,
             title = item.title,
             description = item.description
         )
         return ListItemCacheWithContent(
             listItemCache = ListItemCacheEntity(
-                pluginId = pluginId.id,
-                command = commandName,
+                pluginId = listItemId.pluginId.id,
+                command = listItemId.commandName,
                 itemId = item.id.value,
                 icon = resolvedIcon.value,
                 iconType = resolvedIcon.type.name
@@ -114,9 +115,11 @@ internal class SearchRepositoryImpl(
         descriptionMatches: List<IntRange>
     ): SearchResults.Item {
         return SearchResults.Item(
-            pluginId = PluginId(pluginId),
-            commandName = command,
-            itemId = ItemId(itemId),
+            listItemId = ListItemId(
+                pluginId = PluginId(pluginId),
+                commandName = command,
+                itemId = ItemId(itemId)
+            ),
             item = ListItem(
                 id = ItemId(itemId),
                 icon = Icon(icon, Icon.Type.valueOf(iconType)),

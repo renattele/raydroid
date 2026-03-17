@@ -1,5 +1,6 @@
 package ru.raydroid.plugin.host.impl
 
+import ru.raydroid.plugin.host.api.ListItemId
 import ru.raydroid.plugin.host.api.PluginId
 import ru.raydroid.plugin.host.api.SearchResults
 import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheSearchEntity
@@ -55,9 +56,11 @@ internal class CachedSearchRanker : SearchRanker {
             .take(limit)
             .map { score ->
                 SearchResults.Item(
-                    pluginId = PluginId(score.candidate.pluginId),
-                    commandName = score.candidate.command,
-                    itemId = ru.raydroid.plugin.api.core.ItemId(score.candidate.itemId),
+                    listItemId = ListItemId(
+                        pluginId = PluginId(score.candidate.pluginId),
+                        commandName = score.candidate.command,
+                        itemId = ru.raydroid.plugin.api.core.ItemId(score.candidate.itemId)
+                    ),
                     item = score.candidate.toListItem(),
                     titleMatches = score.titleMatches,
                     descriptionMatches = score.descriptionMatches

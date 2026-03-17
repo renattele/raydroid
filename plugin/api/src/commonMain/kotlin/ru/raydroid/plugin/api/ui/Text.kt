@@ -14,11 +14,12 @@ enum class FontSize {
 @Serializable
 data class TextData(
     val text: UiText,
-    val fontSize: FontSize
+    val fontSize: FontSize = FontSize.Medium,
+    val color: Color = Color.OnSurface
 ): RayNodeData()
 
 @Ray
-fun RayScope.Text(text: UiText, fontSize: FontSize = FontSize.Medium) {
-    add(TextData(text, fontSize))
+fun RayScope.Text(text: UiText, fontSize: FontSize = FontSize.Medium, color: Color = Color.OnSurface) {
+    add(TextData(text, fontSize, color))
 }
 

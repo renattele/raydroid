@@ -1,6 +1,5 @@
 package ru.raydroid.plugin.host.api
 
-import ru.raydroid.plugin.api.core.ItemId
 import ru.raydroid.plugin.api.core.ListItem
 import ru.raydroid.plugin.api.core.RayItems
 
@@ -9,9 +8,7 @@ data class SearchResults(
     val content: Map<SinglePluginRuntime, List<RayItems>>
 ) {
     data class Item(
-        val pluginId: PluginId,
-        val commandName: String,
-        val itemId: ItemId,
+        val listItemId: ListItemId,
         val item: ListItem,
         val titleMatches: List<IntRange>,
         val descriptionMatches: List<IntRange>

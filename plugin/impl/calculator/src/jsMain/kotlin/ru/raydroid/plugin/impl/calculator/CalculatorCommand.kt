@@ -22,7 +22,6 @@ class CalculatorCommand : CommandService() {
     private var result: String = ""
     private var label: UiText = UiText.Resource("app.main")
     private var previous: Job? = null
-    private var apps = emptyList<String>()
     override suspend fun cachedItems(requestedItems: List<ItemId>?, chunkSize: Int) = flow {
         val apps = Host.system.getApps()
         apps.map { app ->
@@ -45,13 +44,8 @@ class CalculatorCommand : CommandService() {
 
     override fun RayListScope.content() {
         item(ItemId.Static) {
-
             Column {
-                apps.forEach { app ->
-                    Text(UiText.Plain(app))
-                }
-                Text(label)
-                Text(UiText.Plain(result))
+                Text(UiText.Plain("123"))
             }
         }
     }

@@ -24,5 +24,5 @@ class PluginRuntimeManagerImpl(private val coroutineScope: CoroutineScope): Plug
         }
     }
 
-    override suspend fun get(): MultiPluginRuntime = runtime
+    override fun get(): MultiPluginRuntime = runtime
 }
