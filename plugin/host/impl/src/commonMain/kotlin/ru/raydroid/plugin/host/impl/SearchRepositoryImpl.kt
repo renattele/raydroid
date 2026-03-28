@@ -14,6 +14,7 @@ import ru.raydroid.plugin.host.api.SearchResults
 import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheDao
 import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheEntity
 import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheContentEntity
+import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheMutation
 import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheSearchEntity
 import ru.raydroid.plugin.host.impl.datasource.cache.ListItemCacheWithContent
 import kotlin.math.max
@@ -27,36 +28,12 @@ internal class SearchRepositoryImpl(
     private val ranker: SearchRanker
 ) : SearchRepository {
     override suspend fun update(updateList: List<ListItemUpdate>) {
+        if (updateList.isEmpty()) return
         val session = resourceResolver.session()
-        updateList.forEach { updateItem ->
-            when (updateItem) {
-                is ListItemUpdate.Upsert -> {
-                    cacheDao.insert(updateItem.toCacheEntity(session))
-                }
-
-                is ListItemUpdate.Delete -> {
-                    cacheDao.delete(
-                        pluginId = updateItem.listItemId.pluginId.id,
-                        command = updateItem.listItemId.commandName,
-                        itemId = updateItem.listItemId.itemId.value
-                    )
-                }
-
-                is ListItemUpdate.ClearOutdated -> {
-                    cacheDao.clearOutdated(
-                        pluginId = updateItem.pluginId.id,
-                        commandName = updateItem.commandName
-                    )
-                }
-
-                is ListItemUpdate.MarkAllAsOutdated -> {
-                    cacheDao.markAllAsOutdated(
-                        pluginId = updateItem.pluginId.id,
-                        commandName = updateItem.commandName
-                    )
-                }
-            }
+        val resolvedMutations = updateList.map { updateItem ->
+            updateItem.toCacheMutation(session)
         }
+        cacheDao.applyUpdates(resolvedMutations)
     }
 
     override suspend fun updateUsage(listItemId: ListItemId) {
@@ -126,6 +103,27 @@ internal class SearchRepositoryImpl(
                 )
             }
         )
+    }
+
+    private suspend fun ListItemUpdate.toCacheMutation(
+        session: SearchResourceResolver.Session
+    ): ListItemCacheMutation {
+        return when (this) {
+            is ListItemUpdate.Upsert -> ListItemCacheMutation.Upsert(toCacheEntity(session))
+            is ListItemUpdate.Delete -> ListItemCacheMutation.Delete(
+                pluginId = listItemId.pluginId.id,
+                commandName = listItemId.commandName,
+                itemId = listItemId.itemId.value
+            )
+            is ListItemUpdate.ClearOutdated -> ListItemCacheMutation.ClearOutdated(
+                pluginId = pluginId.id,
+                commandName = commandName
+            )
+            is ListItemUpdate.MarkAllAsOutdated -> ListItemCacheMutation.MarkAllAsOutdated(
+                pluginId = pluginId.id,
+                commandName = commandName
+            )
+        }
     }
 
     private fun ListItemCacheSearchEntity.toSearchResult(

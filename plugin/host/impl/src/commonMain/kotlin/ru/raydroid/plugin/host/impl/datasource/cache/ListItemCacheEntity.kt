@@ -47,6 +47,34 @@ internal data class ListItemCacheWithContent(
     val content: List<ListItemCacheContentEntity>
 )
 
+internal sealed interface ListItemCacheMutation {
+    data class Upsert(
+        val entity: ListItemCacheWithContent
+    ) : ListItemCacheMutation
+
+    data class Delete(
+        val pluginId: String,
+        val commandName: String,
+        val itemId: String
+    ) : ListItemCacheMutation
+
+    data class MarkAsOutdated(
+        val pluginId: String,
+        val commandName: String,
+        val itemId: String
+    ) : ListItemCacheMutation
+
+    data class MarkAllAsOutdated(
+        val pluginId: String,
+        val commandName: String
+    ) : ListItemCacheMutation
+
+    data class ClearOutdated(
+        val pluginId: String,
+        val commandName: String
+    ) : ListItemCacheMutation
+}
+
 internal data class ListItemCacheSearchEntity(
     @ColumnInfo("cache_id")
     val cacheId: Long,

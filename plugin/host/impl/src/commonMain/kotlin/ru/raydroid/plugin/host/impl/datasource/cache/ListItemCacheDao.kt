@@ -114,6 +114,33 @@ internal abstract class ListItemCacheDao {
     )
 
     @Transaction
+    open suspend fun applyUpdates(mutations: List<ListItemCacheMutation>) {
+        mutations.forEach { mutation ->
+            when (mutation) {
+                is ListItemCacheMutation.Upsert -> insert(mutation.entity)
+                is ListItemCacheMutation.Delete -> delete(
+                    pluginId = mutation.pluginId,
+                    command = mutation.commandName,
+                    itemId = mutation.itemId
+                )
+                is ListItemCacheMutation.MarkAsOutdated -> markAsOutdated(
+                    pluginId = mutation.pluginId,
+                    commandName = mutation.commandName,
+                    itemId = mutation.itemId
+                )
+                is ListItemCacheMutation.MarkAllAsOutdated -> markAllAsOutdated(
+                    pluginId = mutation.pluginId,
+                    commandName = mutation.commandName
+                )
+                is ListItemCacheMutation.ClearOutdated -> clearOutdated(
+                    pluginId = mutation.pluginId,
+                    commandName = mutation.commandName
+                )
+            }
+        }
+    }
+
+    @Transaction
     open suspend fun insert(entity: ListItemCacheWithContent) {
         val listItemCache = entity.listItemCache.copy(outdated = false)
         val existingId = getListItemId(
