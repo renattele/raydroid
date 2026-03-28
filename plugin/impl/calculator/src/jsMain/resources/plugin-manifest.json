@@ -58,7 +58,7 @@
       "requested_size": "1mb"
     },
     "system": {
-      "permissions": ["get_apps", "open_resource"],
+      "permissions": ["get_apps", "open_resource", "open_app"],
       "visible_apps": [".*"],
       "allowed_urls": [".*"]
     },

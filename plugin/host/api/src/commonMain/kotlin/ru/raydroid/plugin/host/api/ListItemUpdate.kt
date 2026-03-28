@@ -11,4 +11,9 @@ sealed class ListItemUpdate {
     data class Delete(
         val listItemId: ListItemId
     ) : ListItemUpdate()
+
+    data class Clear(
+        val pluginId: PluginId,
+        val commandName: String
+    ) : ListItemUpdate()
 }

@@ -36,8 +36,8 @@ internal class PermissionSystemServiceBridge(
         }
     }
 
-    override suspend fun open(
-        app: SystemServiceBridge.RawApplication,
+    override suspend fun openApp(
+        appId: String,
         options: SystemServiceBridge.OpenOptions
     ) {
         if (manifest.access.system?.permissions?.contains(SystemAccessPermission.OpenApp) != true) {
@@ -45,8 +45,8 @@ internal class PermissionSystemServiceBridge(
         }
         val allowedApps = manifest.access.system?.visibleApps ?: emptyList()
         val allowedAppsRegex = allowedApps.map { it.toRegex() }
-        if (allowedAppsRegex.any { it.matches(app.id) }) {
-            systemServiceBridge.open(app, options)
+        if (allowedAppsRegex.any { it.matches(appId) }) {
+            systemServiceBridge.openApp(appId, options)
         } else {
             throw PermissionDenied()
         }

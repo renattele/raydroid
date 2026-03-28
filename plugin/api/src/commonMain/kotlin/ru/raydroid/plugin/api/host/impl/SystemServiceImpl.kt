@@ -10,11 +10,11 @@ internal class SystemServiceImpl(
         return bridge.getApps().map { it.toServiceApp() }
     }
 
-    override suspend fun open(
-        app: SystemService.Application,
+    override suspend fun openApp(
+        appId: String,
         options: SystemService.OpenOptions
     ) {
-        bridge.open(app.toBridgeApp(), options.toBridgeOptions())
+        bridge.openApp(appId, options.toBridgeOptions())
     }
 
     override suspend fun open(
@@ -26,12 +26,14 @@ internal class SystemServiceImpl(
 
     private fun SystemServiceBridge.RawApplication.toServiceApp() = SystemService.Application(
         name = name,
-        id = id
+        id = id,
+        icon = icon
     )
 
     private fun SystemService.Application.toBridgeApp() = SystemServiceBridge.RawApplication(
         name = name,
-        id = id
+        id = id,
+        icon = icon
     )
 
     private fun SystemServiceBridge.OpenOptions.toServiceOptions() = SystemService.OpenOptions(

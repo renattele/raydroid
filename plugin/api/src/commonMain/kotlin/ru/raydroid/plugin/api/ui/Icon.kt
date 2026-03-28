@@ -5,14 +5,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Icon(val value: String, val type: Type) {
     enum class Type {
-        App,
         Url,
         Resource,
         Base64
     }
     companion object {
-        fun App(appId: String) = Icon(appId, Type.App)
-
         fun Url(url: String) = Icon(url, Type.Url)
 
         fun Resource(resource: String) = Icon(resource, Type.Resource)

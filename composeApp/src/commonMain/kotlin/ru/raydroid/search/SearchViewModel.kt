@@ -64,8 +64,12 @@ class SearchViewModel(
                         _state.update { state ->
                             state.copy(
                                 searchResults = searchResults,
-                                focusedItemIndex = if (!updatedFocus && searchResults.cachedResults.isNotEmpty()) {
-                                    0
+                                focusedItemIndex = if (!updatedFocus) {
+                                    if (searchResults.cachedResults.isNotEmpty() || searchResults.content.isNotEmpty()) {
+                                        0
+                                    } else {
+                                        null
+                                    }
                                 } else {
                                     state.focusedItemIndex
                                 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -144,10 +145,9 @@ internal fun ImageRenderer(data: ImageData, modifier: Modifier = Modifier) {
 @Composable
 internal fun IconRenderer(data: IconData, modifier: Modifier = Modifier) {
     val resourceResolver = LocalResourceResolver.current
+    val themeResolver = LocalThemeResolver.current
     val resource = remember(data.icon) {
         when (val iconType = data.icon.type) {
-            // TODO: Fix app icon resolving
-            Icon.Type.App -> data.icon.value
             Icon.Type.Url -> data.icon.value
             Icon.Type.Resource -> resourceResolver.resolveImage(data.icon.value)
             Icon.Type.Base64 -> data.icon.value
@@ -156,7 +156,7 @@ internal fun IconRenderer(data: IconData, modifier: Modifier = Modifier) {
     AsyncImage(
         resource,
         contentDescription = data.contentDescription,
-        modifier = modifier
+        modifier = modifier.size(themeResolver.iconSize(data.size)),
     )
 }
 

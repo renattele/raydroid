@@ -29,14 +29,25 @@ internal class SearchRepositoryImpl(
     override suspend fun update(updateList: List<ListItemUpdate>) {
         val session = resourceResolver.session()
         updateList.forEach { updateItem ->
-            if (updateItem is ListItemUpdate.Upsert) {
-                cacheDao.insert(updateItem.toCacheEntity(session))
-            } else if (updateItem is ListItemUpdate.Delete) {
-                cacheDao.delete(
-                    pluginId = updateItem.listItemId.pluginId.id,
-                    command = updateItem.listItemId.commandName,
-                    itemId = updateItem.listItemId.itemId.value
-                )
+            when (updateItem) {
+                is ListItemUpdate.Upsert -> {
+                    cacheDao.insert(updateItem.toCacheEntity(session))
+                }
+
+                is ListItemUpdate.Delete -> {
+                    cacheDao.delete(
+                        pluginId = updateItem.listItemId.pluginId.id,
+                        command = updateItem.listItemId.commandName,
+                        itemId = updateItem.listItemId.itemId.value
+                    )
+                }
+
+                is ListItemUpdate.Clear -> {
+                    cacheDao.clear(
+                        pluginId = updateItem.pluginId.id,
+                        command = updateItem.commandName
+                    )
+                }
             }
         }
     }

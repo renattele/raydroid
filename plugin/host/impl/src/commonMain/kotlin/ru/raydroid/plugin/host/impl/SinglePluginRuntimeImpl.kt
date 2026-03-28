@@ -93,6 +93,15 @@ internal class SinglePluginRuntimeImpl(
                             )
                         }
                         send(deleteUpdate)
+                    } else {
+                        send(
+                            listOf(
+                                ListItemUpdate.Clear(
+                                    pluginId = PluginId(manifest.name),
+                                    commandName = commandName
+                                )
+                            )
+                        )
                     }
                     command.cachedItems(invalidatedIds, chunkSize = chunkSize)
                         .collect { chunk ->

@@ -30,6 +30,22 @@ internal abstract class ListItemCacheDao {
 
     @Query(
         """
+        DELETE FROM list_item_cache_content
+        WHERE list_item_cache_id IN (
+            SELECT id
+            FROM list_item_cache
+            WHERE plugin_id = :pluginId
+                AND command = :command
+        )
+        """
+    )
+    protected abstract suspend fun deleteContentByCommand(pluginId: String, command: String)
+
+    @Query("DELETE FROM list_item_cache WHERE plugin_id = :pluginId AND command = :command")
+    protected abstract suspend fun deleteCommandListItems(pluginId: String, command: String)
+
+    @Query(
+        """
         UPDATE list_item_cache
         SET last_used_at_epoch_ms = :nowEpochMs,
             usage_count = usage_count + 1
@@ -74,6 +90,12 @@ internal abstract class ListItemCacheDao {
                 deleteContentByListItemCacheId(listItemCacheId)
             }
         deleteListItem(pluginId = pluginId, command = command, itemId = itemId)
+    }
+
+    @Transaction
+    open suspend fun clear(pluginId: String, command: String) {
+        deleteContentByCommand(pluginId = pluginId, command = command)
+        deleteCommandListItems(pluginId = pluginId, command = command)
     }
 
     @Query(

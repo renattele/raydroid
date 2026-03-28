@@ -335,7 +335,8 @@
             "type": "string",
             "enum": [
               "get_apps",
-              "open_resource"
+              "open_resource",
+              "open_app"
             ]
           }
         },
