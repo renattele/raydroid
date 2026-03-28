@@ -46,6 +46,30 @@ internal abstract class ListItemCacheDao {
 
     @Query(
         """
+        DELETE FROM list_item_cache_content
+        WHERE list_item_cache_id IN (
+            SELECT id
+            FROM list_item_cache
+            WHERE plugin_id = :pluginId
+                AND command = :commandName
+                AND outdated = 1
+        )
+        """
+    )
+    protected abstract suspend fun deleteOutdatedContentByCommand(pluginId: String, commandName: String)
+
+    @Query(
+        """
+        DELETE FROM list_item_cache
+        WHERE plugin_id = :pluginId
+            AND command = :commandName
+            AND outdated = 1
+        """
+    )
+    protected abstract suspend fun deleteOutdatedCommandListItems(pluginId: String, commandName: String)
+
+    @Query(
+        """
         UPDATE list_item_cache
         SET last_used_at_epoch_ms = :nowEpochMs,
             usage_count = usage_count + 1
@@ -61,17 +85,46 @@ internal abstract class ListItemCacheDao {
         nowEpochMs: Long
     )
 
+    @Query(
+        """
+        UPDATE list_item_cache
+        SET outdated = 1
+        WHERE plugin_id = :pluginId
+            AND command = :commandName
+            AND item_id = :itemId
+        """
+    )
+    abstract suspend fun markAsOutdated(
+        pluginId: String,
+        commandName: String,
+        itemId: String
+    )
+
+    @Query(
+        """
+        UPDATE list_item_cache
+        SET outdated = 1
+        WHERE plugin_id = :pluginId
+            AND command = :commandName
+        """
+    )
+    abstract suspend fun markAllAsOutdated(
+        pluginId: String,
+        commandName: String
+    )
+
     @Transaction
     open suspend fun insert(entity: ListItemCacheWithContent) {
+        val listItemCache = entity.listItemCache.copy(outdated = false)
         val existingId = getListItemId(
-            pluginId = entity.listItemCache.pluginId,
-            command = entity.listItemCache.command,
-            itemId = entity.listItemCache.itemId
+            pluginId = listItemCache.pluginId,
+            command = listItemCache.command,
+            itemId = listItemCache.itemId
         )
         val listItemCacheId = if (existingId == null) {
-            insertListItem(entity.listItemCache)
+            insertListItem(listItemCache)
         } else {
-            updateListItem(entity.listItemCache.copy(id = existingId))
+            updateListItem(listItemCache.copy(id = existingId))
             existingId
         }
 
@@ -96,6 +149,12 @@ internal abstract class ListItemCacheDao {
     open suspend fun clear(pluginId: String, command: String) {
         deleteContentByCommand(pluginId = pluginId, command = command)
         deleteCommandListItems(pluginId = pluginId, command = command)
+    }
+
+    @Transaction
+    open suspend fun clearOutdated(pluginId: String, commandName: String) {
+        deleteOutdatedContentByCommand(pluginId = pluginId, commandName = commandName)
+        deleteOutdatedCommandListItems(pluginId = pluginId, commandName = commandName)
     }
 
     @Query(

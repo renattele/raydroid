@@ -12,8 +12,13 @@ sealed class ListItemUpdate {
         val listItemId: ListItemId
     ) : ListItemUpdate()
 
-    data class Clear(
+    data class ClearOutdated(
         val pluginId: PluginId,
         val commandName: String
     ) : ListItemUpdate()
+
+    data class MarkAllAsOutdated(
+        val pluginId: PluginId,
+        val commandName: String
+    ): ListItemUpdate()
 }

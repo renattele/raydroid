@@ -42,10 +42,17 @@ internal class SearchRepositoryImpl(
                     )
                 }
 
-                is ListItemUpdate.Clear -> {
-                    cacheDao.clear(
+                is ListItemUpdate.ClearOutdated -> {
+                    cacheDao.clearOutdated(
                         pluginId = updateItem.pluginId.id,
-                        command = updateItem.commandName
+                        commandName = updateItem.commandName
+                    )
+                }
+
+                is ListItemUpdate.MarkAllAsOutdated -> {
+                    cacheDao.markAllAsOutdated(
+                        pluginId = updateItem.pluginId.id,
+                        commandName = updateItem.commandName
                     )
                 }
             }

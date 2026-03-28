@@ -17,7 +17,7 @@ sealed class CommandAction {
 }
 
 interface CommandServiceBridge : ZiplineService {
-    val serviceName: String
+    fun getServiceName(): String
     suspend fun cachedItems(
         requestedItems: List<ItemId>? = null,
         chunkSize: Int = 100

@@ -3,8 +3,8 @@ package ru.raydroid.plugin.host.impl
 import app.cash.zipline.Zipline
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.channelFlow
@@ -35,7 +35,7 @@ internal class SinglePluginRuntimeImpl(
     private val contentFlow =
         MutableStateFlow<List<RayItems>>(List(commandServices.size) { emptyMap() })
 
-    private val invalidationChannel = Channel<List<ItemId>?>()
+    private val invalidationChannel = MutableSharedFlow<InvalidationRequest>()
     override val pluginId: PluginId
         get() = PluginId(manifest.name)
 
@@ -53,7 +53,15 @@ internal class SinglePluginRuntimeImpl(
             val invalidationRequest = object : CommandServiceBridge.InvalidateCacheRequest {
                 override fun requestInvalidation(invalidatedIds: List<ItemId>?) {
                     coroutineScope.launch {
-                        invalidationChannel.send(invalidatedIds)
+                        val serviceName = withContext(pluginRuntimeDispatcher) {
+                            command.getServiceName()
+                        }
+                        invalidationChannel.emit(
+                            InvalidationRequest(
+                                serviceName,
+                                invalidatedIds
+                            )
+                        )
                     }
                 }
             }
@@ -65,48 +73,61 @@ internal class SinglePluginRuntimeImpl(
         chunkSize: Int
     ): Flow<List<ListItemUpdate>> = channelFlow {
         commandServices.forEach { command ->
-            val commandName =
-                manifest.commands.find {
+            launch {
+                val commandName = manifest.commands.find {
                     // Using plugin context because
                     // command.serviceName is actually a function
                     withContext(pluginRuntimeDispatcher) {
-                        it.service == command.serviceName
+                        it.service == command.getServiceName()
                     }
-                }
-                    ?.service ?: return@forEach
-            withContext(pluginRuntimeDispatcher) {
-                command.cachedItems(chunkSize = chunkSize)
-                    .collectLatest { chunk ->
+                }?.service ?: return@launch
+                withContext(pluginRuntimeDispatcher) {
+                    command.cachedItems(chunkSize = chunkSize).collectLatest { chunk ->
                         send(chunk.map { it.toItemUpdate(commandName) })
                     }
-                val channelIterator = invalidationChannel.iterator()
-                while (channelIterator.hasNext()) {
-                    val invalidatedIds = channelIterator.next()
-                    if (invalidatedIds != null) {
-                        val deleteUpdate = invalidatedIds.map { invalidatedId ->
-                            ListItemUpdate.Delete(
-                                listItemId = ListItemId(
-                                    pluginId = PluginId(manifest.name),
-                                    commandName = commandName,
-                                    itemId = invalidatedId
+                    withContext(coroutineScope.coroutineContext) {
+                        invalidationChannel.collectLatest { invalidationRequest ->
+                            if (invalidationRequest.commandName != commandName) return@collectLatest
+                            if (invalidationRequest.invalidatedIds != null) {
+                                val deleteUpdate =
+                                    invalidationRequest.invalidatedIds.map { invalidatedId ->
+                                        ListItemUpdate.Delete(
+                                            listItemId = ListItemId(
+                                                pluginId = PluginId(manifest.name),
+                                                commandName = commandName,
+                                                itemId = invalidatedId
+                                            )
+                                        )
+                                    }
+                                send(deleteUpdate)
+                            } else {
+                                send(
+                                    listOf(
+                                        ListItemUpdate.MarkAllAsOutdated(
+                                            pluginId = PluginId(manifest.name),
+                                            commandName = commandName
+                                        )
+                                    )
                                 )
-                            )
+                            }
+                            command.cachedItems(
+                                invalidationRequest.invalidatedIds,
+                                chunkSize = chunkSize
+                            ).collect { chunk ->
+                                send(chunk.map { it.toItemUpdate(commandName) })
+                            }
+                            if (invalidationRequest.invalidatedIds == null) {
+                                send(
+                                    listOf(
+                                        ListItemUpdate.ClearOutdated(
+                                            pluginId = PluginId(manifest.name),
+                                            commandName = commandName
+                                        )
+                                    )
+                                )
+                            }
                         }
-                        send(deleteUpdate)
-                    } else {
-                        send(
-                            listOf(
-                                ListItemUpdate.Clear(
-                                    pluginId = PluginId(manifest.name),
-                                    commandName = commandName
-                                )
-                            )
-                        )
                     }
-                    command.cachedItems(invalidatedIds, chunkSize = chunkSize)
-                        .collect { chunk ->
-                            send(chunk.map { it.toItemUpdate(commandName) })
-                        }
                 }
             }
         }
@@ -114,18 +135,14 @@ internal class SinglePluginRuntimeImpl(
 
     private fun ListItem.toItemUpdate(commandName: String) = ListItemUpdate.Upsert(
         listItemId = ListItemId(
-            PluginId(manifest.name),
-            commandName = commandName,
-            itemId = id
-        ),
-        item = this
+            PluginId(manifest.name), commandName = commandName, itemId = id
+        ), item = this
     )
 
     override fun content(): StateFlow<List<RayItems>> = contentFlow
 
     override suspend fun update(
-        query: String,
-        action: CommandAction
+        query: String, action: CommandAction
     ) {
         withContext(pluginRuntimeDispatcher) {
             commandServices.forEach { command ->
@@ -137,4 +154,9 @@ internal class SinglePluginRuntimeImpl(
     override suspend fun unload() {
         zipline.close()
     }
+
+    private class InvalidationRequest(
+        val commandName: String,
+        val invalidatedIds: List<ItemId>?
+    )
 }

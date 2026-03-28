@@ -26,7 +26,7 @@ fun plugin(content: PluginScope.() -> Unit) {
 }
 
 internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge = object : CommandServiceBridge {
-    override val serviceName = serviceName
+    override fun getServiceName() = serviceName
 
     override suspend fun cachedItems(requestedItems: List<ItemId>?, chunkSize: Int): Flow<List<ListItem>> {
         return this@toBridge.cachedItems(requestedItems, chunkSize)

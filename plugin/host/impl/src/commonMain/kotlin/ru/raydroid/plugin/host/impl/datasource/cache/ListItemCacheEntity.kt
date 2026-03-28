@@ -37,6 +37,9 @@ internal data class ListItemCacheEntity(
 
     @ColumnInfo("usage_count")
     val usageCount: Long = 0,
+
+    @ColumnInfo("outdated")
+    val outdated: Boolean = false,
 )
 
 internal data class ListItemCacheWithContent(
