@@ -235,6 +235,9 @@
         "network": {
           "$ref": "#/definitions/networkAccess"
         },
+        "notification": {
+          "$ref": "#/definitions/notificationAccess"
+        },
         "preferences": {
           "$ref": "#/definitions/sizedAccess"
         },
@@ -322,6 +325,18 @@
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "notificationAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "show_alerts": {
+          "type": "boolean"
+        },
+        "show_toasts": {
+          "type": "boolean"
         }
       }
     },

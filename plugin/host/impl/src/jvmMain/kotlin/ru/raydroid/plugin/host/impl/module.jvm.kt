@@ -37,7 +37,6 @@ private fun getLocalFilesPath(): Path {
 internal actual val pluginPlatformModule = module {
     single<ClipboardServiceBridge> { ClipboardServiceBridgeImpl() }
     single<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
-    single<SystemServiceBridge> { MacSystemServiceBridgeImpl() }
     single<FileSystem>(named("localFileSystem")) {
         FileSystem.SYSTEM
     }

@@ -57,6 +57,10 @@
       "permissions": ["manage"],
       "requested_size": "1mb"
     },
+    "notification": {
+      "show_alerts": true,
+      "show_toasts": true
+    },
     "system": {
       "permissions": ["get_apps", "open_resource", "open_app"],
       "visible_apps": [".*"],

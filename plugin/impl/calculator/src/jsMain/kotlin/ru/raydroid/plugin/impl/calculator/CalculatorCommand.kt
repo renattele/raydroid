@@ -8,7 +8,7 @@ import ru.raydroid.plugin.api.core.ListItem
 import ru.raydroid.plugin.api.core.RayListScope
 import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.host.Host
-import ru.raydroid.plugin.api.host.service.SystemService
+import ru.raydroid.plugin.api.host.service.NotificationService
 import ru.raydroid.plugin.api.ui.Column
 import ru.raydroid.plugin.api.ui.Text
 
@@ -46,8 +46,21 @@ class CalculatorCommand : CommandService() {
             render()
         }
         if (query.any { it.isDigit() }) {
-            invalidateCache()
-            render()
+            Host.notification.alert(
+                title = UiText.Plain("Calculator"),
+                message = UiText.Plain(query),
+                actions = listOf(
+                    NotificationService.AlertAction(
+                        title = UiText.Plain("Hi"),
+                        style = NotificationService.AlertAction.Style.Cancel
+                    )
+                ),
+                primaryAction =
+                    NotificationService.AlertAction(
+                        title = UiText.Plain("Hi"),
+                        style = NotificationService.AlertAction.Style.Cancel
+                    )
+            )
         } else {
             result = ""
         }
