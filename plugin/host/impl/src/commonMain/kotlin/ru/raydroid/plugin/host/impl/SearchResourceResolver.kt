@@ -18,16 +18,16 @@ internal interface SearchResourceResolver {
     interface Session {
         suspend fun resolveContent(
             pluginId: PluginId,
-            title: UiText,
-            description: UiText
+            title: UiText?,
+            description: UiText?
         ): List<ResolvedContent>
 
-        suspend fun resolveIcon(pluginId: PluginId, icon: Icon): Icon
+        suspend fun resolveIcon(pluginId: PluginId, icon: Icon?): Icon?
     }
 
     data class ResolvedContent(
-        val title: String,
-        val description: String
+        val title: String?,
+        val description: String?
     )
 }
 
@@ -41,8 +41,8 @@ internal class SearchResourceResolverImpl(
         return object : SearchResourceResolver.Session {
             override suspend fun resolveContent(
                 pluginId: PluginId,
-                title: UiText,
-                description: UiText
+                title: UiText?,
+                description: UiText?
             ): List<SearchResourceResolver.ResolvedContent> {
                 val metadata = metadataCache.getOrPutMetadata(pluginId)
 
@@ -52,12 +52,14 @@ internal class SearchResourceResolverImpl(
                     addAll(titleVariants.keys)
                     addAll(descriptionVariants.keys)
                 }
+                if (bucketNames.isEmpty()) {
+                    return listOf(SearchResourceResolver.ResolvedContent(title = null, description = null))
+                }
+
                 val defaultTitle = titleVariants[DEFAULT_STRINGS_BUCKET]
                     ?: titleVariants.values.firstOrNull()
-                    ?: title.text
                 val defaultDescription = descriptionVariants[DEFAULT_STRINGS_BUCKET]
                     ?: descriptionVariants.values.firstOrNull()
-                    ?: description.text
 
                 return bucketNames.map { bucketName ->
                     SearchResourceResolver.ResolvedContent(
@@ -67,8 +69,8 @@ internal class SearchResourceResolverImpl(
                 }.distinct()
             }
 
-            override suspend fun resolveIcon(pluginId: PluginId, icon: Icon): Icon {
-                if (icon.type != Icon.Type.Resource) return icon
+            override suspend fun resolveIcon(pluginId: PluginId, icon: Icon?): Icon? {
+                if (icon == null || icon.type != Icon.Type.Resource) return icon
                 val metadata = metadataCache.getOrPutMetadata(pluginId) ?: return icon
 
                 return try {
@@ -98,9 +100,13 @@ internal class SearchResourceResolverImpl(
     }
 
     private fun resolveTextVariants(
-        text: UiText,
+        text: UiText?,
         metadata: PluginMetadata?
     ): Map<String, String> {
+        if (text == null) {
+            return emptyMap()
+        }
+
         if (text.type == UiText.Type.Plain || metadata == null) {
             return linkedMapOf(DEFAULT_STRINGS_BUCKET to text.text)
         }

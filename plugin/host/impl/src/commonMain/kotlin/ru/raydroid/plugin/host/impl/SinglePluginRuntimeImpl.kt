@@ -146,7 +146,9 @@ internal class SinglePluginRuntimeImpl(
     ) {
         withContext(pluginRuntimeDispatcher) {
             commandServices.forEach { command ->
-                command.update(query, action)
+                launch {
+                    command.update(query, action)
+                }
             }
         }
     }

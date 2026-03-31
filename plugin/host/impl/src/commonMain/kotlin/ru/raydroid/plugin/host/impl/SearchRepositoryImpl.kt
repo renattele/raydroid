@@ -93,8 +93,8 @@ internal class SearchRepositoryImpl(
                 pluginId = listItemId.pluginId.id,
                 command = listItemId.commandName,
                 itemId = item.id.value,
-                icon = resolvedIcon.value,
-                iconType = resolvedIcon.type.name
+                icon = resolvedIcon?.value,
+                iconType = resolvedIcon?.type?.name
             ),
             content = resolvedContent.map { content ->
                 ListItemCacheContentEntity(
@@ -138,9 +138,11 @@ internal class SearchRepositoryImpl(
             ),
             item = ListItem(
                 id = ItemId(itemId),
-                icon = Icon(icon, Icon.Type.valueOf(iconType)),
-                title = ru.raydroid.plugin.api.core.UiText.Plain(title),
-                description = ru.raydroid.plugin.api.core.UiText.Plain(description)
+                icon = icon?.let { iconValue ->
+                    iconType?.let { Icon(iconValue, Icon.Type.valueOf(it)) }
+                },
+                title = title?.let(ru.raydroid.plugin.api.core.UiText::Plain),
+                description = description?.let(ru.raydroid.plugin.api.core.UiText::Plain)
             ),
             titleMatches = titleMatches,
             descriptionMatches = descriptionMatches

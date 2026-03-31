@@ -23,6 +23,7 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(libs.bundles.composeCommon)
+            implementation(libs.compose.uiToolingPreview)
             implementation(libs.bundles.lifecycleCompose)
             implementation(libs.bundles.koin)
             implementation(libs.bundles.koin.compose)
@@ -35,4 +36,8 @@ kotlin {
             implementation(projects.core.model)
         }
     }
+}
+
+dependencies {
+    androidRuntimeClasspath(libs.compose.uiTooling)
 }

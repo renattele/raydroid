@@ -1,26 +1,31 @@
 package ru.raydroid.plugin.host.impl.services
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.host.bridge.NotificationServiceBridge
 import ru.raydroid.plugin.host.api.NotificationEvent
+import ru.raydroid.plugin.host.api.PluginId
+import ru.raydroid.plugin.host.api.EventGateway
 
 class NotificationServiceBridgeImpl(
-    private val onEvent: (NotificationEvent) -> Unit,
-    private val incomingEvents: Flow<NotificationEvent>
-): NotificationServiceBridge {
+    private val eventGateway: EventGateway,
+    private val pluginId: PluginId
+) : NotificationServiceBridge {
     override suspend fun alert(
         title: UiText,
         message: UiText,
-        actions: List<NotificationServiceBridge.AlertAction>,
-        primaryAction: NotificationServiceBridge.AlertAction
+        confirmAction: NotificationServiceBridge.AlertAction,
+        dismissAction: NotificationServiceBridge.AlertAction?
     ): NotificationServiceBridge.AlertAction {
-        onEvent(NotificationEvent.Alert(title, message, actions))
-        val result = incomingEvents.mapNotNull { event ->
-            if (event is NotificationEvent.AlertResult) {
-                event.action
+        eventGateway.emit(
+            pluginId,
+            NotificationEvent.Alert(pluginId, title, message, confirmAction, dismissAction)
+        )
+        val result = eventGateway.get(pluginId).mapNotNull { event ->
+            val data = event.data
+            if (data is NotificationEvent.AlertResult) {
+                data.action
             } else {
                 null
             }
@@ -29,10 +34,13 @@ class NotificationServiceBridgeImpl(
     }
 
     override suspend fun showToast(toast: NotificationServiceBridge.Toast) {
-        onEvent(NotificationEvent.ShowToast(toast))
+        eventGateway.emit(
+            pluginId,
+            NotificationEvent.ShowToast(pluginId, toast)
+        )
     }
 
     override suspend fun hideToast(toast: NotificationServiceBridge.Toast) {
-        onEvent(NotificationEvent.HideToast(toast))
+        eventGateway.emit(pluginId, NotificationEvent.HideToast(pluginId, toast))
     }
 }

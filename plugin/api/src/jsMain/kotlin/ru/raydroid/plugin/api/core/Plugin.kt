@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.api.core
 
 import kotlinx.coroutines.flow.Flow
+import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.RayNodeData
 import ru.raydroid.plugin.api.ui.RayScope
 import ru.raydroid.plugin.api.ui.buildRayNodes
@@ -33,13 +34,41 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
     }
 
     override fun content(): RayItems {
-        val items = mutableMapOf<ItemId, List<RayNodeData>>()
+        val items = mutableMapOf<ListItem, List<RayNodeData>>()
         val scope = object : RayListScope {
             override fun item(
                 id: ItemId,
+                title: UiText?,
+                description: UiText?,
+                icon: Icon?,
+                actions: RayListActionScope.() -> Unit,
                 content: RayScope.() -> Unit
             ) {
-                items[id] = buildRayNodes(content)
+                val actions = mutableListOf<ListItemAction>()
+                val actionScope = object : RayListActionScope {
+                    override fun action(
+                        id: String,
+                        title: UiText,
+                        icon: Icon,
+                        description: UiText?
+                    ) {
+                        actions += ListItemAction(
+                            id = id,
+                            title = title,
+                            icon = icon,
+                            description = description
+                        )
+                    }
+                }
+                actionScope.actions()
+                val listItem = ListItem(
+                    id = id,
+                    title = title,
+                    description = description,
+                    icon = icon,
+                    actions = actions
+                )
+                items[listItem] = buildRayNodes(content)
             }
         }
         scope.content()

@@ -17,7 +17,7 @@ class PluginRepositoryImpl(
 ) : PluginRepository {
     override suspend fun installPlugin(url: String) {
         val remotePlugin = remotePluginDataSource.load(url) ?: return
-        val metadata = pluginLoader.loadPluginMetadata(Plugin(remotePlugin.data)) ?: return
+        val metadata = pluginLoader.loadPluginMetadata(Plugin(remotePlugin.data))
         if (localPluginDataSource.signature(metadata.pluginId) != remotePlugin.signature) {
             throw NonMatchingSignatureException()
         }

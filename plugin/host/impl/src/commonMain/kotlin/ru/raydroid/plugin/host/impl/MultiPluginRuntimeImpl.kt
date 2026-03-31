@@ -2,24 +2,22 @@ package ru.raydroid.plugin.host.impl
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import ru.raydroid.plugin.api.core.CommandAction
-import ru.raydroid.plugin.api.core.ListItem
 import ru.raydroid.plugin.api.core.RayItems
 import ru.raydroid.plugin.host.api.ListItemUpdate
 import ru.raydroid.plugin.host.api.MultiPluginRuntime
 import ru.raydroid.plugin.host.api.SinglePluginRuntime
 
 internal class MultiPluginRuntimeImpl(
-    coroutineScope: CoroutineScope,
+    private val coroutineScope: CoroutineScope,
     private val pluginRuntimes: StateFlow<List<SinglePluginRuntime>>
 ) : MultiPluginRuntime {
     private val contentFlow = MutableStateFlow<Map<SinglePluginRuntime, List<RayItems>>>(
@@ -69,8 +67,10 @@ internal class MultiPluginRuntimeImpl(
         query: String,
         action: CommandAction
     ) {
-        pluginRuntimes.value.forEach { runtime ->
-            runtime.update(query, action)
-        }
+        pluginRuntimes.value.map { runtime ->
+            coroutineScope.async {
+                runtime.update(query, action)
+            }
+        }.awaitAll()
     }
 }

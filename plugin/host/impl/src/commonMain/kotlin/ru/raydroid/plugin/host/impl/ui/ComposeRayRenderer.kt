@@ -250,7 +250,7 @@ internal fun TextRenderer(data: TextData, modifier: Modifier = Modifier) {
 }
 
 @Composable
-internal fun UiText.asText(): String = when (type) {
+fun UiText.asText(): String = when (type) {
     UiText.Type.Plain -> this.text
     UiText.Type.Resource -> LocalResourceResolver.current.resolveString(this.text)
 }

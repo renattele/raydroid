@@ -10,14 +10,14 @@ internal class NotificationServiceImpl(
     override suspend fun alert(
         title: UiText,
         message: UiText,
-        actions: List<NotificationService.AlertAction>,
-        primaryAction: NotificationService.AlertAction
+        confirmAction: NotificationService.AlertAction,
+        dismissAction: NotificationService.AlertAction?
     ): NotificationService.AlertAction? {
         return bridge.alert(
             title = title,
             message = message,
-            actions = actions.map { it.toBridgeAction() },
-            primaryAction = primaryAction.toBridgeAction()
+            confirmAction = confirmAction.toBridgeAction(),
+            dismissAction = dismissAction?.toBridgeAction()
         )?.toServiceAction()
     }
 

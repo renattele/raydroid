@@ -8,8 +8,8 @@ interface NotificationServiceBridge: ZiplineService {
     suspend fun alert(
         title: UiText,
         message: UiText,
-        actions: List<AlertAction>,
-        primaryAction: AlertAction
+        confirmAction: AlertAction,
+        dismissAction: AlertAction? = null,
     ): AlertAction?
 
     suspend fun showToast(toast: Toast)

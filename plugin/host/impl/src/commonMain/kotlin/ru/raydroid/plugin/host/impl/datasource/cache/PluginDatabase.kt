@@ -14,7 +14,7 @@ import kotlinx.coroutines.IO
         ListItemCacheContentEntity::class,
         ListItemCacheContentFtsEntity::class
     ],
-    version = 3
+    version = 4
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 internal abstract class PluginDatabase : RoomDatabase() {

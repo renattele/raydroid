@@ -1,6 +1,8 @@
 package ru.raydroid.plugin.impl.calculator
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
 import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.CommandService
 import ru.raydroid.plugin.api.core.ItemId
@@ -15,7 +17,13 @@ import ru.raydroid.plugin.api.ui.Text
 class CalculatorCommand : CommandService() {
     private var result: String = ""
 
+    private val toast = NotificationService.Toast(
+        message = UiText.Plain("Loading..."),
+        style = NotificationService.Toast.Style.Animated
+    )
+
     override suspend fun cachedItems(requestedItems: List<ItemId>?, chunkSize: Int) = flow {
+        Host.notification.showToast(toast)
         val apps = Host.system.getApps()
         apps.map { app ->
             ListItem(
@@ -27,6 +35,8 @@ class CalculatorCommand : CommandService() {
         }.chunked(chunkSize).forEach { chunk ->
             emit(chunk)
         }
+    }.onCompletion {
+        Host.notification.hideToast(toast)
     }
 
     override fun RayListScope.content() {
@@ -46,21 +56,13 @@ class CalculatorCommand : CommandService() {
             render()
         }
         if (query.any { it.isDigit() }) {
-            Host.notification.alert(
-                title = UiText.Plain("Calculator"),
-                message = UiText.Plain(query),
-                actions = listOf(
-                    NotificationService.AlertAction(
-                        title = UiText.Plain("Hi"),
-                        style = NotificationService.AlertAction.Style.Cancel
-                    )
-                ),
-                primaryAction =
-                    NotificationService.AlertAction(
-                        title = UiText.Plain("Hi"),
-                        style = NotificationService.AlertAction.Style.Cancel
-                    )
+            val toast = NotificationService.Toast(
+                message = UiText.Plain("Hello"),
+                style = NotificationService.Toast.Style.Animated
             )
+            Host.notification.showToast(toast)
+            delay(1000)
+            Host.notification.hideToast(toast)
         } else {
             result = ""
         }

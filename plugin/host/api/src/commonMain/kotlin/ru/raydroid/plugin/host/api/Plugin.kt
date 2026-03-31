@@ -36,4 +36,8 @@ value class PluginId(
             "Invalid plugin id: $id. It should match this schema: com.example.myplugin"
         }
     }
+
+    companion object {
+        val Invalid = PluginId("a.invalid")
+    }
 }

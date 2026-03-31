@@ -27,10 +27,10 @@ internal data class ListItemCacheEntity(
     val itemId: String,
 
     @ColumnInfo("icon")
-    val icon: String,
+    val icon: String?,
 
     @ColumnInfo("icon_type")
-    val iconType: String,
+    val iconType: String?,
 
     @ColumnInfo("last_used_at_epoch_ms")
     val lastUsedAtEpochMs: Long? = null,
@@ -92,16 +92,16 @@ internal data class ListItemCacheSearchEntity(
     val itemId: String,
 
     @ColumnInfo("icon")
-    val icon: String,
+    val icon: String?,
 
     @ColumnInfo("icon_type")
-    val iconType: String,
+    val iconType: String?,
 
     @ColumnInfo("title")
-    val title: String,
+    val title: String?,
 
     @ColumnInfo("description")
-    val description: String,
+    val description: String?,
 
     @ColumnInfo("last_used_at_epoch_ms")
     val lastUsedAtEpochMs: Long?,
@@ -124,10 +124,10 @@ internal data class ListItemCacheContentEntity(
     val listItemCacheId: Long = 0,
 
     @ColumnInfo("title")
-    val title: String,
+    val title: String?,
 
     @ColumnInfo("description")
-    val description: String
+    val description: String?
 )
 
 @Entity(tableName = "list_item_cache_content_fts")
@@ -142,8 +142,8 @@ internal data class ListItemCacheContentFtsEntity(
     val rowId: Long,
 
     @ColumnInfo("title")
-    val title: String,
+    val title: String?,
 
     @ColumnInfo("description")
-    val description: String
+    val description: String?
 )

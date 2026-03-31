@@ -1,16 +1,19 @@
 package ru.raydroid.plugin.host.impl
 
 import org.koin.core.module.Module
-import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import ru.raydroid.plugin.host.api.EventGateway
 import ru.raydroid.plugin.host.api.HostFactory
 import ru.raydroid.plugin.host.api.PluginLoader
 import ru.raydroid.plugin.host.api.PluginRepository
 import ru.raydroid.plugin.host.api.PluginRuntimeManager
 import ru.raydroid.plugin.host.api.SearchRepository
+import ru.raydroid.plugin.host.api.usecase.EmitEventUseCase
+import ru.raydroid.plugin.host.api.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.usecase.LoadRuntimesUseCase
 import ru.raydroid.plugin.host.api.usecase.OpenItemUseCase
@@ -49,15 +52,14 @@ val pluginHostModule = module {
     }
     singleOf(::CachedSearchRanker) bind SearchRanker::class
     singleOf(::SearchResourceResolverImpl) bind SearchResourceResolver::class
-    singleOf(::RemotePluginDataSourceImpl) {
-        bind<RemotePluginDataSource>()
-    }
-    singleOf(::PluginRepositoryImpl) {
-        bind<PluginRepository>()
-    }
+    singleOf(::RemotePluginDataSourceImpl) bind RemotePluginDataSource::class
+    singleOf(::PluginRepositoryImpl) bind PluginRepository::class
+    singleOf(::EventGatewayImpl) bind EventGateway::class
     singleOf(::SearchRepositoryImpl) bind SearchRepository::class
     singleOf(::PluginRuntimeManagerImpl) bind PluginRuntimeManager::class
 
+    singleOf(::GetEventsUseCase)
+    singleOf(::EmitEventUseCase)
     singleOf(::SyncCacheUseCase)
     singleOf(::LoadRuntimesUseCase)
     singleOf(::SearchUseCase)
@@ -66,14 +68,46 @@ val pluginHostModule = module {
 
     single<HostFactory> {
         HostFactoryImpl(
-            networkBridge = { get() },
-            notificationBridge = { get() },
-            preferencesBridge = { get() },
-            cacheBridge = { get() },
-            storageBridge = { get() },
-            clipboardBridge = { get() },
-            environmentBridge = { get() },
-            systemBridge = { get() },
+            networkBridge = {
+                get {
+                    parametersOf(it)
+                }
+            },
+            notificationBridge = {
+                get {
+                    parametersOf(it)
+                }
+            },
+            preferencesBridge = {
+                get {
+                    parametersOf(it)
+                }
+            },
+            cacheBridge = {
+                get {
+                    parametersOf(it)
+                }
+            },
+            storageBridge = {
+                get {
+                    parametersOf(it)
+                }
+            },
+            clipboardBridge = {
+                get {
+                    parametersOf(it)
+                }
+            },
+            environmentBridge = {
+                get {
+                    parametersOf(it)
+                }
+            },
+            systemBridge = {
+                get {
+                    parametersOf(it)
+                }
+            },
         )
     }
 }

@@ -54,6 +54,7 @@ internal class ThemeResolverImpl(
         Spacing.Large -> 16.dp
         Spacing.ExtraLarge -> 28.dp
         Spacing.Minimal -> Dp.Hairline
+        Spacing.Border -> 1.dp
     }
 
     override fun resolveTextSize(fontSize: FontSize): TextUnit = when (fontSize) {
@@ -117,6 +118,7 @@ internal class ThemeResolverImpl(
         Color.InverseOnSurface -> colorScheme.inverseOnSurface
         Color.InversePrimary -> colorScheme.inversePrimary
         Color.Scrim -> colorScheme.scrim
+        Color.Transparent -> androidx.compose.ui.graphics.Color.Transparent
     }
 }
 

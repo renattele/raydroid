@@ -5,10 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,11 +23,15 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import ru.raydroid.plugin.host.impl.ui.ActionPanel
 import ru.raydroid.plugin.host.impl.ui.ComposeRayRenderer
+import ru.raydroid.plugin.host.impl.ui.LocalResourceResolver
+import ru.raydroid.plugin.host.impl.ui.RaydroidPreviewTheme
 import ru.raydroid.plugin.host.impl.ui.ResourceResolverProvider
 import ru.raydroid.plugin.host.impl.ui.SearchField
 import ru.raydroid.plugin.host.impl.ui.SearchFieldEvent
 import ru.raydroid.plugin.host.impl.ui.SearchListItem
+import ru.raydroid.plugin.host.impl.ui.asText
 
 @Composable
 fun SearchScreen(modifier: Modifier = Modifier) {
@@ -32,6 +40,7 @@ fun SearchScreen(modifier: Modifier = Modifier) {
     SearchScreen(state, modifier)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
@@ -45,6 +54,35 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 val offset = state.searchResults?.content?.size ?: 0
                 listState.scrollToItem(state.focusedItemIndex + offset)
             }
+        }
+        state.alerts.forEach { alert ->
+            AlertDialog(
+                onDismissRequest = {
+                    state.eventSink(SearchScreenEvent.DismissAlert(alert))
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        state.eventSink(SearchScreenEvent.ConfirmAlert(alert))
+                    }) {
+                        Text(alert.confirmAction.title.asText())
+                    }
+                },
+                dismissButton = if (alert.dismissAction != null) {
+                    {
+                        TextButton(onClick = {
+                            state.eventSink(SearchScreenEvent.DismissAlert(alert))
+                        }) {
+                            Text(alert.dismissAction!!.title.asText())
+                        }
+                    }
+                } else null,
+                title = {
+                    Text(alert.title.asText())
+                },
+                text = {
+                    Text(alert.message.asText())
+                }
+            )
         }
         LazyColumn(
             Modifier
@@ -86,13 +124,16 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             },
             Modifier.focusRequester(focus)
         )
+        ActionPanel(
+            toasts = state.toasts
+        )
     }
 }
 
 @Preview
 @Composable
 fun SearchScreenPreview() {
-    MaterialTheme {
+    RaydroidPreviewTheme {
         val state = remember {
             SearchScreenState {
 

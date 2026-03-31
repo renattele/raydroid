@@ -17,25 +17,25 @@ import ru.raydroid.plugin.host.impl.permission.PermissionHostServiceBridge
 import ru.raydroid.plugin.host.impl.services.HostServiceBridgeImpl
 
 class HostFactoryImpl(
-    private val networkBridge: () -> NetworkServiceBridge,
-    private val notificationBridge: () -> NotificationServiceBridge,
-    private val preferencesBridge: () -> PreferencesServiceBridge,
-    private val cacheBridge: () -> CacheServiceBridge,
-    private val storageBridge: () -> StorageServiceBridge,
-    private val clipboardBridge: () -> ClipboardServiceBridge,
-    private val environmentBridge: () -> EnvironmentServiceBridge,
-    private val systemBridge: () -> SystemServiceBridge
+    private val networkBridge: (PluginId) -> NetworkServiceBridge,
+    private val notificationBridge: (PluginId) -> NotificationServiceBridge,
+    private val preferencesBridge: (PluginId) -> PreferencesServiceBridge,
+    private val cacheBridge: (PluginId) -> CacheServiceBridge,
+    private val storageBridge: (PluginId) -> StorageServiceBridge,
+    private val clipboardBridge: (PluginId) -> ClipboardServiceBridge,
+    private val environmentBridge: (PluginId) -> EnvironmentServiceBridge,
+    private val systemBridge: (PluginId) -> SystemServiceBridge
 ): HostFactory {
     override fun get(pluginId: PluginId, manifest: Manifest): HostServiceBridge {
          val bridge = HostServiceBridgeImpl(
-            cacheBridge = cacheBridge(),
-            clipboardBridge = clipboardBridge(),
-            environmentBridge = environmentBridge(),
-            networkBridge = networkBridge(),
-            notificationBridge = notificationBridge(),
-            preferencesBridge = preferencesBridge(),
-            storageBridge = storageBridge(),
-            systemBridge = systemBridge()
+            cacheBridge = cacheBridge(pluginId),
+            clipboardBridge = clipboardBridge(pluginId),
+            environmentBridge = environmentBridge(pluginId),
+            networkBridge = networkBridge(pluginId),
+            notificationBridge = notificationBridge(pluginId),
+            preferencesBridge = preferencesBridge(pluginId),
+            storageBridge = storageBridge(pluginId),
+            systemBridge = systemBridge(pluginId)
         )
         val permissionBridge = PermissionHostServiceBridge(bridge, manifest)
         return permissionBridge

@@ -12,11 +12,11 @@ internal class PermissionNotificationServiceBridge(
     override suspend fun alert(
         title: UiText,
         message: UiText,
-        actions: List<NotificationServiceBridge.AlertAction>,
-        primaryAction: NotificationServiceBridge.AlertAction
+        confirmAction: NotificationServiceBridge.AlertAction,
+        dismissAction: NotificationServiceBridge.AlertAction?
     ): NotificationServiceBridge.AlertAction? {
         if (manifest.access.notification?.showAlerts == true) {
-            return notificationServiceBridge.alert(title, message, actions, primaryAction)
+            return notificationServiceBridge.alert(title, message, confirmAction, dismissAction)
         }
         throw PermissionDenied()
     }

@@ -64,25 +64,34 @@ fun ListItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(themeResolver.spacing(Spacing.Medium))
     ) {
-        IconRenderer(
-            data = IconData(
-                icon = item.icon
+        val icon = item.icon
+        if (icon != null) {
+            IconRenderer(
+                data = IconData(
+                    icon = icon
+                )
             )
-        )
+        }
         Column {
-            TextRenderer(
-                data = TextData(
-                    text = item.title,
-                    fontSize = FontSize.Large
+            val title = item.title
+            if (title != null) {
+                TextRenderer(
+                    data = TextData(
+                        text = title,
+                        fontSize = FontSize.Large
+                    )
                 )
-            )
-            TextRenderer(
-                data = TextData(
-                    text = item.title,
-                    fontSize = FontSize.Small,
-                    color = Color.OutlineVariant
+            }
+            val description = item.description
+            if (description != null) {
+                TextRenderer(
+                    data = TextData(
+                        text = description,
+                        fontSize = FontSize.Small,
+                        color = Color.OutlineVariant
+                    )
                 )
-            )
+            }
         }
     }
 }

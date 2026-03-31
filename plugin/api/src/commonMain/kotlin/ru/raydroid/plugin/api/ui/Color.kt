@@ -55,5 +55,7 @@ enum class Color {
     InverseOnSurface,
     InversePrimary,
 
-    Scrim
+    Scrim,
+
+    Transparent
 }

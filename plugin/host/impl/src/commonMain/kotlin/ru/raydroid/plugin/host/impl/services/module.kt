@@ -15,11 +15,8 @@ internal expect val platformHostServiceModule: Module
 internal val hostServiceModule = module {
     includes(platformHostServiceModule)
     factory<NetworkServiceBridge> { NetworkServiceBridgeImpl(get()) }
-    // TODO: Provide actual dependencies
-    factory<NotificationServiceBridge> {
-        NotificationServiceBridgeImpl(onEvent = { _: NotificationEvent ->
-
-        }, incomingEvents = emptyFlow<NotificationEvent>())
+    factory<NotificationServiceBridge> { params ->
+        NotificationServiceBridgeImpl(eventGateway = get(), pluginId = params.get())
     }
 
     factory<PreferencesServiceBridge> { PreferencesServiceBridgeImpl(get()) }

@@ -106,8 +106,9 @@ internal class CachedSearchRanker : SearchRanker {
 
     private fun scoreField(
         query: NormalizedText,
-        rawText: String
+        rawText: String?
     ): FieldMatch {
+        if (rawText.isNullOrEmpty()) return FieldMatch.Unmatched
         val field = NormalizedText.from(rawText)
         if (field.text.isEmpty()) return FieldMatch.Unmatched
 
@@ -620,8 +621,10 @@ private fun String.substring(range: IntRange): String {
 private fun ListItemCacheSearchEntity.toListItem(): ru.raydroid.plugin.api.core.ListItem {
     return ru.raydroid.plugin.api.core.ListItem(
         id = ru.raydroid.plugin.api.core.ItemId(itemId),
-        icon = ru.raydroid.plugin.api.ui.Icon(icon, ru.raydroid.plugin.api.ui.Icon.Type.valueOf(iconType)),
-        title = ru.raydroid.plugin.api.core.UiText.Plain(title),
-        description = ru.raydroid.plugin.api.core.UiText.Plain(description)
+        icon = icon?.let { iconValue ->
+            iconType?.let { ru.raydroid.plugin.api.ui.Icon(iconValue, ru.raydroid.plugin.api.ui.Icon.Type.valueOf(it)) }
+        },
+        title = title?.let(ru.raydroid.plugin.api.core.UiText::Plain),
+        description = description?.let(ru.raydroid.plugin.api.core.UiText::Plain)
     )
 }

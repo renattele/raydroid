@@ -23,16 +23,37 @@ value class ItemId(val value: String) {
 @Serializable
 data class ListItem(
     val id: ItemId,
-    val icon: Icon,
+    val icon: Icon?,
+    val title: UiText?,
+    val description: UiText?,
+    val actions: List<ListItemAction> = emptyList()
+)
+
+@Serializable
+data class ListItemAction(
+    val id: String,
     val title: UiText,
-    val description: UiText
+    val description: UiText?,
+    val icon: Icon,
 )
 
 interface RayListScope {
     @Ray
-    fun item(id: ItemId, content: RayScope.() -> Unit)
+    fun item(
+        id: ItemId,
+        title: UiText? = null,
+        description: UiText? = null,
+        icon: Icon? = null,
+        actions: RayListActionScope.() -> Unit = {},
+        content: RayScope.() -> Unit
+    )
+}
+
+interface RayListActionScope {
+    @Ray
+    fun action(id: String, title: UiText, icon: Icon, description: UiText? = null)
 }
 
 typealias RayItem = Pair<ItemId, List<RayNodeData>>
 
-typealias RayItems = Map<ItemId, List<RayNodeData>>
+typealias RayItems = Map<ListItem, List<RayNodeData>>
