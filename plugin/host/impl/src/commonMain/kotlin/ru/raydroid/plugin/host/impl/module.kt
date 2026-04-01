@@ -1,33 +1,43 @@
 package ru.raydroid.plugin.host.impl
 
+import kotlin.time.Clock
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import ru.raydroid.plugin.host.api.EventGateway
-import ru.raydroid.plugin.host.api.HostFactory
-import ru.raydroid.plugin.host.api.PluginLoader
-import ru.raydroid.plugin.host.api.PluginRepository
-import ru.raydroid.plugin.host.api.PluginRuntimeManager
-import ru.raydroid.plugin.host.api.SearchRepository
-import ru.raydroid.plugin.host.api.usecase.EmitEventUseCase
-import ru.raydroid.plugin.host.api.usecase.GetEventsUseCase
-import ru.raydroid.plugin.host.api.usecase.GetPluginsUseCase
-import ru.raydroid.plugin.host.api.usecase.LoadRuntimesUseCase
-import ru.raydroid.plugin.host.api.usecase.OpenItemUseCase
-import ru.raydroid.plugin.host.api.usecase.SearchUseCase
-import ru.raydroid.plugin.host.api.usecase.SyncCacheUseCase
-import ru.raydroid.plugin.host.impl.datasource.LocalPluginDataSource
-import ru.raydroid.plugin.host.impl.datasource.LocalPluginDataSourceImpl
-import ru.raydroid.plugin.host.impl.datasource.RemotePluginDataSource
-import ru.raydroid.plugin.host.impl.datasource.RemotePluginDataSourceImpl
-import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSource
-import ru.raydroid.plugin.host.impl.datasource.ResourcePluginDataSourceImpl
-import ru.raydroid.plugin.host.impl.datasource.cache.dbModule
+import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
+import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
+import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
+import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
+import ru.raydroid.plugin.host.api.application.usecase.OpenItemUseCase
+import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
+import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
+import ru.raydroid.plugin.host.api.domain.repository.PluginRepository
+import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
+import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
+import ru.raydroid.plugin.host.api.domain.service.HostBridgeFactory
+import ru.raydroid.plugin.host.api.domain.service.PluginLoader
+import ru.raydroid.plugin.host.api.event.EventGateway
+import ru.raydroid.plugin.host.impl.data.plugin.LocalPluginDataSource
+import ru.raydroid.plugin.host.impl.data.plugin.LocalPluginDataSourceImpl
+import ru.raydroid.plugin.host.impl.data.plugin.PluginRepositoryImpl
+import ru.raydroid.plugin.host.impl.data.plugin.RemotePluginDataSource
+import ru.raydroid.plugin.host.impl.data.plugin.RemotePluginDataSourceImpl
+import ru.raydroid.plugin.host.impl.data.plugin.ResourcePluginDataSource
+import ru.raydroid.plugin.host.impl.data.plugin.ResourcePluginDataSourceImpl
+import ru.raydroid.plugin.host.impl.data.search.CachedSearchRanker
+import ru.raydroid.plugin.host.impl.data.search.SearchIndexRepositoryImpl
+import ru.raydroid.plugin.host.impl.data.search.SearchRanker
+import ru.raydroid.plugin.host.impl.data.search.SearchResourceResolver
+import ru.raydroid.plugin.host.impl.data.search.SearchResourceResolverImpl
+import ru.raydroid.plugin.host.impl.data.search.cache.dbModule
+import ru.raydroid.plugin.host.impl.event.EventGatewayImpl
+import ru.raydroid.plugin.host.impl.runtime.HostBridgeFactoryImpl
+import ru.raydroid.plugin.host.impl.runtime.PluginLoaderImpl
+import ru.raydroid.plugin.host.impl.runtime.PluginRuntimeRegistryImpl
 import ru.raydroid.plugin.host.impl.services.hostServiceModule
-import kotlin.time.Clock
 
 internal expect val pluginPlatformModule: Module
 
@@ -35,10 +45,14 @@ val pluginHostModule = module {
     includes(pluginPlatformModule)
     includes(hostServiceModule)
     includes(dbModule)
+
     single<PluginLoader> {
-        PluginLoaderImpl({
-            get()
-        }, get(), get(), get())
+        PluginLoaderImpl(
+            dispatcher = { get() },
+            json = get(),
+            coroutineScope = get(),
+            hostFactory = get()
+        )
     }
     single<LocalPluginDataSource> {
         LocalPluginDataSourceImpl(
@@ -55,8 +69,8 @@ val pluginHostModule = module {
     singleOf(::RemotePluginDataSourceImpl) bind RemotePluginDataSource::class
     singleOf(::PluginRepositoryImpl) bind PluginRepository::class
     singleOf(::EventGatewayImpl) bind EventGateway::class
-    singleOf(::SearchRepositoryImpl) bind SearchRepository::class
-    singleOf(::PluginRuntimeManagerImpl) bind PluginRuntimeManager::class
+    singleOf(::SearchIndexRepositoryImpl) bind SearchIndexRepository::class
+    singleOf(::PluginRuntimeRegistryImpl) bind PluginRuntimeRegistry::class
 
     singleOf(::GetEventsUseCase)
     singleOf(::EmitEventUseCase)
@@ -66,48 +80,16 @@ val pluginHostModule = module {
     singleOf(::OpenItemUseCase)
     singleOf(::GetPluginsUseCase)
 
-    single<HostFactory> {
-        HostFactoryImpl(
-            networkBridge = {
-                get {
-                    parametersOf(it)
-                }
-            },
-            notificationBridge = {
-                get {
-                    parametersOf(it)
-                }
-            },
-            preferencesBridge = {
-                get {
-                    parametersOf(it)
-                }
-            },
-            cacheBridge = {
-                get {
-                    parametersOf(it)
-                }
-            },
-            storageBridge = {
-                get {
-                    parametersOf(it)
-                }
-            },
-            clipboardBridge = {
-                get {
-                    parametersOf(it)
-                }
-            },
-            environmentBridge = {
-                get {
-                    parametersOf(it)
-                }
-            },
-            systemBridge = {
-                get {
-                    parametersOf(it)
-                }
-            },
+    single<HostBridgeFactory> {
+        HostBridgeFactoryImpl(
+            networkBridge = { get { parametersOf(it) } },
+            notificationBridge = { get { parametersOf(it) } },
+            preferencesBridge = { get { parametersOf(it) } },
+            cacheBridge = { get { parametersOf(it) } },
+            storageBridge = { get { parametersOf(it) } },
+            clipboardBridge = { get { parametersOf(it) } },
+            environmentBridge = { get { parametersOf(it) } },
+            systemBridge = { get { parametersOf(it) } },
         )
     }
 }

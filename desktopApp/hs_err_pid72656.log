@@ -1,0 +1,899 @@
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  SIGSEGV (0xb) at pc=0x0000000131661b58, pid=72656, tid=99587
+#
+# JRE version: OpenJDK Runtime Environment (21.0.9) (build 21.0.9+-14787801-b1163.94)
+# Java VM: OpenJDK 64-Bit Server VM (21.0.9+-14787801-b1163.94, mixed mode, tiered, compressed oops, compressed class ptrs, g1 gc, bsd-aarch64)
+# Problematic frame:
+# C  [quickjs8202754127242620611.tmp+0x19b58]  build_backtrace+0x1e4
+#
+# No core dump will be written. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
+#
+# If you would like to submit a bug report, please visit:
+#   https://youtrack.jetbrains.com/issues/JBR
+# The crash happened outside the Java Virtual Machine in native code.
+# See problematic frame for where to report the bug.
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Dcompose.reload.argfile=/Users/user/git/itis/android/Raydroid/desktopApp/build/run/main/main.argfile -Dcompose.reload.build.continuous=false -Dcompose.reload.build.warmup=true -Dcompose.reload.buildSystem=Gradle -Dcompose.reload.devToolsAnimationsEnabled=true -Dcompose.reload.devToolsClasspath=/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.hot-reload/hot-reload-devtools/1.0.0/8cf7f8a3e0c5ca40edcd31621bb2c54637dad97f/hot-reload-devtools-1.0.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.hot-reload/hot-reload-devtools-api/1.0.0/6f078e0689bb84d71ff62bdb898addec7b9e0c7d/hot-reload-devtools-api-1.0.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.hot-reload/hot-reload-orchestration/1.0.0/c84a13f251d2ba726bffe77f47f2a37fba14d3a/hot-reload-orchestration-1.0.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.hot-reload/hot-reload-core/1.0.0/b9e821084415adea5d981fb5a22a57ad94614fe1/hot-reload-core-1.0.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.hot-reload/hot-reload-runtime-api-jvm/1.0.0/b4c35542b0fe4f3743939f0e7a19739df369fa2e/hot-reload-runtime-api-jvm-1.0.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.desktop/desktop-jvm/1.9.0/760a7f1c3278719f2ab9fa443228956e64a7a18e/desktop-jvm-1.9.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.components/components-resources-desktop/1.9.0/263d44e856cb89a759959eec68dafae6d1931110/library-desktop-1.9.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/io.sellmair/evas-compose-jvm/1.3.0/1214dcce9040d1b9f856b02b443cf8c2ebe1573a/evas-compose-jvm-1.3.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/io.sellmair/evas-jvm/1.3.0/74c1f6c46502ffda615a698c02b3166fc7e9b2b2/evas-jvm-1.3.0.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.skiko/skiko-awt-runtime-macos-arm64/0.9.22.2/6df83c721da1b3a84393fb13ed0cbe096da63dc3/skiko-awt-runtime-macos-arm64-0.9.22.2.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material3/material3-desktop/1.8.2/1f1f838506ceb2c25499517559f120517770b014/material3-desktop-1.8.2.jar:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.m-Dcompose.reload.devToolsDetached=false -Dcompose.reload.devToolsEnabled=true -Dcompose.reload.devToolsHeadless=false -Dcompose.reload.devToolsTransparencyEnabled=true -Dcompose.reload.dirtyResolveDepthLimit=5 -Dcompose.reload.effectsEnabled=true -Dcompose.reload.isActive=true -Dcompose.reload.launchMode=GradleBlocking -Dcompose.reload.logLevel=Info -Dcompose.reload.logStdout=false -Dcompose.reload.mainClass=ru.raydroid.desktop.MainKt -Dcompose.reload.pidFile=/Users/user/git/itis/android/Raydroid/desktopApp/build/run/main/main.pid -Dcompose.reload.virtualMethodResolveEnabled=true -Dgradle.build.project=:desktopApp -Dgradle.build.root=/Users/user/git/itis/android/Raydroid -Dgradle.build.task=hotReloadMain -Dorg.gradle.java.home=/Applications/Android Studio.app/Contents/jbr/Contents/Home -XX:+IgnoreUnrecognizedVMOptions -XX:+AllowEnhancedClassRedefinition -javaagent:/Users/user/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.hot-reload/hot-reload-agent/1.0.0/b51a332b8899c060187ace065fef8c8eb62acfcc/hot-reload-agent-1.0.0.jar -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant ru.raydroid.desktop.MainKt
+
+Host: "Mac14,9" arm64, 12 cores, 16G, Darwin 25.4.0, macOS 26.4 (25E246)
+Time: Wed Apr  1 16:42:08 2026 MSK elapsed time: 1.994967 seconds (0d 0h 0m 1s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x0000000144d5be00):  JavaThread "DefaultDispatcher-worker-20" daemon [_thread_in_native, id=99587, stack(0x0000000311ad0000,0x0000000311cd3000) (2060K)]
+
+Stack: [0x0000000311ad0000,0x0000000311cd3000],  sp=0x0000000311ccbf50,  free space=2031k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+C  [quickjs8202754127242620611.tmp+0x19b58]  build_backtrace+0x1e4
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x14478]  JS_CallInternal+0x1208
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x14478]  JS_CallInternal+0x1208
+C  [quickjs8202754127242620611.tmp+0x14478]  JS_CallInternal+0x1208
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x14478]  JS_CallInternal+0x1208
+C  [quickjs8202754127242620611.tmp+0x14478]  JS_CallInternal+0x1208
+C  [quickjs8202754127242620611.tmp+0x14478]  JS_CallInternal+0x1208
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0x15670]  JS_CallInternal+0x2400
+C  [quickjs8202754127242620611.tmp+0xd870]  JS_CallFree+0x3c
+j  app.cash.zipline.JniCallChannel.call(Ljava/lang/String;)Ljava/lang/String;+19
+j  app.cash.zipline.Zipline$endpoint$1.call(Ljava/lang/String;)Ljava/lang/String;+41
+j  app.cash.zipline.internal.bridge.OutboundCallHandler.callInternal$zipline(Lapp/cash/zipline/ZiplineService;Lapp/cash/zipline/ZiplineFunction;Lapp/cash/zipline/internal/bridge/ArgsListSerializer;Lapp/cash/zipline/internal/bridge/ResultOrCallbackSerializer;[Ljava/lang/Object;)Ljava/lang/Object;+214
+j  app.cash.zipline.internal.bridge.OutboundCallHandler.call(Lapp/cash/zipline/ZiplineService;I[Ljava/lang/Object;)Ljava/lang/Object;+61
+j  ru.raydroid.plugin.api.core.CommandServiceBridge$Companion$Adapter$GeneratedOutboundService.initialize(Lru/raydroid/plugin/api/core/CommandServiceBridge$RenderRequest;Lru/raydroid/plugin/api/core/CommandServiceBridge$InvalidateCacheRequest;)V+41
+j  ru.raydroid.plugin.host.impl.SinglePluginRuntimeImpl$1.invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;+208
+J 3343 c1 kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(Ljava/lang/Object;)V (124 bytes) @ 0x00000001059ea6cc [0x00000001059ea580+0x000000000000014c]
+j  kotlinx.coroutines.DispatchedTask.run()V+301
+j  kotlinx.coroutines.internal.LimitedDispatcher$Worker.run()V+9
+j  kotlinx.coroutines.scheduling.TaskImpl.run()V+4
+j  kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(Lkotlinx/coroutines/scheduling/Task;)V+2
+j  kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(Lkotlinx/coroutines/scheduling/Task;)V+84
+j  kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker()V+44
+j  kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run()V+1
+v  ~StubRoutines::call_stub 0x000000010c92c154
+V  [libjvm.dylib+0x4a2688]  JavaCalls::call_helper(JavaValue*, methodHandle const&, JavaCallArguments*, JavaThread*)+0x3b0
+V  [libjvm.dylib+0x4a1638]  JavaCalls::call_virtual(JavaValue*, Klass*, Symbol*, Symbol*, JavaCallArguments*, JavaThread*)+0x140
+V  [libjvm.dylib+0x4a1704]  JavaCalls::call_virtual(JavaValue*, Handle, Klass*, Symbol*, Symbol*, JavaThread*)+0x64
+V  [libjvm.dylib+0x5613b0]  thread_entry(JavaThread*, JavaThread*)+0x9c
+V  [libjvm.dylib+0x4b5664]  JavaThread::thread_main_inner()+0x98
+V  [libjvm.dylib+0x96f310]  Thread::call_run()+0xc8
+V  [libjvm.dylib+0x80a05c]  thread_native_entry(Thread*)+0x118
+C  [libsystem_pthread.dylib+0x6c58]  _pthread_start+0x88
+Java frames: (J=compiled Java code, j=interpreted, Vv=VM code)
+j  app.cash.zipline.JniCallChannel.call(JJLjava/lang/String;)Ljava/lang/String;+0
+j  app.cash.zipline.JniCallChannel.call(Ljava/lang/String;)Ljava/lang/String;+19
+j  app.cash.zipline.Zipline$endpoint$1.call(Ljava/lang/String;)Ljava/lang/String;+41
+j  app.cash.zipline.internal.bridge.OutboundCallHandler.callInternal$zipline(Lapp/cash/zipline/ZiplineService;Lapp/cash/zipline/ZiplineFunction;Lapp/cash/zipline/internal/bridge/ArgsListSerializer;Lapp/cash/zipline/internal/bridge/ResultOrCallbackSerializer;[Ljava/lang/Object;)Ljava/lang/Object;+214
+j  app.cash.zipline.internal.bridge.OutboundCallHandler.call(Lapp/cash/zipline/ZiplineService;I[Ljava/lang/Object;)Ljava/lang/Object;+61
+j  ru.raydroid.plugin.api.core.CommandServiceBridge$Companion$Adapter$GeneratedOutboundService.initialize(Lru/raydroid/plugin/api/core/CommandServiceBridge$RenderRequest;Lru/raydroid/plugin/api/core/CommandServiceBridge$InvalidateCacheRequest;)V+41
+j  ru.raydroid.plugin.host.impl.SinglePluginRuntimeImpl$1.invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;+208
+J 3343 c1 kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(Ljava/lang/Object;)V (124 bytes) @ 0x00000001059ea6cc [0x00000001059ea580+0x000000000000014c]
+j  kotlinx.coroutines.DispatchedTask.run()V+301
+j  kotlinx.coroutines.internal.LimitedDispatcher$Worker.run()V+9
+j  kotlinx.coroutines.scheduling.TaskImpl.run()V+4
+j  kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(Lkotlinx/coroutines/scheduling/Task;)V+2
+j  kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(Lkotlinx/coroutines/scheduling/Task;)V+84
+j  kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker()V+44
+j  kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run()V+1
+v  ~StubRoutines::call_stub 0x000000010c92c154
+
+siginfo: si_signo: 11 (SIGSEGV), si_code: 2 (SEGV_ACCERR), si_addr: 0x0000000000000006
+
+Registers:
+ x0=0x0000000100e62c70  x1=0x0000000000000000  x2=0x0000000000000000  x3=0x0000600000c377cb
+ x4=0xffffffffff94bda0  x5=0x0000000000000020  x6=0x000000000000003e  x7=0x0000000000000003
+ x8=0x0000000000000000  x9=0x0000600000c37740 x10=0x00007c76a06b0000 x11=0x0000000000000044
+x12=0x00000000000007fb x13=0x00000000000007fd x14=0x000000009aa0985f x15=0x000000009a80905b
+x16=0x00000001902313c0 x17=0x00000000000091a2 x18=0x0000000000000000 x19=0x0000000000000742
+x20=0x0000000143aa5970 x21=0xffffffffffffffff x22=0x0000000000000000 x23=0x00000001316c5204
+x24=0x00000001316c51f6 x25=0x0000000100e62c70 x26=0x0000000000000001 x27=0x0000000000000000
+x28=0x0000000311cccb10  fp=0x0000000311ccc380  lr=0x0000000131661b54  sp=0x0000000311ccbf50
+pc=0x0000000131661b58 cpsr=0x0000000060001000
+
+Register to memory mapping:
+
+x0 =0x0000000100e62c70 points into unknown readable memory: 0x0000000500002b1e | 1e 2b 00 00 05 00 00 00
+x1 =0x0 is null
+x2 =0x0 is null
+x3 =0x0000600000c377cb points into unknown readable memory: 00 00 00 00 00
+x4 =0xffffffffff94bda0 is an unknown value
+x5 =0x0000000000000020 is an unknown value
+x6 =0x000000000000003e is an unknown value
+x7 =0x0000000000000003 is an unknown value
+x8 =0x0 is null
+x9 =0x0000600000c37740 points into unknown readable memory: 0x6220746120202020 | 20 20 20 20 61 74 20 62
+x10=0x00007c76a06b0000 is an unknown value
+x11=0x0000000000000044 is an unknown value
+x12=0x00000000000007fb is an unknown value
+x13=0x00000000000007fd is an unknown value
+x14=0x000000009aa0985f is an unknown value
+x15=0x000000009a80905b is an unknown value
+x16=0x00000001902313c0: _platform_memmove+0 in /usr/lib/system/libsystem_platform.dylib at 0x000000019022e000
+x17=0x00000000000091a2 is an unknown value
+x18=0x0 is null
+x19=0x0000000000000742 is an unknown value
+x20=0x0000000143aa5970 points into unknown readable memory: 0x0000000100000001 | 01 00 00 00 01 00 00 00
+x21=0xffffffffffffffff: _dyld_private+0xffedbfaf in /Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/java at 0x000000010011c000
+x22=0x0 is null
+x23=0x00000001316c5204: <offset 0x7d204> in /private/var/folders/4y/5vk79nz12390wh9htny4m_pr0000gn/T/quickjs8202754127242620611.tmp at 0x0000000131648000
+x24=0x00000001316c51f6: <offset 0x7d1f6> in /private/var/folders/4y/5vk79nz12390wh9htny4m_pr0000gn/T/quickjs8202754127242620611.tmp at 0x0000000131648000
+x25=0x0000000100e62c70 points into unknown readable memory: 0x0000000500002b1e | 1e 2b 00 00 05 00 00 00
+x26=0x0000000000000001 is an unknown value
+x27=0x0 is null
+x28=0x0000000311cccb10 is pointing into the stack for thread: 0x0000000144d5be00
+ fp=0x0000000311ccc380 is pointing into the stack for thread: 0x0000000144d5be00
+ lr=0x0000000131661b54: build_backtrace+0x1e0 in /private/var/folders/4y/5vk79nz12390wh9htny4m_pr0000gn/T/quickjs8202754127242620611.tmp at 0x0000000131648000
+ sp=0x0000000311ccbf50 is pointing into the stack for thread: 0x0000000144d5be00
+
+Top of Stack: (sp=0x0000000311ccbf50)
+0x0000000311ccbf50:   00000001316c5204 000000c63166bcf4
+0x0000000311ccbf60:   00006000035d048b 0000000100e62c70
+0x0000000311ccbf70:   000060000170e8a0 0000600000c37740
+0x0000000311ccbf80:   000000000000008b 00000000000000c3
+0x0000000311ccbf90:   0000000000000000 000000013164f4a0
+0x0000000311ccbfa0:   0000000100e62a60 ffffed94006871f9
+0x0000000311ccbfb0:   0000000311ccc3c0 0000600000687160
+0x0000000311ccbfc0:   0000000311ccc040 00006000006871fb
+0x0000000311ccbfd0:   0000000100e62c70 0000000000000024
+0x0000000311ccbfe0:   0000000100e62b40 0000000000000000
+0x0000000311ccbff0:   0000000100e62a60 0000000311ccc040
+0x0000000311ccc000:   0000000311ccc380 0000000131661290
+0x0000000311ccc010:   000060000170e710 ffffffffffffffff
+0x0000000311ccc020:   000060000170e710 ffffffffffffffff
+0x0000000311ccc030:   00006000017c7a70 ffffffffffffffff
+0x0000000311ccc040:   0000000300000000 0000000000000003
+0x0000000311ccc050:   0000000000000002 00006000017c77f0
+0x0000000311ccc060:   0000000311ccc6d0 0000600001606850
+0x0000000311ccc070:   0000000100e62c70 00000000000000ac
+0x0000000311ccc080:   00006000002eedab fffffffe00000002
+0x0000000311ccc090:   0000000000000000 0000000100e62e08
+0x0000000311ccc0a0:   0000000311ccc450 000000013167286c
+0x0000000311ccc0b0:   0000000311ccc3c8 0000000100e62c70
+0x0000000311ccc0c0:   0000000311ccc450 00006000017c5680
+0x0000000311ccc0d0:   0000000000000003 0000000311ccc288
+0x0000000311ccc0e0:   0000000311ccc050 0000000000000000
+0x0000000311ccc0f0:   0000000000000000 000060000170e710
+0x0000000311ccc100:   0000000311ccc010 0000000000000003
+0x0000000311ccc110:   ffffffffffffffff 0000000000000000
+0x0000000311ccc120:   0000000311ccc3c0 000000070160b000
+0x0000000311ccc130:   0000000311ccc3c0 0000600000687160
+0x0000000311ccc140:   0000000100e62a60 0000000000000000 
+
+Instructions: (pc=0x0000000131661b58)
+0x0000000131661a58:   f6 18 08 37 28 0f 40 f9 1c 7d 40 f9 9c 18 00 b4
+0x0000000131661a68:   37 03 00 90 f7 12 08 91 38 03 00 90 18 db 07 91
+0x0000000131661a78:   3a 00 80 52 f9 0f 00 f9 f6 02 00 37 88 13 40 b9
+0x0000000131661a88:   1f 05 00 31 21 05 00 54 88 07 40 f9 09 0d 40 f9
+0x0000000131661a98:   2a 21 40 b9 cb 06 80 12 6a 01 2a 2a 2b d9 6a b8
+0x0000000131661aa8:   4b 04 00 34 29 01 01 91 6a 05 00 d1 2b 0d 0a 8b
+0x0000000131661ab8:   6c 05 40 b9 9f d9 00 71 20 01 00 54 1b 00 80 d2
+0x0000000131661ac8:   6b 01 40 b9 ea 03 17 aa 6b 65 40 f2 e1 fe ff 54
+0x0000000131661ad8:   18 00 00 14 16 00 80 52 a3 00 00 14 69 01 40 b9
+0x0000000131661ae8:   29 7d 1e 53 29 02 00 35 08 11 40 f9 08 11 0a 8b
+0x0000000131661af8:   03 05 40 f9 7f 1c 00 31 81 01 00 54 02 01 40 f9
+0x0000000131661b08:   e0 03 19 aa 01 00 80 d2 04 00 80 52 d1 c6 ff 97
+0x0000000131661b18:   fb 03 00 aa c0 00 00 b4 68 03 40 39 1f 01 00 71
+0x0000000131661b28:   ea 02 9b 9a 03 00 00 14 1b 00 80 d2 ea 03 17 aa
+0x0000000131661b38:   ea 03 00 f9 e0 a3 00 91 e1 03 18 aa 8c 9d ff 97
+0x0000000131661b48:   e0 03 19 aa e1 03 1b aa 75 c7 ff 97 88 07 40 f9
+0x0000000131661b58:   09 0d 40 79 3f c5 00 71 49 23 c9 9a ea 83 03 b2
+0x0000000131661b68:   2a 00 a0 f2 4a 00 e0 f2 29 01 0a 8a 24 99 40 fa
+0x0000000131661b78:   00 0a 00 54 14 19 40 f9 93 92 41 78 d3 0e 50 36
+0x0000000131661b88:   9a 3a 40 f9 7a 0a 00 b4 19 00 80 52 88 3b 40 b9
+0x0000000131661b98:   89 22 40 b9 e9 03 29 2a 2c 01 08 0b 88 6e 80 b9
+0x0000000131661ba8:   4d 03 08 8b 88 66 40 b9 f8 03 08 aa 5f 03 0d eb
+0x0000000131661bb8:   22 09 00 54 e9 03 1a aa 28 15 40 38 08 02 00 34
+0x0000000131661bc8:   08 05 00 51 0a 1d 00 12 ab 19 80 52 4a 7d 0b 1b
+0x0000000131661bd8:   57 7d 0a 53 eb 76 1e 53 6a 29 4a 0b 08 01 0a 4b
+0x0000000131661be8:   08 03 28 0b 08 05 00 51 fa 03 09 aa f9 02 19 0b
+0x0000000131661bf8:   3f 03 0c 6b a9 fd ff 54 37 00 00 14 fb 03 16 aa
+0x0000000131661c08:   f6 03 15 aa 3f 01 0d eb c2 04 00 54 08 00 80 52
+0x0000000131661c18:   15 00 80 d2 17 00 80 52 49 03 15 8b 2a 05 40 39
+0x0000000131661c28:   4b 19 00 12 6b 21 c8 1a 77 01 17 2a 2a 01 38 36
+0x0000000131661c38:   bf 0e 00 71 68 03 00 54 29 09 00 91 b5 06 00 91
+0x0000000131661c48:   08 1d 00 11 3f 01 0d eb c2 02 00 54 f3 ff ff 17 
+
+
+Stack slot to memory mapping:
+
+stack at sp + 0 slots: 0x00000001316c5204: <offset 0x7d204> in /private/var/folders/4y/5vk79nz12390wh9htny4m_pr0000gn/T/quickjs8202754127242620611.tmp at 0x0000000131648000
+stack at sp + 1 slots: 0x000000c63166bcf4 is an unknown value
+stack at sp + 2 slots: 0x00006000035d048b points into unknown readable memory: 00 00 00 00 00
+stack at sp + 3 slots: 0x0000000100e62c70 points into unknown readable memory: 0x0000000500002b1e | 1e 2b 00 00 05 00 00 00
+stack at sp + 4 slots: 0x000060000170e8a0 points into unknown readable memory: 0x000000004d55545a | 5a 54 55 4d 00 00 00 00
+stack at sp + 5 slots: 0x0000600000c37740 points into unknown readable memory: 0x6220746120202020 | 20 20 20 20 61 74 20 62
+stack at sp + 6 slots: 0x000000000000008b is an unknown value
+stack at sp + 7 slots: 0x00000000000000c3 is an unknown value
+
+
+Compiled method (c1) 1999 3343   !   2       kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith (124 bytes)
+ total in heap  [0x00000001059ea210,0x00000001059eb728] = 5400
+ relocation     [0x00000001059ea360,0x00000001059ea560] = 512
+ main code      [0x00000001059ea580,0x00000001059ead88] = 2056
+ stub code      [0x00000001059ead88,0x00000001059eafc0] = 568
+ oops           [0x00000001059eafc0,0x00000001059eafe8] = 40
+ metadata       [0x00000001059eafe8,0x00000001059eb0b0] = 200
+ scopes data    [0x00000001059eb0b0,0x00000001059eb3b0] = 768
+ scopes pcs     [0x00000001059eb3b0,0x00000001059eb6a0] = 752
+ dependencies   [0x00000001059eb6a0,0x00000001059eb6c0] = 32
+ handler table  [0x00000001059eb6c0,0x00000001059eb6d8] = 24
+ nul chk table  [0x00000001059eb6d8,0x00000001059eb728] = 80
+
+[Constant Pool (empty)]
+
+[MachCode]
+[Entry Point]
+  # {method} {0x000000011ba6c458} 'resumeWith' '(Ljava/lang/Object;)V' in 'kotlin/coroutines/jvm/internal/BaseContinuationImpl'
+  # this:     c_rarg1:c_rarg1 
+                        = 'kotlin/coroutines/jvm/internal/BaseContinuationImpl'
+  # parm0:    c_rarg2:c_rarg2 
+                        = 'java/lang/Object'
+  #           [sp+0x120]  (sp of caller)
+  0x00000001059ea580: 2808 40b9 | 3f01 086b | c001 0054 
+
+  0x00000001059ea58c: ;   {runtime_call ic_miss_stub}
+  0x00000001059ea58c: 3df6 bd15 | 1f20 03d5 | 1f20 03d5 | 1f20 03d5 | 1f20 03d5 | 1f20 03d5 | 1f20 03d5 | 1f20 03d5 
+  0x00000001059ea5ac: 1f20 03d5 | 1f20 03d5 | 1f20 03d5 | 1f20 03d5 | 1f20 03d5 
+[Verified Entry Point]
+  0x00000001059ea5c0: 1f20 03d5 | e953 40d1 | 3f01 00f9 | ff83 04d1 | fd7b 11a9 | 2801 0018 | 8923 40b9 | 1f01 09eb 
+  0x00000001059ea5e0: e000 0054 | 08c0 92d2 | a892 a1f2 | 2800 c0f2 | 0001 3fd6 | 0200 0014 | 0500 0000 | 0074 94d2 
+  0x00000001059ea600: 2075 a3f2 | 2000 c0f2 | 0308 40b9 | 6308 0011 | 0308 00b9 | 6328 1f12 | 7f00 0071 | 6032 0054 
+  0x00000001059ea620: 0102 00b4 
+
+  0x00000001059ea624: ;   {metadata('kotlin/coroutines/Continuation')}
+  0x00000001059ea624: 046c 95d2 | a401 a0f2 | 0401 c0f2 | 2508 40b9 | a500 5dd2 | a810 40f9 | 9f00 08eb | 0001 0054 
+  0x00000001059ea644: bf00 04eb | c000 0054 | e513 bfa9 
+
+  0x00000001059ea650: ;   {runtime_call slow_subtype_check Runtime1 stub}
+  0x00000001059ea650: ace9 c095 | e507 41f8 | 8531 0034 | 0100 0014 | e003 01aa | e303 1faa | 1f00 03eb | 801b 0054 
+  0x00000001059ea670: 4101 00b4 
+
+  0x00000001059ea674: ;   {metadata('kotlin/coroutines/jvm/internal/BaseContinuationImpl')}
+  0x00000001059ea674: 03ba 85d2 | 0302 a0f2 | 0301 c0f2 | 2408 40b9 | 8400 5dd2 | 881c 40f9 | 7f00 08eb | 0130 0054 
+  0x00000001059ea694: 0100 0014 | e003 01aa | e057 00f9 
+
+  0x00000001059ea6a0: ; implicit exception: dispatches to 0x00000001059eac98
+  0x00000001059ea6a0: 030c 40b9 | 63f0 7dd3 | e35b 00f9 | e103 1faa | 7f00 01eb | 6015 0054 | e103 00aa | e9ff 9fd2 
+  0x00000001059ea6c0: e9ff bff2 | e9ff dff2 
+
+  0x00000001059ea6c8: ; ImmutableOopMap {[168]=Oop [176]=Oop }
+                      ;*invokevirtual invokeSuspend {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@40 (line 34)
+                      ;   {virtual_call}
+  0x00000001059ea6c8: beeb bd95 
+
+  0x00000001059ea6cc: ;   {other}
+  0x00000001059ea6cc: 1f20 03d5 | 9f97 80f2 | 1f00 80f2 
+
+  0x00000001059ea6d8: ;   {oop(a 'kotlin/coroutines/intrinsics/CoroutineSingletons'{0x0000000700292e40})}
+  0x00000001059ea6d8: 03c8 85d2 | 2305 a0f2 | e300 c0f2 | 1f00 03eb | 6105 0054 | fd7b 51a9 | ff83 0491 
+
+  0x00000001059ea6f4: ;   {poll_return}
+  0x00000001059ea6f4: 8827 42f9 | ff63 28eb | 082d 0054 | c003 5fd6 | 807f 42f9 | 9f7f 02f9 | 9f83 02f9 | e06b 00f9 
+  0x00000001059ea714: e303 1faa | 1f00 03eb | 600d 0054 
+
+  0x00000001059ea720: ;   {metadata('kotlin/Result$Failure')}
+  0x00000001059ea720: 037a 9bd2 | 0302 a0f2 | 0301 c0f2 | e203 00aa | 80df 40f9 | 0b40 0091 | 88e7 40f9 | 7f01 08eb 
+  0x00000001059ea740: 482b 0054 | 8bdf 00f9 | ea03 40b2 | 0a00 00f9 | 6a00 5dd2 | 0a7c 0129 | bf3a 03d5 | e067 00f9 
+  0x00000001059ea760: e103 1faa | 5f00 01eb | 4006 0054 | 8103 4139 | 3f00 0071 | e129 0054 | 48fc 43d3 | 080c 00b9 
+  0x00000001059ea780: 0100 02ca | 21fc 55d3 | 3f00 00f1 | e129 0054 | bf3a 03d5 | e05f 00f9 | e157 40f9 | 09fc 9ed2 
+  0x00000001059ea7a0: 0902 a0f2 | 0901 c0f2 
+
+  0x00000001059ea7a8: ; ImmutableOopMap {[176]=Oop [184]=Oop }
+                      ;*invokevirtual releaseIntercepted {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@90 (line 40)
+                      ;   {virtual_call}
+  0x00000001059ea7a8: a6eb bd95 
+
+  0x00000001059ea7ac: ;   {other}
+  0x00000001059ea7ac: 1f20 03d5 | 9fb3 80f2 | 1f20 80f2 | e35b 40f9 | 4301 00b4 
+
+  0x00000001059ea7c0: ;   {metadata('kotlin/coroutines/jvm/internal/BaseContinuationImpl')}
+  0x00000001059ea7c0: 0aba 85d2 | 0a02 a0f2 | 0a01 c0f2 | 6b08 40b9 | 6b01 5dd2 | 681d 40f9 | 5f01 08eb | 4100 0054 
+  0x00000001059ea7e0: 0300 0014 | e003 1faa | 0200 0014 | e003 40b2 | 1f00 0071 | 6014 0054 | 0074 94d2 | 2075 a3f2 
+  0x00000001059ea800: 2000 c0f2 | 040c 40b9 | 8408 0011 | 040c 00b9 | 8434 1f12 | 9f00 0071 | 0026 0054 
+
+  0x00000001059ea81c: ; ImmutableOopMap {c_rarg3=Oop [176]=Oop [184]=Oop }
+                      ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@121 (line 30)
+  0x00000001059ea81c: 882b 42f9 
+
+  0x00000001059ea820: ;   {poll}
+  0x00000001059ea820: 1f01 40b9 | e25f 40f9 | e103 03aa | 7dff ff17 
+
+  0x00000001059ea830: ; ImmutableOopMap {[168]=Oop [176]=Oop [200]=Oop [208]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@0 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call load_mirror_patching Runtime1 stub}
+  0x00000001059ea830: 34ef c095 | 80df 40f9 | 0bc0 0091 | 88e7 40f9 | 7f01 08eb | a825 0054 | 8bdf 00f9 | ea03 40b2 
+  0x00000001059ea850: 0a00 00f9 | 6a00 5dd2 | 0a7c 0129 | 0a40 0091 | 5f7d 00a9 | 5f7d 01a9 | bf3a 03d5 
+
+  0x00000001059ea86c: ;   {oop("exception"{0x000000070085f220})}
+  0x00000001059ea86c: 0144 9ed2 | a110 a0f2 | e100 c0f2 | e063 00f9 
+
+  0x00000001059ea87c: ; ImmutableOopMap {[168]=Oop [176]=Oop [192]=Oop [200]=Oop [208]=Oop }
+                      ;*invokestatic createParameterIsNullExceptionMessage {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@5 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {static_call}
+  0x00000001059ea87c: c1f7 bd95 
+
+  0x00000001059ea880: ;   {other}
+  0x00000001059ea880: 1f20 03d5 | 1fce 80f2 | 1f80 80f2 | e203 00aa | e163 40f9 
+
+  0x00000001059ea894: ; ImmutableOopMap {[168]=Oop [176]=Oop [192]=Oop [200]=Oop [208]=Oop }
+                      ;*invokespecial <init> {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@8 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {optimized virtual_call}
+  0x00000001059ea894: 3bf6 bd95 
+
+  0x00000001059ea898: ;   {other}
+  0x00000001059ea898: 1f20 03d5 | 1fd1 80f2 | 1fa0 80f2 
+
+  0x00000001059ea8a4: ;   {oop(a 'java/lang/Class'{0x00000007005fe120} = 'kotlin/jvm/internal/Intrinsics')}
+  0x00000001059ea8a4: 0324 9cd2 | e30b a0f2 | e300 c0f2 
+
+  0x00000001059ea8b0: ; implicit exception: dispatches to 0x00000001059ead00
+  0x00000001059ea8b0: 602c 40b9 | 00f0 7dd3 | e303 1faa | 1f00 03eb | 201a 0054 | d700 0014 
+
+  0x00000001059ea8c8: ; ImmutableOopMap {[168]=Oop [176]=Oop [208]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@0 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call load_mirror_patching Runtime1 stub}
+  0x00000001059ea8c8: 0eef c095 | 80df 40f9 | 0bc0 0091 | 88e7 40f9 | 7f01 08eb | 4821 0054 | 8bdf 00f9 | ea03 40b2 
+  0x00000001059ea8e8: 0a00 00f9 | 6a00 5dd2 | 0a7c 0129 | 0a40 0091 | 5f7d 00a9 | 5f7d 01a9 | bf3a 03d5 
+
+  0x00000001059ea904: ;   {oop("exception"{0x000000070085f220})}
+  0x00000001059ea904: 0144 9ed2 | a110 a0f2 | e100 c0f2 | e06f 00f9 
+
+  0x00000001059ea914: ; ImmutableOopMap {[168]=Oop [176]=Oop [208]=Oop [216]=Oop }
+                      ;*invokestatic createParameterIsNullExceptionMessage {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@5 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {static_call}
+  0x00000001059ea914: 9bf7 bd95 
+
+  0x00000001059ea918: ;   {other}
+  0x00000001059ea918: 1f20 03d5 | 1fe1 80f2 | 1fe0 80f2 | e203 00aa | e16f 40f9 
+
+  0x00000001059ea92c: ; ImmutableOopMap {[168]=Oop [176]=Oop [208]=Oop [216]=Oop }
+                      ;*invokespecial <init> {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@8 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {optimized virtual_call}
+  0x00000001059ea92c: 15f6 bd95 
+
+  0x00000001059ea930: ;   {other}
+  0x00000001059ea930: 1f20 03d5 | 1fe4 80f2 | 1f00 81f2 
+
+  0x00000001059ea93c: ;   {oop(a 'java/lang/Class'{0x00000007005fe120} = 'kotlin/jvm/internal/Intrinsics')}
+  0x00000001059ea93c: 0324 9cd2 | e30b a0f2 | e300 c0f2 
+
+  0x00000001059ea948: ; implicit exception: dispatches to 0x00000001059ead0c
+  0x00000001059ea948: 602c 40b9 | 00f0 7dd3 | e303 1faa | 1f00 03eb | 4012 0054 | 9800 0014 | e277 00f9 
+
+  0x00000001059ea964: ; ImmutableOopMap {[168]=Oop [176]=Oop [232]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwJavaNpe@0 (line 45)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNull@4 (line 25)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@31 (line 31)
+                      ;   {runtime_call load_mirror_patching Runtime1 stub}
+  0x00000001059ea964: e7ee c095 | 80df 40f9 | 0bc0 0091 | 88e7 40f9 | 7f01 08eb | c81c 0054 | 8bdf 00f9 | ea03 40b2 
+  0x00000001059ea984: 0a00 00f9 | 6a00 5dd2 | 0a7c 0129 | 0a40 0091 | 5f7d 00a9 | 5f7d 01a9 | bf3a 03d5 | e103 00aa 
+  0x00000001059ea9a4: e073 00f9 
+
+  0x00000001059ea9a8: ; ImmutableOopMap {[168]=Oop [176]=Oop [224]=Oop [232]=Oop }
+                      ;*invokespecial <init> {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwJavaNpe@4 (line 45)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNull@4 (line 25)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@31 (line 31)
+                      ;   {optimized virtual_call}
+  0x00000001059ea9a8: f6f5 bd95 
+
+  0x00000001059ea9ac: ;   {other}
+  0x00000001059ea9ac: 1f20 03d5 | 9ff3 80f2 | 1f40 81f2 
+
+  0x00000001059ea9b8: ;   {oop(a 'java/lang/Class'{0x00000007005fe120} = 'kotlin/jvm/internal/Intrinsics')}
+  0x00000001059ea9b8: 0324 9cd2 | e30b a0f2 | e300 c0f2 
+
+  0x00000001059ea9c4: ; implicit exception: dispatches to 0x00000001059ead18
+  0x00000001059ea9c4: 602c 40b9 | 00f0 7dd3 | e303 1faa | 1f00 03eb | 400b 0054 | 6000 0014 | e277 00f9 | e17f 00f9 
+  0x00000001059ea9e4: ; ImmutableOopMap {[232]=Oop [248]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@0 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {runtime_call load_mirror_patching Runtime1 stub}
+  0x00000001059ea9e4: c7ee c095 | 80df 40f9 | 0bc0 0091 | 88e7 40f9 | 7f01 08eb | 2819 0054 | 8bdf 00f9 | ea03 40b2 
+  0x00000001059eaa04: 0a00 00f9 | 6a00 5dd2 | 0a7c 0129 | 0a40 0091 | 5f7d 00a9 | 5f7d 01a9 | bf3a 03d5 
+
+  0x00000001059eaa20: ;   {oop("frame"{0x0000000700a87428})}
+  0x00000001059eaa20: 0285 8ed2 | 0215 a0f2 | e200 c0f2 | e103 02aa | e07b 00f9 
+
+  0x00000001059eaa34: ; ImmutableOopMap {[232]=Oop [240]=Oop [248]=Oop }
+                      ;*invokestatic createParameterIsNullExceptionMessage {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@5 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {static_call}
+  0x00000001059eaa34: 53f7 bd95 
+
+  0x00000001059eaa38: ;   {other}
+  0x00000001059eaa38: 1f20 03d5 | 1f05 81f2 | 1f80 81f2 | e203 00aa | e17b 40f9 
+
+  0x00000001059eaa4c: ; ImmutableOopMap {[232]=Oop [240]=Oop [248]=Oop }
+                      ;*invokespecial <init> {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@8 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {optimized virtual_call}
+  0x00000001059eaa4c: cdf5 bd95 
+
+  0x00000001059eaa50: ;   {other}
+  0x00000001059eaa50: 1f20 03d5 | 1f08 81f2 | 1fa0 81f2 
+
+  0x00000001059eaa5c: ;   {oop(a 'java/lang/Class'{0x00000007005fe120} = 'kotlin/jvm/internal/Intrinsics')}
+  0x00000001059eaa5c: 0224 9cd2 | e20b a0f2 | e200 c0f2 
+
+  0x00000001059eaa68: ; implicit exception: dispatches to 0x00000001059ead24
+  0x00000001059eaa68: 402c 40b9 | 00f0 7dd3 | e203 1faa | 1f00 02eb | 0003 0054 | 1e00 0014 | e05f 40f9 | e203 00aa 
+  0x00000001059eaa88: e15b 40f9 | e9ff 9fd2 | e9ff bff2 | e9ff dff2 
+
+  0x00000001059eaa98: ; ImmutableOopMap {}
+                      ;*invokeinterface resumeWith {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@114 (line 47)
+                      ;   {virtual_call}
+  0x00000001059eaa98: 2aeb bd95 
+
+  0x00000001059eaa9c: ;   {other}
+  0x00000001059eaa9c: 1f20 03d5 | 9f11 81f2 | 1fc0 81f2 | fd7b 51a9 | ff83 0491 
+
+  0x00000001059eaab0: ;   {poll_return}
+  0x00000001059eaab0: 8827 42f9 | ff63 28eb | 8813 0054 | c003 5fd6 | fd7b 51a9 | ff83 0491 
+
+  0x00000001059eaac8: ;   {poll_return}
+  0x00000001059eaac8: 8827 42f9 | ff63 28eb | 2813 0054 | c003 5fd6 
+
+  0x00000001059eaad8: ;   {oop(a 'java/lang/Class'{0x00000007005fe120} = 'kotlin/jvm/internal/Intrinsics')}
+  0x00000001059eaad8: 0124 9cd2 | e10b a0f2 | e100 c0f2 
+
+  0x00000001059eaae4: ; ImmutableOopMap {[232]=Oop [240]=Oop [248]=Oop }
+                      ;*invokevirtual initClassName {reexecute=0 rethrow=0 return_oop=0}
+                      ; - java.lang.Class::getName@14
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@3 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {optimized virtual_call}
+  0x00000001059eaae4: a7f5 bd95 
+
+  0x00000001059eaae8: ;   {other}
+  0x00000001059eaae8: 1f20 03d5 | 1f1b 81f2 | 1fe0 81f2 | e17b 40f9 | e203 00aa 
+
+  0x00000001059eaafc: ; ImmutableOopMap {[232]=Oop [248]=Oop }
+                      ;*invokestatic sanitizeStackTrace {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@6 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {static_call}
+  0x00000001059eaafc: 21f7 bd95 
+
+  0x00000001059eab00: ;   {other}
+  0x00000001059eab00: 1f20 03d5 | 1f1e 81f2 | 1f00 82f2 | 4001 00b4 
+
+  0x00000001059eab10: ;   {metadata('java/lang/NullPointerException')}
+  0x00000001059eab10: 0286 9cd2 | a200 a0f2 | 0201 c0f2 | 0308 40b9 | 6300 5dd2 | 6828 40f9 | 5f00 08eb | a110 0054 
+  0x00000001059eab30: 0100 0014 
+
+  0x00000001059eab34: ; implicit exception: dispatches to 0x00000001059ead48
+  0x00000001059eab34: 1f00 40f9 | 9100 0014 
+
+  0x00000001059eab3c: ;   {oop(a 'java/lang/Class'{0x00000007005fe120} = 'kotlin/jvm/internal/Intrinsics')}
+  0x00000001059eab3c: 0124 9cd2 | e10b a0f2 | e100 c0f2 
+
+  0x00000001059eab48: ; ImmutableOopMap {[168]=Oop [176]=Oop [224]=Oop [232]=Oop }
+                      ;*invokevirtual initClassName {reexecute=0 rethrow=0 return_oop=0}
+                      ; - java.lang.Class::getName@14
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@3 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwJavaNpe@7 (line 45)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNull@4 (line 25)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@31 (line 31)
+                      ;   {optimized virtual_call}
+  0x00000001059eab48: 8ef5 bd95 
+
+  0x00000001059eab4c: ;   {other}
+  0x00000001059eab4c: 1f20 03d5 | 9f27 81f2 | 1f20 82f2 | e173 40f9 | e203 00aa 
+
+  0x00000001059eab60: ; ImmutableOopMap {[168]=Oop [176]=Oop [232]=Oop }
+                      ;*invokestatic sanitizeStackTrace {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@6 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwJavaNpe@7 (line 45)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNull@4 (line 25)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@31 (line 31)
+                      ;   {static_call}
+  0x00000001059eab60: 08f7 bd95 
+
+  0x00000001059eab64: ;   {other}
+  0x00000001059eab64: 1f20 03d5 | 9f2a 81f2 | 1f40 82f2 | 4001 00b4 
+
+  0x00000001059eab74: ;   {metadata('java/lang/NullPointerException')}
+  0x00000001059eab74: 0286 9cd2 | a200 a0f2 | 0201 c0f2 | 0308 40b9 | 6300 5dd2 | 6828 40f9 | 5f00 08eb | e10d 0054 
+  0x00000001059eab94: 0100 0014 
+
+  0x00000001059eab98: ; implicit exception: dispatches to 0x00000001059ead54
+  0x00000001059eab98: 1f00 40f9 | 7800 0014 
+
+  0x00000001059eaba0: ;   {oop(a 'java/lang/Class'{0x00000007005fe120} = 'kotlin/jvm/internal/Intrinsics')}
+  0x00000001059eaba0: 0124 9cd2 | e10b a0f2 | e100 c0f2 
+
+  0x00000001059eabac: ; ImmutableOopMap {[168]=Oop [176]=Oop [208]=Oop [216]=Oop }
+                      ;*invokevirtual initClassName {reexecute=0 rethrow=0 return_oop=0}
+                      ; - java.lang.Class::getName@14
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@3 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {optimized virtual_call}
+  0x00000001059eabac: 75f5 bd95 
+
+  0x00000001059eabb0: ;   {other}
+  0x00000001059eabb0: 1f20 03d5 | 1f34 81f2 | 1f60 82f2 | e16f 40f9 | e203 00aa 
+
+  0x00000001059eabc4: ; ImmutableOopMap {[168]=Oop [176]=Oop [208]=Oop }
+                      ;*invokestatic sanitizeStackTrace {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@6 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {static_call}
+  0x00000001059eabc4: eff6 bd95 
+
+  0x00000001059eabc8: ;   {other}
+  0x00000001059eabc8: 1f20 03d5 | 1f37 81f2 | 1f80 82f2 | 4001 00b4 
+
+  0x00000001059eabd8: ;   {metadata('java/lang/NullPointerException')}
+  0x00000001059eabd8: 0286 9cd2 | a200 a0f2 | 0201 c0f2 | 0308 40b9 | 6300 5dd2 | 6828 40f9 | 5f00 08eb | 210b 0054 
+  0x00000001059eabf8: 0100 0014 
+
+  0x00000001059eabfc: ; implicit exception: dispatches to 0x00000001059ead60
+  0x00000001059eabfc: 1f00 40f9 | 5f00 0014 
+
+  0x00000001059eac04: ;   {oop(a 'java/lang/Class'{0x00000007005fe120} = 'kotlin/jvm/internal/Intrinsics')}
+  0x00000001059eac04: 0124 9cd2 | e10b a0f2 | e100 c0f2 
+
+  0x00000001059eac10: ; ImmutableOopMap {[168]=Oop [176]=Oop [192]=Oop [200]=Oop [208]=Oop }
+                      ;*invokevirtual initClassName {reexecute=0 rethrow=0 return_oop=0}
+                      ; - java.lang.Class::getName@14
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@3 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {optimized virtual_call}
+  0x00000001059eac10: 5cf5 bd95 
+
+  0x00000001059eac14: ;   {other}
+  0x00000001059eac14: 1f20 03d5 | 9f40 81f2 | 1fa0 82f2 | e163 40f9 | e203 00aa 
+
+  0x00000001059eac28: ; ImmutableOopMap {[168]=Oop [176]=Oop [200]=Oop [208]=Oop }
+                      ;*invokestatic sanitizeStackTrace {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@6 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {static_call}
+  0x00000001059eac28: d6f6 bd95 
+
+  0x00000001059eac2c: ;   {other}
+  0x00000001059eac2c: 1f20 03d5 | 9f43 81f2 | 1fc0 82f2 | 4001 00b4 
+
+  0x00000001059eac3c: ;   {metadata('java/lang/NullPointerException')}
+  0x00000001059eac3c: 0286 9cd2 | a200 a0f2 | 0201 c0f2 | 0308 40b9 | 6300 5dd2 | 6828 40f9 | 5f00 08eb | 6108 0054 
+  0x00000001059eac5c: 0100 0014 
+
+  0x00000001059eac60: ; implicit exception: dispatches to 0x00000001059ead6c
+  0x00000001059eac60: 1f00 40f9 | 4600 0014 
+
+  0x00000001059eac68: ;   {metadata({method} {0x000000011ba6c458} 'resumeWith' '(Ljava/lang/Object;)V' in 'kotlin/coroutines/jvm/internal/BaseContinuationImpl')}
+  0x00000001059eac68: 088b 98d2 | c874 a3f2 | 2800 c0f2 | e807 00f9 | 0800 8092 | e803 00f9 
+
+  0x00000001059eac80: ; ImmutableOopMap {c_rarg1=Oop c_rarg2=Oop }
+                      ;*synchronization entry
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@-1 (line 24)
+                      ;   {runtime_call counter_overflow Runtime1 stub}
+  0x00000001059eac80: 60f0 c095 | 67fe ff17 | e803 01aa 
+
+  0x00000001059eac8c: ; ImmutableOopMap {c_rarg2=Oop c_rarg1=Oop }
+                      ;*checkcast {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@10 (line 29)
+                      ;   {runtime_call throw_class_cast_exception Runtime1 stub}
+  0x00000001059eac8c: 9de6 c095 | e803 01aa 
+
+  0x00000001059eac94: ; ImmutableOopMap {c_rarg2=Oop }
+                      ;*checkcast {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@17 (line 30)
+                      ;   {runtime_call throw_class_cast_exception Runtime1 stub}
+  0x00000001059eac94: 9be6 c095 
+
+  0x00000001059eac98: ; ImmutableOopMap {c_rarg2=Oop c_rarg0=Oop [168]=Oop }
+                      ;*getfield completion {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@27 (line 31)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059eac98: 9add c095 
+
+  0x00000001059eac9c: ;   {internal_word}
+  0x00000001059eac9c: c8d2 ff10 | 8833 02f9 
+
+  0x00000001059eaca4: ;   {runtime_call SafepointBlob}
+  0x00000001059eaca4: 170f be15 
+
+  0x00000001059eaca8: ; ImmutableOopMap {c_rarg2=Oop [168]=Oop [176]=Oop [208]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.ResultKt::createFailure@6 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call fast_new_instance Runtime1 stub}
+  0x00000001059eaca8: d6df c095 | acfe ff17 | 010c 40b9 | 21f0 7dd3 | 01d6 ffb4 | e103 00f9 
+
+  0x00000001059eacc0: ;   {runtime_call g1_pre_barrier_slow}
+  0x00000001059eacc0: d0f1 c095 | adfe ff17 | 42d6 ffb4 | e003 00f9 
+
+  0x00000001059eacd0: ;   {runtime_call g1_post_barrier_slow}
+  0x00000001059eacd0: 8cf2 c095 | affe ff17 
+
+  0x00000001059eacd8: ;   {metadata({method} {0x000000011ba6c458} 'resumeWith' '(Ljava/lang/Object;)V' in 'kotlin/coroutines/jvm/internal/BaseContinuationImpl')}
+  0x00000001059eacd8: 088b 98d2 | c874 a3f2 | 2800 c0f2 | e807 00f9 | 280f 80d2 | e803 00f9 
+
+  0x00000001059eacf0: ; ImmutableOopMap {c_rarg3=Oop [176]=Oop [184]=Oop }
+                      ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@121 (line 30)
+                      ;   {runtime_call counter_overflow Runtime1 stub}
+  0x00000001059eacf0: 44f0 c095 | cafe ff17 
+
+  0x00000001059eacf8: ; ImmutableOopMap {[168]=Oop [176]=Oop [200]=Oop [208]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@0 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call fast_new_instance Runtime1 stub}
+  0x00000001059eacf8: c2df c095 | dcfe ff17 
+
+  0x00000001059ead00: ; ImmutableOopMap {[168]=Oop [176]=Oop [192]=Oop [200]=Oop [208]=Oop }
+                      ;*getfield name {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) java.lang.Class::getName@1
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@3 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059ead00: 80dd c095 
+
+  0x00000001059ead04: ; ImmutableOopMap {[168]=Oop [176]=Oop [208]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@0 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call fast_new_instance Runtime1 stub}
+  0x00000001059ead04: bfdf c095 | fffe ff17 
+
+  0x00000001059ead0c: ; ImmutableOopMap {[168]=Oop [176]=Oop [208]=Oop [216]=Oop }
+                      ;*getfield name {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) java.lang.Class::getName@1
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@3 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059ead0c: 7ddd c095 
+
+  0x00000001059ead10: ; ImmutableOopMap {[168]=Oop [176]=Oop [232]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwJavaNpe@0 (line 45)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNull@4 (line 25)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@31 (line 31)
+                      ;   {runtime_call fast_new_instance Runtime1 stub}
+  0x00000001059ead10: bcdf c095 | 23ff ff17 
+
+  0x00000001059ead18: ; ImmutableOopMap {[168]=Oop [176]=Oop [224]=Oop [232]=Oop }
+                      ;*getfield name {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) java.lang.Class::getName@1
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@3 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwJavaNpe@7 (line 45)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNull@4 (line 25)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@31 (line 31)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059ead18: 7add c095 
+
+  0x00000001059ead1c: ; ImmutableOopMap {[232]=Oop [248]=Oop }
+                      ;*new {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@0 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {runtime_call fast_new_instance Runtime1 stub}
+  0x00000001059ead1c: b9df c095 | 40ff ff17 
+
+  0x00000001059ead24: ; ImmutableOopMap {[232]=Oop [240]=Oop [248]=Oop }
+                      ;*getfield name {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) java.lang.Class::getName@1
+                      ; - kotlin.jvm.internal.Intrinsics::sanitizeStackTrace@3 (line 253)
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@11 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059ead24: 77dd c095 
+
+  0x00000001059ead28: ;   {internal_word}
+  0x00000001059ead28: 48ec ff10 | 8833 02f9 
+
+  0x00000001059ead30: ;   {runtime_call SafepointBlob}
+  0x00000001059ead30: f40e be15 
+
+  0x00000001059ead34: ;   {internal_word}
+  0x00000001059ead34: a8ec ff10 | 8833 02f9 
+
+  0x00000001059ead3c: ;   {runtime_call SafepointBlob}
+  0x00000001059ead3c: f10e be15 | e803 00aa 
+
+  0x00000001059ead44: ; ImmutableOopMap {[232]=Oop [248]=Oop }
+                      ;*checkcast {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@14 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {runtime_call throw_class_cast_exception Runtime1 stub}
+  0x00000001059ead44: 6fe6 c095 
+
+  0x00000001059ead48: ; ImmutableOopMap {c_rarg0=Oop [232]=Oop [248]=Oop }
+                      ;*athrow {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@17 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.coroutines.jvm.internal.DebugProbesKt::probeCoroutineResumed@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@13 (line 29)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059ead48: 6edd c095 | e803 00aa 
+
+  0x00000001059ead50: ; ImmutableOopMap {[168]=Oop [176]=Oop [232]=Oop }
+                      ;*checkcast {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwJavaNpe@10 (line 45)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNull@4 (line 25)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@31 (line 31)
+                      ;   {runtime_call throw_class_cast_exception Runtime1 stub}
+  0x00000001059ead50: 6ce6 c095 
+
+  0x00000001059ead54: ; ImmutableOopMap {c_rarg0=Oop [168]=Oop [176]=Oop [232]=Oop }
+                      ;*athrow {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) kotlin.jvm.internal.Intrinsics::throwJavaNpe@13 (line 45)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNull@4 (line 25)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@31 (line 31)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059ead54: 6bdd c095 | e803 00aa 
+
+  0x00000001059ead5c: ; ImmutableOopMap {[168]=Oop [176]=Oop [208]=Oop }
+                      ;*checkcast {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@14 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call throw_class_cast_exception Runtime1 stub}
+  0x00000001059ead5c: 69e6 c095 
+
+  0x00000001059ead60: ; ImmutableOopMap {c_rarg0=Oop [168]=Oop [176]=Oop [208]=Oop }
+                      ;*athrow {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@17 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.ResultKt::createFailure@3
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059ead60: 68dd c095 | e803 00aa 
+
+  0x00000001059ead68: ; ImmutableOopMap {[168]=Oop [176]=Oop [200]=Oop [208]=Oop }
+                      ;*checkcast {reexecute=0 rethrow=0 return_oop=0}
+                      ; - kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@14 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call throw_class_cast_exception Runtime1 stub}
+  0x00000001059ead68: 66e6 c095 
+
+  0x00000001059ead6c: ; ImmutableOopMap {c_rarg0=Oop [168]=Oop [176]=Oop [200]=Oop [208]=Oop }
+                      ;*athrow {reexecute=1 rethrow=0 return_oop=0}
+                      ; - (reexecute) kotlin.jvm.internal.Intrinsics::throwParameterIsNullNPE@17 (line 140)
+                      ; - kotlin.jvm.internal.Intrinsics::checkNotNullParameter@5 (line 131)
+                      ; - kotlin.Result$Failure::<init>@3
+                      ; - kotlin.ResultKt::createFailure@11 (line 122)
+                      ; - kotlin.coroutines.jvm.internal.BaseContinuationImpl::resumeWith@76 (line 38)
+                      ;   {runtime_call throw_null_pointer_exception Runtime1 stub}
+  0x00000001059ead6c: 65dd c095 | 807f 42f9 | 9f7f 02f9 | 9f83 02f9 | fd7b 51a9 | ff83 0491 
+
+  0x00000001059ead84: ;   {runtime_call unwind_exception Runtime1 stub}
+  0x00000001059ead84: 9fd9 c015 
+[Stub Code]
+  0x00000001059ead88: ;   {no_reloc}
+  0x00000001059ead88: df3f 03d5 
+
+  0x00000001059ead8c: ;   {metadata(nullptr)}
+  0x00000001059ead8c: 0c00 80d2 | 0c00 a0f2 | 0c00 c0f2 | 0800 80d2 | 0800 a0f2 | 0800 c0f2 | 0001 1fd6 
+
+  0x00000001059eada8: ;   {trampoline_stub}
+  0x00000001059eada8: 4800 0058 | 0001 1fd6 | c055 960c | 0100 0000 
+
+  0x00000001059eadb8: ;   {static_stub}
+  0x00000001059eadb8: df3f 03d5 
+
+  0x00000001059eadbc: ;   {metadata(nullptr)}
+  0x00000001059eadbc: 0c00 80d2 | 0c00 a0f2 | 0c00 c0f2 | 0800 80d2 | 0800 a0f2 | 0800 c0f2 | 0001 1fd6 
+
+  0x00000001059eadd8: ;   {trampoline_stub}
+  0x00000001059eadd8: 4800 0058 | 0001 1fd6 | 4056 960c | 0100 0000 
+
+  0x00000001059eade8: ;   {trampoline_stub}
+  0x00000001059eade8: 4800 0058 | 0001 1fd6 | 8087 960c | 0100 0000 
+
+  0x00000001059eadf8: ;   {trampoline_stub}
+  0x00000001059eadf8: 4800 0058 | 0001 1fd6 | 8081 960c | 0100 0000 
+
+  0x00000001059eae08: ;   {trampoline_stub}
+  0x00000001059eae08: 4800 0058 | 0001 1fd6 | 8087 960c | 0100 0000 
+
+  0x00000001059eae18: ;   {trampoline_stub}
+  0x00000001059eae18: 4800 0058 | 0001 1fd6 | 8081 960c | 0100 0000 
+
+  0x00000001059eae28: ;   {trampoline_stub}
+  0x00000001059eae28: 4800 0058 | 0001 1fd6 | 8081 960c | 0100 0000 
+
+  0x00000001059eae38: 

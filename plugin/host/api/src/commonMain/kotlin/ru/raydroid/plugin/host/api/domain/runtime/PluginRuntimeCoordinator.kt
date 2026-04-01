@@ -1,0 +1,26 @@
+package ru.raydroid.plugin.host.api.domain.runtime
+
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.presentation.CommandListItem
+import ru.raydroid.plugin.api.presentation.CommandPresentation
+import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
+import ru.raydroid.plugin.host.api.domain.model.SearchResultId
+
+interface PluginRuntimeCoordinator {
+    fun cachedItems(): Flow<Map<PluginRuntime, List<SearchIndexMutation>>>
+
+    fun runtimes(): StateFlow<List<PluginRuntime>>
+
+    fun content(): StateFlow<List<ContentItem>>
+
+    suspend fun update(query: String, action: CommandAction)
+
+    data class ContentItem(
+        val runtime: PluginRuntime,
+        val presentation: CommandPresentation,
+        val listEntry: CommandListItem,
+        val resultId: SearchResultId
+    )
+}

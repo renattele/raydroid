@@ -1,7 +1,7 @@
 package ru.raydroid.plugin.host.impl.services
 
-import ru.raydroid.plugin.api.core.Platform
-import ru.raydroid.plugin.api.host.bridge.EnvironmentServiceBridge
+import ru.raydroid.plugin.api.manifest.Platform
+import ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge
 
 internal class EnvironmentServiceBridgeImpl: EnvironmentServiceBridge {
     override fun get(key: String): String? {

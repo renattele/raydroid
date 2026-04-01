@@ -4,12 +4,12 @@ import kotlinx.coroutines.flow.emptyFlow
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import ru.raydroid.plugin.api.host.bridge.CacheServiceBridge
-import ru.raydroid.plugin.api.host.bridge.NetworkServiceBridge
-import ru.raydroid.plugin.api.host.bridge.NotificationServiceBridge
-import ru.raydroid.plugin.api.host.bridge.PreferencesServiceBridge
-import ru.raydroid.plugin.api.host.bridge.StorageServiceBridge
-import ru.raydroid.plugin.host.api.NotificationEvent
+import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
+import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
+import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
+import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
+import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
+import ru.raydroid.plugin.host.api.event.NotificationEvent
 
 internal expect val platformHostServiceModule: Module
 internal val hostServiceModule = module {

@@ -1,7 +1,7 @@
 package ru.raydroid.plugin.api.ui
 
 import kotlinx.serialization.Serializable
-import ru.raydroid.plugin.api.core.UiText
+import ru.raydroid.plugin.api.model.UiText
 
 @Serializable
 enum class FontSize {

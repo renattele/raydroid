@@ -1,9 +1,9 @@
 package ru.raydroid.plugin.host.impl.services
 
 import org.koin.dsl.module
-import ru.raydroid.plugin.api.host.bridge.ClipboardServiceBridge
-import ru.raydroid.plugin.api.host.bridge.EnvironmentServiceBridge
-import ru.raydroid.plugin.api.host.bridge.SystemServiceBridge
+import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
+import ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge
+import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 import ru.raydroid.plugin.host.impl.DesktopPlatform
 import ru.raydroid.plugin.host.impl.detectDesktopPlatform
 import ru.raydroid.plugin.host.impl.services.mac.MacSystemServiceBridgeImpl

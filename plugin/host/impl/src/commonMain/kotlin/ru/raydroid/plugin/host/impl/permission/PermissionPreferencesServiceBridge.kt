@@ -1,10 +1,10 @@
 package ru.raydroid.plugin.host.impl.permission
 
 import kotlinx.coroutines.flow.Flow
-import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.core.readable
-import ru.raydroid.plugin.api.core.writable
-import ru.raydroid.plugin.api.host.bridge.PreferencesServiceBridge
+import ru.raydroid.plugin.api.manifest.Manifest
+import ru.raydroid.plugin.api.manifest.readable
+import ru.raydroid.plugin.api.manifest.writable
+import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
 import ru.raydroid.plugin.api.host.exception.PermissionDenied
 
 internal class PermissionPreferencesServiceBridge(

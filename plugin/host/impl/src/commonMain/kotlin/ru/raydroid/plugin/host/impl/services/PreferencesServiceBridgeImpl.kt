@@ -5,7 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import ru.raydroid.plugin.api.host.bridge.PreferencesServiceBridge
+import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
 
 internal class PreferencesServiceBridgeImpl(
     private val dataStore: DataStore<Preferences>

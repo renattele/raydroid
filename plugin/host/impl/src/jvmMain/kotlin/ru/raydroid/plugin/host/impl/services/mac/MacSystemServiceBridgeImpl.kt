@@ -2,7 +2,7 @@ package ru.raydroid.plugin.host.impl.services.mac
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import ru.raydroid.plugin.api.host.bridge.SystemServiceBridge
+import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 import ru.raydroid.plugin.api.ui.Icon
 import java.io.File
 import java.awt.image.BufferedImage

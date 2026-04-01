@@ -1,8 +1,8 @@
 package ru.raydroid.plugin.host.impl.permission
 
-import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.core.SystemAccessPermission
-import ru.raydroid.plugin.api.host.bridge.SystemServiceBridge
+import ru.raydroid.plugin.api.manifest.Manifest
+import ru.raydroid.plugin.api.manifest.SystemAccessPermission
+import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 import ru.raydroid.plugin.api.host.exception.PermissionDenied
 
 internal class PermissionSystemServiceBridge(

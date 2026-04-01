@@ -1,9 +1,9 @@
 package ru.raydroid.plugin.host.impl.permission
 
-import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.core.readable
-import ru.raydroid.plugin.api.core.writable
-import ru.raydroid.plugin.api.host.bridge.StorageServiceBridge
+import ru.raydroid.plugin.api.manifest.Manifest
+import ru.raydroid.plugin.api.manifest.readable
+import ru.raydroid.plugin.api.manifest.writable
+import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 import ru.raydroid.plugin.api.host.exception.PermissionDenied
 
 internal class PermissionStorageServiceBridge(

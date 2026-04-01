@@ -1,11 +1,11 @@
 package ru.raydroid.plugin.host.impl.permission
 
 import kotlinx.coroutines.flow.Flow
-import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.core.Permission
-import ru.raydroid.plugin.api.core.readable
-import ru.raydroid.plugin.api.core.writable
-import ru.raydroid.plugin.api.host.bridge.CacheServiceBridge
+import ru.raydroid.plugin.api.manifest.Manifest
+import ru.raydroid.plugin.api.manifest.Permission
+import ru.raydroid.plugin.api.manifest.readable
+import ru.raydroid.plugin.api.manifest.writable
+import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
 import ru.raydroid.plugin.api.host.exception.PermissionDenied
 
 internal class PermissionCacheServiceBridge(

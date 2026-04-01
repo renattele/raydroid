@@ -1,4 +1,4 @@
-import ru.raydroid.plugin.api.core.plugin
+import ru.raydroid.plugin.api.runtime.plugin
 import ru.raydroid.plugin.impl.calculator.CalculatorCommand
 
 @OptIn(ExperimentalJsExport::class)

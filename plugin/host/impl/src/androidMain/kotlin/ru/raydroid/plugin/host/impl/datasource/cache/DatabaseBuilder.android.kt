@@ -1,4 +1,4 @@
-package ru.raydroid.plugin.host.impl.datasource.cache
+package ru.raydroid.plugin.host.impl.data.search.cache
 
 import android.content.Context
 import androidx.room.Room

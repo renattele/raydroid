@@ -3,12 +3,12 @@ package ru.raydroid.plugin.impl.calculator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
-import ru.raydroid.plugin.api.core.CommandAction
-import ru.raydroid.plugin.api.core.CommandService
-import ru.raydroid.plugin.api.core.ItemId
-import ru.raydroid.plugin.api.core.ListItem
-import ru.raydroid.plugin.api.core.RayListScope
-import ru.raydroid.plugin.api.core.UiText
+import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandService
+import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.api.presentation.CommandListItem
+import ru.raydroid.plugin.api.presentation.CommandListScope
+import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.host.Host
 import ru.raydroid.plugin.api.host.service.NotificationService
 import ru.raydroid.plugin.api.ui.Column
@@ -23,12 +23,12 @@ class CalculatorCommand : CommandService() {
         style = NotificationService.Toast.Style.Animated
     )
 
-    override suspend fun cachedItems(requestedItems: List<ItemId>?, chunkSize: Int) = flow {
+    override suspend fun cachedItems(requestedItems: List<CommandItemId>?, chunkSize: Int) = flow {
         Host.notification.showToast(toast)
         val apps = Host.system.getApps()
         apps.map { app ->
-            ListItem(
-                ItemId(app.id),
+            CommandListItem(
+                CommandItemId(app.id),
                 icon = app.icon,
                 title = UiText.Plain(app.name ?: "Unknown"),
                 description = UiText.Plain(app.id)
@@ -40,9 +40,9 @@ class CalculatorCommand : CommandService() {
         Host.notification.hideToast(toast)
     }
 
-    override fun RayListScope.content() {
+    override fun CommandListScope.content() {
         if (result.isNotEmpty()) {
-            item(ItemId.Static, actions = {
+            entry(CommandItemId.Static, actions = {
                 action("123", title = UiText.Plain("Copy"))
             }) {
                 Column {

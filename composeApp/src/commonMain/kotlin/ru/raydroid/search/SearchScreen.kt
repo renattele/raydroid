@@ -23,15 +23,15 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
-import ru.raydroid.plugin.host.api.SearchResults
-import ru.raydroid.plugin.host.impl.ui.ActionPanel
-import ru.raydroid.plugin.host.impl.ui.ComposeRayRenderer
-import ru.raydroid.plugin.host.impl.ui.RaydroidPreviewTheme
-import ru.raydroid.plugin.host.impl.ui.ResourceResolverProvider
-import ru.raydroid.plugin.host.impl.ui.SearchField
-import ru.raydroid.plugin.host.impl.ui.SearchFieldEvent
-import ru.raydroid.plugin.host.impl.ui.SearchListItem
-import ru.raydroid.plugin.host.impl.ui.asText
+import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
+import ru.raydroid.plugin.host.impl.presentation.ActionPanel
+import ru.raydroid.plugin.host.impl.presentation.ComposeRayRenderer
+import ru.raydroid.plugin.host.impl.presentation.RaydroidPreviewTheme
+import ru.raydroid.plugin.host.impl.presentation.ResourceResolverProvider
+import ru.raydroid.plugin.host.impl.presentation.SearchField
+import ru.raydroid.plugin.host.impl.presentation.SearchFieldEvent
+import ru.raydroid.plugin.host.impl.presentation.SearchListItem
+import ru.raydroid.plugin.host.impl.presentation.asText
 
 @Composable
 fun SearchScreen(modifier: Modifier = Modifier) {
@@ -92,18 +92,18 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
         ) {
             if (state.searchResults != null) {
                 itemsIndexed(state.searchResults.results) { index, searchResult ->
-                    if (searchResult is SearchResults.CachedItem) {
-                        state.plugins[searchResult.listItemId.pluginId]?.let { runtime ->
+                    if (searchResult is SearchResultSet.CachedSearchResult) {
+                        state.plugins[searchResult.resultId.pluginId]?.let { runtime ->
                             ResourceResolverProvider(runtime) {
                                 SearchListItem(searchResult, onClick = {
-                                    state.eventSink(SearchScreenEvent.Enter(searchResult.listItemId))
+                                    state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
                                 }, focused = index == state.focusedItemIndex)
                             }
                         }
-                    } else if (searchResult is SearchResults.ItemWithContent) {
+                    } else if (searchResult is SearchResultSet.LiveSearchResult) {
                         ComposeRayRenderer(
                             searchResult.runtime,
-                            searchResult.rayItem.content
+                            searchResult.presentation.content
                         )
                     }
                 }
@@ -123,7 +123,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
         ActionPanel(
             toasts = state.toasts,
             focusedItem = state.focusedItemIndex?.let { index ->
-                state.searchResults?.results?.getOrNull(index)?.item
+                state.searchResults?.results?.getOrNull(index)?.listEntry
             }
         )
     }

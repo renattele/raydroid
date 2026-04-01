@@ -1,8 +1,8 @@
 package ru.raydroid.plugin.host.impl.permission
 
-import ru.raydroid.plugin.api.core.Manifest
-import ru.raydroid.plugin.api.core.UiText
-import ru.raydroid.plugin.api.host.bridge.NotificationServiceBridge
+import ru.raydroid.plugin.api.manifest.Manifest
+import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
 import ru.raydroid.plugin.api.host.exception.PermissionDenied
 
 internal class PermissionNotificationServiceBridge(

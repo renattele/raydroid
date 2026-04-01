@@ -6,7 +6,7 @@ import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.Path
 import okio.SYSTEM
-import ru.raydroid.plugin.api.host.bridge.StorageServiceBridge
+import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 
 internal class StorageServiceBridgeImpl(
     private val basePath: Path,

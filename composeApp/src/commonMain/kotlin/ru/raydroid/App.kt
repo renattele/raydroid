@@ -8,7 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import ru.raydroid.plugin.host.impl.ui.ThemeProvider
+import ru.raydroid.plugin.host.impl.presentation.ThemeProvider
 import ru.raydroid.search.SearchScreen
 
 @Composable

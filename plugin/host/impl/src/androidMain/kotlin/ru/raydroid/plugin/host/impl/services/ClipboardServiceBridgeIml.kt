@@ -8,7 +8,7 @@ import android.os.Build
 import android.os.PersistableBundle
 import androidx.core.net.toFile
 import androidx.core.net.toUri
-import ru.raydroid.plugin.api.host.bridge.ClipboardServiceBridge
+import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
 
 
 internal class ClipboardServiceBridgeImpl(

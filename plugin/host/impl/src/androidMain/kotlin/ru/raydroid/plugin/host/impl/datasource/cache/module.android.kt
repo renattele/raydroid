@@ -1,4 +1,4 @@
-package ru.raydroid.plugin.host.impl.datasource.cache
+package ru.raydroid.plugin.host.impl.data.search.cache
 
 import androidx.room.RoomDatabase
 import org.koin.android.ext.koin.androidContext

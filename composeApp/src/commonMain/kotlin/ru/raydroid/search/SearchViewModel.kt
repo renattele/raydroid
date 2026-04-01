@@ -15,20 +15,20 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import ru.raydroid.plugin.api.core.ListItem
-import ru.raydroid.plugin.host.api.ListItemId
-import ru.raydroid.plugin.host.api.NotificationEvent
-import ru.raydroid.plugin.host.api.PluginId
-import ru.raydroid.plugin.host.api.SearchResults
-import ru.raydroid.plugin.host.api.SinglePluginRuntime
-import ru.raydroid.plugin.host.api.usecase.EmitEventUseCase
-import ru.raydroid.plugin.host.api.usecase.GetEventsUseCase
-import ru.raydroid.plugin.host.api.usecase.GetPluginsUseCase
-import ru.raydroid.plugin.host.api.usecase.LoadRuntimesUseCase
-import ru.raydroid.plugin.host.api.usecase.OpenItemUseCase
-import ru.raydroid.plugin.host.api.usecase.SearchUseCase
-import ru.raydroid.plugin.host.api.usecase.SyncCacheUseCase
-import ru.raydroid.plugin.host.impl.ui.SearchFieldState
+import ru.raydroid.plugin.api.presentation.CommandListItem
+import ru.raydroid.plugin.host.api.domain.model.SearchResultId
+import ru.raydroid.plugin.host.api.event.NotificationEvent
+import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
+import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
+import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
+import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
+import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
+import ru.raydroid.plugin.host.api.application.usecase.OpenItemUseCase
+import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
+import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
+import ru.raydroid.plugin.host.impl.presentation.SearchFieldState
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModel(
@@ -127,16 +127,16 @@ class SearchViewModel(
             when (event) {
                 is SearchScreenEvent.Enter -> {
                     val state = _state.value
-                    val openListItemId =
-                        event.listItemId ?: state.focusedItemIndex?.let { focusedItemIndex ->
-                            state.searchResults?.results[focusedItemIndex]?.listItemId
+                    val openResultId =
+                        event.resultId ?: state.focusedItemIndex?.let { focusedItemIndex ->
+                            state.searchResults?.results[focusedItemIndex]?.resultId
                         }
-                    if (openListItemId == null) {
+                    if (openResultId == null) {
                         return@launch
                     }
                     openItemUseCase(
                         state.searchFieldState.fieldState.text.toString(),
-                        openListItemId
+                        openResultId
                     )
                 }
 
@@ -209,9 +209,9 @@ data class SearchScreenState(
     val searchFieldState: SearchFieldState = SearchFieldState(
         fieldState = TextFieldState()
     ),
-    val searchResults: SearchResults? = null,
-    val plugins: Map<PluginId, SinglePluginRuntime> = emptyMap(),
-    val focusedItem: ListItem? = null,
+    val searchResults: SearchResultSet? = null,
+    val plugins: Map<PluginId, PluginRuntime> = emptyMap(),
+    val focusedItem: CommandListItem? = null,
     val focusedItemIndex: Int? = null,
     val alerts: List<NotificationEvent.Alert> = emptyList(),
     val toasts: List<NotificationEvent.ShowToast> = emptyList(),
@@ -221,7 +221,7 @@ data class SearchScreenState(
 @Immutable
 sealed interface SearchScreenEvent {
     data class QueryChanged(val query: String) : SearchScreenEvent
-    data class Enter(val listItemId: ListItemId? = null) : SearchScreenEvent
+    data class Enter(val resultId: SearchResultId? = null) : SearchScreenEvent
     data object MoveFocusPrevious : SearchScreenEvent
     data object MoveFocusNext : SearchScreenEvent
     data class DismissAlert(val alert: NotificationEvent.Alert) : SearchScreenEvent

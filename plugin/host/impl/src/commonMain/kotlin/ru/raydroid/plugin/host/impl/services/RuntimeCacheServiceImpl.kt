@@ -5,7 +5,7 @@ import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
-import ru.raydroid.plugin.api.host.bridge.CacheServiceBridge
+import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
 
 internal class RuntimeCacheServiceImpl : CacheServiceBridge {
     private val cache = mutableMapOf<String, MutableStateFlow<String?>>().withDefault {

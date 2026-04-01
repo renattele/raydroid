@@ -11,7 +11,7 @@ import android.util.Base64
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import ru.raydroid.plugin.api.host.bridge.SystemServiceBridge
+import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 import ru.raydroid.plugin.api.ui.Icon
 import java.io.ByteArrayOutputStream
 import java.net.URLConnection

@@ -6,7 +6,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
-import ru.raydroid.plugin.api.host.bridge.NetworkServiceBridge
+import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 
 internal class NetworkServiceBridgeImpl(
     private val httpClient: HttpClient

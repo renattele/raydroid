@@ -1,14 +1,14 @@
 package ru.raydroid.plugin.host.impl.services
 
-import ru.raydroid.plugin.api.host.bridge.CacheServiceBridge
-import ru.raydroid.plugin.api.host.bridge.ClipboardServiceBridge
-import ru.raydroid.plugin.api.host.bridge.EnvironmentServiceBridge
-import ru.raydroid.plugin.api.host.bridge.HostServiceBridge
-import ru.raydroid.plugin.api.host.bridge.NetworkServiceBridge
-import ru.raydroid.plugin.api.host.bridge.NotificationServiceBridge
-import ru.raydroid.plugin.api.host.bridge.PreferencesServiceBridge
-import ru.raydroid.plugin.api.host.bridge.StorageServiceBridge
-import ru.raydroid.plugin.api.host.bridge.SystemServiceBridge
+import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
+import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
+import ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge
+import ru.raydroid.plugin.api.host.transport.HostServiceBridge
+import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
+import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
+import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
+import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
+import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 
 internal class HostServiceBridgeImpl(
     override val cacheBridge: CacheServiceBridge,

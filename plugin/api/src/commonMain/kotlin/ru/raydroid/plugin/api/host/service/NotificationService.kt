@@ -1,7 +1,7 @@
 package ru.raydroid.plugin.api.host.service
 
 import kotlinx.serialization.Serializable
-import ru.raydroid.plugin.api.core.UiText
+import ru.raydroid.plugin.api.model.UiText
 
 interface NotificationService {
     suspend fun alert(
