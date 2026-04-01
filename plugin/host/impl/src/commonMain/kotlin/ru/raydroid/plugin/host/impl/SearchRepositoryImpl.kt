@@ -130,7 +130,7 @@ internal class SearchRepositoryImpl(
         titleMatches: List<IntRange>,
         descriptionMatches: List<IntRange>
     ): SearchResults.Item {
-        return SearchResults.Item(
+        return SearchResults.CachedItem(
             listItemId = ListItemId(
                 pluginId = PluginId(pluginId),
                 commandName = command,

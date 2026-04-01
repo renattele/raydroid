@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import okio.FileSystem
 import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.Manifest
+import ru.raydroid.plugin.api.core.RayItem
 import ru.raydroid.plugin.api.core.RayItems
 
 interface SinglePluginRuntime {
@@ -16,8 +17,13 @@ interface SinglePluginRuntime {
         chunkSize: Int = 100
     ): Flow<List<ListItemUpdate>>
 
-    fun content(): StateFlow<List<RayItems>>
+    fun content(): StateFlow<List<ContentItem>>
 
     suspend fun update(query: String, action: CommandAction)
     suspend fun unload()
+
+    data class ContentItem(
+        val commandName: String,
+        val item: RayItem
+    )
 }

@@ -23,9 +23,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import ru.raydroid.plugin.host.api.SearchResults
 import ru.raydroid.plugin.host.impl.ui.ActionPanel
 import ru.raydroid.plugin.host.impl.ui.ComposeRayRenderer
-import ru.raydroid.plugin.host.impl.ui.LocalResourceResolver
 import ru.raydroid.plugin.host.impl.ui.RaydroidPreviewTheme
 import ru.raydroid.plugin.host.impl.ui.ResourceResolverProvider
 import ru.raydroid.plugin.host.impl.ui.SearchField
@@ -51,8 +51,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
         val listState = rememberLazyListState()
         LaunchedEffect(state.focusedItemIndex) {
             if (state.focusedItemIndex != null) {
-                val offset = state.searchResults?.content?.size ?: 0
-                listState.scrollToItem(state.focusedItemIndex + offset)
+                listState.scrollToItem(state.focusedItemIndex)
             }
         }
         state.alerts.forEach { alert ->
@@ -92,23 +91,20 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             state = listState
         ) {
             if (state.searchResults != null) {
-                state.searchResults.content.forEach { (runtime, rayItemsList) ->
-                    item {
-                        rayItemsList.forEach { rayItems ->
-                            ComposeRayRenderer(
-                                runtime,
-                                rayItems.values.flatten()
-                            )
+                itemsIndexed(state.searchResults.results) { index, searchResult ->
+                    if (searchResult is SearchResults.CachedItem) {
+                        state.plugins[searchResult.listItemId.pluginId]?.let { runtime ->
+                            ResourceResolverProvider(runtime) {
+                                SearchListItem(searchResult, onClick = {
+                                    state.eventSink(SearchScreenEvent.Enter(searchResult.listItemId))
+                                }, focused = index == state.focusedItemIndex)
+                            }
                         }
-                    }
-                }
-                itemsIndexed(state.searchResults.cachedResults) { index, searchResult ->
-                    state.plugins[searchResult.listItemId.pluginId]?.let { runtime ->
-                        ResourceResolverProvider(runtime) {
-                            SearchListItem(searchResult, onClick = {
-                                state.eventSink(SearchScreenEvent.Enter(searchResult.listItemId))
-                            }, focused = index == state.focusedItemIndex)
-                        }
+                    } else if (searchResult is SearchResults.ItemWithContent) {
+                        ComposeRayRenderer(
+                            searchResult.runtime,
+                            searchResult.rayItem.content
+                        )
                     }
                 }
             }
@@ -125,7 +121,10 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             Modifier.focusRequester(focus)
         )
         ActionPanel(
-            toasts = state.toasts
+            toasts = state.toasts,
+            focusedItem = state.focusedItemIndex?.let { index ->
+                state.searchResults?.results?.getOrNull(index)?.item
+            }
         )
     }
 }

@@ -12,6 +12,7 @@ import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.host.Host
 import ru.raydroid.plugin.api.host.service.NotificationService
 import ru.raydroid.plugin.api.ui.Column
+import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.Text
 
 class CalculatorCommand : CommandService() {
@@ -41,7 +42,9 @@ class CalculatorCommand : CommandService() {
 
     override fun RayListScope.content() {
         if (result.isNotEmpty()) {
-            item(ItemId.Static) {
+            item(ItemId.Static, actions = {
+                action("123", title = UiText.Plain("Copy"))
+            }) {
                 Column {
                     Text(UiText.Plain(result))
                 }
@@ -52,9 +55,11 @@ class CalculatorCommand : CommandService() {
     override suspend fun execute(action: CommandAction) {
         if (action is CommandAction.Enter) {
             result = action.hoveredId.value
-            Host.system.openApp(action.hoveredId.value)
+            // Host.system.openApp(action.hoveredId.value)
             render()
         }
+        result = "123"
+        render()
         if (query.any { it.isDigit() }) {
             val toast = NotificationService.Toast(
                 message = UiText.Plain("Hello"),

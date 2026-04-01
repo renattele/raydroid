@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.core.CommandAction
 import ru.raydroid.plugin.api.core.RayItems
+import ru.raydroid.plugin.host.api.ListItemId
 import ru.raydroid.plugin.host.api.ListItemUpdate
 import ru.raydroid.plugin.host.api.MultiPluginRuntime
 import ru.raydroid.plugin.host.api.SinglePluginRuntime
@@ -20,8 +21,8 @@ internal class MultiPluginRuntimeImpl(
     private val coroutineScope: CoroutineScope,
     private val pluginRuntimes: StateFlow<List<SinglePluginRuntime>>
 ) : MultiPluginRuntime {
-    private val contentFlow = MutableStateFlow<Map<SinglePluginRuntime, List<RayItems>>>(
-        mapOf()
+    private val contentFlow = MutableStateFlow<List<MultiPluginRuntime.ContentItem>>(
+        emptyList()
     )
 
     private val cacheItemsFlow = MutableStateFlow<Map<SinglePluginRuntime, List<ListItemUpdate>>>(
@@ -37,8 +38,20 @@ internal class MultiPluginRuntimeImpl(
                     runtimes.forEach { runtime ->
                         launch {
                             runtime.content().collectLatest { _ ->
-                                val newContent = runtimes.associateWith {
-                                    it.content().value
+                                val newContent = runtimes.flatMap {
+                                    val content = it.content().value
+                                    content.map { contentItem ->
+                                        MultiPluginRuntime.ContentItem(
+                                            listItem = contentItem.item.listItem,
+                                            listItemId = ListItemId(
+                                                pluginId = runtime.pluginId,
+                                                commandName = contentItem.commandName,
+                                                itemId = contentItem.item.listItem.id
+                                            ),
+                                            runtime = runtime,
+                                            item = contentItem.item,
+                                        )
+                                    }
                                 }
                                 contentFlow.value = newContent
                             }
@@ -61,7 +74,7 @@ internal class MultiPluginRuntimeImpl(
 
     override fun runtimes(): StateFlow<List<SinglePluginRuntime>> = pluginRuntimes
 
-    override fun content(): StateFlow<Map<SinglePluginRuntime, List<RayItems>>> = contentFlow
+    override fun content(): StateFlow<List<MultiPluginRuntime.ContentItem>> = contentFlow
 
     override suspend fun update(
         query: String,

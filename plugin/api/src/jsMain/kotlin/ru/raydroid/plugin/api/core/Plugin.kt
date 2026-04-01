@@ -26,62 +26,91 @@ fun plugin(content: PluginScope.() -> Unit) {
     scope.content()
 }
 
-internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge = object : CommandServiceBridge {
-    override fun getServiceName() = serviceName
+internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge =
+    object : CommandServiceBridge {
+        override fun getServiceName() = serviceName
 
-    override suspend fun cachedItems(requestedItems: List<ItemId>?, chunkSize: Int): Flow<List<ListItem>> {
-        return this@toBridge.cachedItems(requestedItems, chunkSize)
-    }
-
-    override fun content(): RayItems {
-        val items = mutableMapOf<ListItem, List<RayNodeData>>()
-        val scope = object : RayListScope {
-            override fun item(
-                id: ItemId,
-                title: UiText?,
-                description: UiText?,
-                icon: Icon?,
-                actions: RayListActionScope.() -> Unit,
-                content: RayScope.() -> Unit
-            ) {
-                val actions = mutableListOf<ListItemAction>()
-                val actionScope = object : RayListActionScope {
-                    override fun action(
-                        id: String,
-                        title: UiText,
-                        icon: Icon,
-                        description: UiText?
-                    ) {
-                        actions += ListItemAction(
-                            id = id,
-                            title = title,
-                            icon = icon,
-                            description = description
-                        )
-                    }
-                }
-                actionScope.actions()
-                val listItem = ListItem(
-                    id = id,
-                    title = title,
-                    description = description,
-                    icon = icon,
-                    actions = actions
-                )
-                items[listItem] = buildRayNodes(content)
-            }
+        override suspend fun cachedItems(
+            requestedItems: List<ItemId>?,
+            chunkSize: Int
+        ): Flow<List<ListItem>> {
+            return this@toBridge.cachedItems(requestedItems, chunkSize)
         }
-        scope.content()
-        return items
-    }
 
-    override fun initialize(request: CommandServiceBridge.RenderRequest,
-                            invalidateCacheRequest: CommandServiceBridge.InvalidateCacheRequest) {
-        onRenderRequest = request::requestRender
-        onInvalidateCacheRequest = invalidateCacheRequest::requestInvalidation
-    }
+        override fun content(): RayItems {
+            val items = mutableMapOf<ItemId, RayItem>()
+            val scope = object : RayListScope {
+                override fun item(
+                    id: ItemId,
+                    title: UiText?,
+                    description: UiText?,
+                    icon: Icon?,
+                    actions: RayListActionScope.() -> Unit,
+                    content: RayScope.() -> Unit
+                ) {
+                    val actionsList = buildActions(group = null, actions)
+                    val listItem = ListItem(
+                        id = id,
+                        title = title,
+                        description = description,
+                        icon = icon,
+                        actions = actionsList
+                    )
+                    items[id] = RayItem(
+                        listItem = listItem,
+                        content = buildRayNodes(content)
+                    )
+                }
+            }
+            scope.content()
+            return items
+        }
 
-    override suspend fun update(query: String, action: CommandAction) {
-        this@toBridge.update(query, action)
+        override fun initialize(
+            request: CommandServiceBridge.RenderRequest,
+            invalidateCacheRequest: CommandServiceBridge.InvalidateCacheRequest
+        ) {
+            onRenderRequest = request::requestRender
+            onInvalidateCacheRequest = invalidateCacheRequest::requestInvalidation
+        }
+
+        override suspend fun update(query: String, action: CommandAction) {
+            this@toBridge.update(query, action)
+        }
+
+        private fun buildActions(
+            group: UiText?,
+            content: RayListActionScope.() -> Unit
+        ): List<ListItemAction> {
+            val actions = mutableListOf<ListItemAction>()
+            val scope = object : RayListActionScope {
+                override fun group(
+                    title: UiText,
+                    content: RayListActionScope.() -> Unit
+                ) {
+                    actions += buildActions(title, content)
+                }
+
+                override fun action(
+                    id: String,
+                    title: UiText,
+                    icon: Icon?,
+                    description: UiText?,
+                    style: ListItemAction.Style,
+                    primary: Boolean
+                ) {
+                    actions += ListItemAction(
+                        id = id,
+                        title = title,
+                        icon = icon,
+                        description = description,
+                        group = group,
+                        style = style,
+                        primary = primary
+                    )
+                }
+            }
+            scope.content()
+            return actions
+        }
     }
-}

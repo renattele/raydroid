@@ -33,39 +33,54 @@ internal class SinglePluginRuntimeImpl(
     private val coroutineScope: CoroutineScope
 ) : SinglePluginRuntime {
     private val contentFlow =
-        MutableStateFlow<List<RayItems>>(List(commandServices.size) { emptyMap() })
+        MutableStateFlow<List<SinglePluginRuntime.ContentItem>>(emptyList())
 
     private val invalidationChannel = MutableSharedFlow<InvalidationRequest>()
     override val pluginId: PluginId
         get() = PluginId(manifest.name)
 
     init {
-        commandServices.forEachIndexed { index, command ->
-            val renderRequest = object : CommandServiceBridge.RenderRequest {
-                override fun requestRender() {
-                    contentFlow.update { data ->
-                        val updated = data.toMutableList()
-                        updated[index] = command.content()
-                        updated
-                    }
+        coroutineScope.launch {
+            val commandNames = withContext(pluginRuntimeDispatcher) {
+                commandServices.associateWith {
+                    it.getServiceName()
                 }
             }
-            val invalidationRequest = object : CommandServiceBridge.InvalidateCacheRequest {
-                override fun requestInvalidation(invalidatedIds: List<ItemId>?) {
-                    coroutineScope.launch {
-                        val serviceName = withContext(pluginRuntimeDispatcher) {
-                            command.getServiceName()
+            commandServices.forEach { command ->
+                val commandName = commandNames[command] ?: "Unknown"
+                val renderRequest = object : CommandServiceBridge.RenderRequest {
+                    override fun requestRender() {
+                        contentFlow.update { data ->
+                            data.filter { contentItem ->
+                                contentItem.commandName != commandName
+                            } + command.content().values.map {
+                                SinglePluginRuntime.ContentItem(
+                                    commandName = commandName,
+                                    item = it
+                                )
+                            }
                         }
-                        invalidationChannel.emit(
-                            InvalidationRequest(
-                                serviceName,
-                                invalidatedIds
-                            )
-                        )
                     }
                 }
+                val invalidationRequest = object : CommandServiceBridge.InvalidateCacheRequest {
+                    override fun requestInvalidation(invalidatedIds: List<ItemId>?) {
+                        coroutineScope.launch {
+                            val serviceName = withContext(pluginRuntimeDispatcher) {
+                                command.getServiceName()
+                            }
+                            invalidationChannel.emit(
+                                InvalidationRequest(
+                                    serviceName,
+                                    invalidatedIds
+                                )
+                            )
+                        }
+                    }
+                }
+                withContext(pluginRuntimeDispatcher) {
+                    command.initialize(renderRequest, invalidationRequest)
+                }
             }
-            command.initialize(renderRequest, invalidationRequest)
         }
     }
 
@@ -139,7 +154,7 @@ internal class SinglePluginRuntimeImpl(
         ), item = this
     )
 
-    override fun content(): StateFlow<List<RayItems>> = contentFlow
+    override fun content(): StateFlow<List<SinglePluginRuntime.ContentItem>> = contentFlow
 
     override suspend fun update(
         query: String, action: CommandAction

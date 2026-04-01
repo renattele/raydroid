@@ -34,8 +34,16 @@ data class ListItemAction(
     val id: String,
     val title: UiText,
     val description: UiText?,
-    val icon: Icon,
-)
+    val icon: Icon?,
+    val group: UiText? = null,
+    val style: Style = Style.Default,
+    val primary: Boolean = false
+) {
+    enum class Style {
+        Default,
+        Destructive
+    }
+}
 
 interface RayListScope {
     @Ray
@@ -51,9 +59,23 @@ interface RayListScope {
 
 interface RayListActionScope {
     @Ray
-    fun action(id: String, title: UiText, icon: Icon, description: UiText? = null)
+    fun group(title: UiText, content: RayListActionScope.() -> Unit)
+
+    @Ray
+    fun action(
+        id: String,
+        title: UiText,
+        icon: Icon? = null,
+        description: UiText? = null,
+        style: ListItemAction.Style = ListItemAction.Style.Default,
+        primary: Boolean = false
+    )
 }
 
-typealias RayItem = Pair<ItemId, List<RayNodeData>>
+@Serializable
+data class RayItem(
+    val listItem: ListItem,
+    val content: List<RayNodeData>
+)
 
-typealias RayItems = Map<ListItem, List<RayNodeData>>
+typealias RayItems = Map<ItemId, RayItem>

@@ -55,7 +55,7 @@ internal class CachedSearchRanker : SearchRanker {
             .sortedWith(scoredCandidateComparator)
             .take(limit)
             .map { score ->
-                SearchResults.Item(
+                SearchResults.CachedItem(
                     listItemId = ListItemId(
                         pluginId = PluginId(score.candidate.pluginId),
                         commandName = score.candidate.command,

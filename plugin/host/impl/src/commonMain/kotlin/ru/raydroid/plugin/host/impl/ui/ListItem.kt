@@ -33,7 +33,7 @@ import ru.raydroid.plugin.host.api.SearchResults
 
 @Composable
 fun SearchListItem(
-    item: SearchResults.Item,
+    item: SearchResults.CachedItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     focused: Boolean = false

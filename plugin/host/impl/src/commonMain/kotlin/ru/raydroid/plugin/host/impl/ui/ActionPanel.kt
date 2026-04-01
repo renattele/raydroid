@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.KeyboardReturn
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -24,6 +26,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,26 +36,40 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import raydroid.plugin.host.impl.generated.resources.Res
+import raydroid.plugin.host.impl.generated.resources.search_field_placeholder
+import ru.raydroid.plugin.api.core.ItemId
+import ru.raydroid.plugin.api.core.ListItem
+import ru.raydroid.plugin.api.core.ListItemAction
 import ru.raydroid.plugin.api.core.UiText
 import ru.raydroid.plugin.api.host.bridge.NotificationServiceBridge
 import ru.raydroid.plugin.api.host.bridge.NotificationServiceBridge.Toast.Style.*
 import ru.raydroid.plugin.api.ui.Color
+import ru.raydroid.plugin.api.ui.FontSize
+import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.Spacing
+import ru.raydroid.plugin.api.ui.TextData
 import ru.raydroid.plugin.host.api.NotificationEvent
 import ru.raydroid.plugin.host.api.PluginId
 import kotlin.math.pow
 import kotlin.math.sqrt
 
 @Composable
-fun ActionPanel(toasts: List<NotificationEvent.ShowToast>, modifier: Modifier = Modifier) {
+fun ActionPanel(
+    toasts: List<NotificationEvent.ShowToast>,
+    focusedItem: ListItem?,
+    modifier: Modifier = Modifier
+) {
     val themeResolver = LocalThemeResolver.current
     Row(
         modifier
             .height(PanelHeight)
             .background(themeResolver.color(Color.SurfaceContainer))
+            .padding(horizontal = themeResolver.spacing(Spacing.Medium))
     ) {
         Toasts(toasts, Modifier.weight(1f))
-        Action(Modifier.weight(1f))
+        Action(focusedItem, Modifier.fillMaxHeight().weight(1f))
     }
 }
 
@@ -79,7 +96,7 @@ private fun Toasts(
                         drawContent()
                         drawRect(backgroundColor.copy(alpha = invertedIndex / 3f))
                     }
-                    .padding(themeResolver.spacing(Spacing.Medium))
+                    .padding(vertical = themeResolver.spacing(Spacing.Medium))
                     .border(
                         themeResolver.spacing(Spacing.Border),
                         themeResolver.color(Color.Primary),
@@ -95,9 +112,33 @@ private fun Toasts(
 }
 
 @Composable
-private fun Action(modifier: Modifier = Modifier) {
-    Row(modifier) {
-
+private fun Action(focusedItem: ListItem?, modifier: Modifier = Modifier) {
+    val themeResolver = LocalThemeResolver.current
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(
+            themeResolver.spacing(Spacing.Medium),
+            Alignment.End
+        )
+    ) {
+        if (focusedItem != null) {
+            val primaryAction = remember(focusedItem) {
+                focusedItem.actions.find { it.primary } ?: focusedItem.actions.firstOrNull()
+            }
+            if (primaryAction != null) {
+                TextRenderer(
+                    TextData(
+                        text = primaryAction.title,
+                        color = Color.OnSurfaceVariant,
+                        fontSize = FontSize.Small
+                    )
+                )
+                KeyHint {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardReturn, contentDescription = null)
+                }
+            }
+        }
     }
 }
 
@@ -106,7 +147,7 @@ private fun Action(modifier: Modifier = Modifier) {
 private fun Toast(toast: NotificationServiceBridge.Toast, modifier: Modifier = Modifier) {
     val themeResolver = LocalThemeResolver.current
     Row(
-        modifier.padding(horizontal = themeResolver.spacing(Spacing.Medium)),
+        modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(
             themeResolver.spacing(Spacing.ExtraSmall)
@@ -133,6 +174,19 @@ private fun Toast(toast: NotificationServiceBridge.Toast, modifier: Modifier = M
             }
             Text(toast.message.asText())
         }
+    }
+}
+
+@Composable
+private fun KeyHint(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val themeResolver = LocalThemeResolver.current
+    Box(
+        modifier
+            .clip(RoundedCornerShape(themeResolver.spacing(Spacing.Medium)))
+            .background(themeResolver.color(Color.SurfaceContainerLowest))
+            .padding(themeResolver.spacing(Spacing.Small))
+    ) {
+        content()
     }
 }
 
@@ -167,6 +221,20 @@ private fun ActionPanelPreview() {
                     PluginId.Invalid, toast = NotificationServiceBridge.Toast(
                         message = UiText.Plain("Message3"),
                         style = Success
+                    )
+                )
+            ),
+            focusedItem = ListItem(
+                id = ItemId.Static,
+                icon = Icon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
+                title = UiText.Plain("Open"),
+                description = UiText.Plain("Open"),
+                actions = listOf(
+                    ListItemAction(
+                        id = "",
+                        title = UiText.Plain("Action 1"),
+                        description = UiText.Plain("Action 2"),
+                        icon = Icon.Url("https://i.imgur.com/UVpA9a0.jpeg")
                     )
                 )
             )

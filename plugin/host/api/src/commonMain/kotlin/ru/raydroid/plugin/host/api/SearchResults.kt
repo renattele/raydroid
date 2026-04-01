@@ -1,16 +1,27 @@
 package ru.raydroid.plugin.host.api
 
 import ru.raydroid.plugin.api.core.ListItem
-import ru.raydroid.plugin.api.core.RayItems
+import ru.raydroid.plugin.api.core.RayItem
 
 data class SearchResults(
-    val cachedResults: List<Item>,
-    val content: Map<SinglePluginRuntime, List<RayItems>>
+    val results: List<Item>,
 ) {
-    data class Item(
-        val listItemId: ListItemId,
-        val item: ListItem,
+    sealed interface Item {
+        val item: ListItem
+        val listItemId: ListItemId
+    }
+
+    data class CachedItem(
+        override val listItemId: ListItemId,
+        override val item: ListItem,
         val titleMatches: List<IntRange>,
         val descriptionMatches: List<IntRange>
-    )
+    ) : Item
+
+    data class ItemWithContent(
+        override val listItemId: ListItemId,
+        override val item: ListItem,
+        val runtime: SinglePluginRuntime,
+        val rayItem: RayItem
+    ) : Item
 }

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.raydroid.plugin.api.core.ListItem
 import ru.raydroid.plugin.host.api.ListItemId
 import ru.raydroid.plugin.host.api.NotificationEvent
 import ru.raydroid.plugin.host.api.PluginId
@@ -98,11 +99,12 @@ class SearchViewModel(
                 .collectLatest { query ->
                     var updatedFocus = false
                     searchUseCase(query.toString()).collectLatest { searchResults ->
+                        println(searchResults)
                         _state.update { state ->
                             state.copy(
                                 searchResults = searchResults,
                                 focusedItemIndex = if (!updatedFocus) {
-                                    if (searchResults.cachedResults.isNotEmpty() || searchResults.content.isNotEmpty()) {
+                                    if (searchResults.results.isNotEmpty()) {
                                         0
                                     } else {
                                         null
@@ -127,7 +129,7 @@ class SearchViewModel(
                     val state = _state.value
                     val openListItemId =
                         event.listItemId ?: state.focusedItemIndex?.let { focusedItemIndex ->
-                            state.searchResults?.cachedResults[focusedItemIndex]?.listItemId
+                            state.searchResults?.results[focusedItemIndex]?.listItemId
                         }
                     if (openListItemId == null) {
                         return@launch
@@ -143,7 +145,7 @@ class SearchViewModel(
                         state.copy(
                             focusedItemIndex = state.searchResults?.let { searchResults ->
                                 state.focusedItemIndex?.let { itemIndex ->
-                                    (itemIndex + 1).coerceIn(0, searchResults.cachedResults.size)
+                                    (itemIndex + 1).coerceIn(0, searchResults.results.size)
                                 }
                             }
                         )
@@ -155,7 +157,7 @@ class SearchViewModel(
                         state.copy(
                             focusedItemIndex = state.searchResults?.let { searchResults ->
                                 state.focusedItemIndex?.let { itemIndex ->
-                                    (itemIndex - 1).coerceIn(0, searchResults.cachedResults.size)
+                                    (itemIndex - 1).coerceIn(0, searchResults.results.size)
                                 }
                             }
                         )
@@ -209,7 +211,7 @@ data class SearchScreenState(
     ),
     val searchResults: SearchResults? = null,
     val plugins: Map<PluginId, SinglePluginRuntime> = emptyMap(),
-    val focusedItem: ListItemId? = null,
+    val focusedItem: ListItem? = null,
     val focusedItemIndex: Int? = null,
     val alerts: List<NotificationEvent.Alert> = emptyList(),
     val toasts: List<NotificationEvent.ShowToast> = emptyList(),
