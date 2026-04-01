@@ -36,7 +36,6 @@ class SearchUseCase(
             SearchResultSet.LiveSearchResult(
                 listEntry = contentItem.listEntry,
                 resultId = contentItem.resultId,
-                runtime = contentItem.runtime,
                 presentation = contentItem.presentation
             )
         }

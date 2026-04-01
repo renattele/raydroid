@@ -44,6 +44,9 @@ import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheSearchEnti
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheWithContent
 import ru.raydroid.plugin.host.impl.runtime.PluginRuntimeCoordinatorImpl
 import ru.raydroid.plugin.host.api.domain.service.PluginLoader
+import ru.raydroid.plugin.host.api.ui.PluginUiText
+import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
+import ru.raydroid.plugin.host.impl.ui.toPluginCommandPresentation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -83,8 +86,8 @@ class PluginHostArchitectureTest {
         assertEquals("ru.test.plugin", cached.resultId.pluginId.id)
         assertEquals("apps", cached.resultId.commandName)
         assertEquals("item-1", cached.resultId.itemId.value)
-        assertEquals("Calculator", cached.listEntry.title?.text)
-        assertEquals("System app", cached.listEntry.description?.text)
+        assertEquals("Calculator", assertIs<PluginUiText.Plain>(cached.listEntry.title).text)
+        assertEquals("System app", assertIs<PluginUiText.Plain>(cached.listEntry.description).text)
     }
 
     @Test
@@ -124,8 +127,8 @@ class PluginHostArchitectureTest {
         assertEquals("ru.test.plugin", content.resultId.pluginId.id)
         assertEquals("apps", content.resultId.commandName)
         assertEquals("item-1", content.resultId.itemId.value)
-        assertEquals(listEntry, content.listEntry)
-        assertEquals(presentation, content.presentation)
+        assertEquals(listEntry.toPluginCommandListItem(runtime.pluginId), content.listEntry)
+        assertEquals(presentation.toPluginCommandPresentation(runtime.pluginId), content.presentation)
     }
 
     @Test

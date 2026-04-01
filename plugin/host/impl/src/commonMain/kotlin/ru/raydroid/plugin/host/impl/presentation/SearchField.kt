@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -32,9 +33,9 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import raydroid.plugin.host.impl.generated.resources.Res
 import raydroid.plugin.host.impl.generated.resources.search_field_placeholder
-import ru.raydroid.plugin.api.ui.Color
-import ru.raydroid.plugin.api.ui.FontSize
-import ru.raydroid.plugin.api.ui.Spacing
+import ru.raydroid.plugin.host.api.ui.PluginColor
+import ru.raydroid.plugin.host.api.ui.PluginFontSize
+import ru.raydroid.plugin.host.api.ui.PluginSpacing
 
 @Composable
 fun SearchField(
@@ -43,29 +44,34 @@ fun SearchField(
     modifier: Modifier = Modifier,
     decoratorModifier: Modifier = Modifier
 ) {
-    val themeResolver = LocalThemeResolver.current
     val isEmpty = remember { derivedStateOf { state.fieldState.text.isEmpty() } }
     val textStyle = TextStyle(
-        color = themeResolver.color(Color.OnSurface),
-        fontSize = themeResolver.fontSize(FontSize.Small)
+        color = PluginColor.OnSurface.toColor(),
+        fontSize = PluginFontSize.Small.toTextUnit()
     )
     BasicTextField(
         state.fieldState,
-        modifier = modifier.fillMaxWidth().onPreviewKeyEvent { event ->
-            if (event.type == KeyEventType.KeyDown) {
-                when (event.key) {
-                    Key.DirectionUp -> {
-                        onEvent(SearchFieldEvent.MoveFocusUp)
-                        true
+        modifier = modifier
+            .fillMaxWidth()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.DirectionUp -> {
+                            onEvent(SearchFieldEvent.MoveFocusUp)
+                            true
+                        }
+
+                        Key.DirectionDown -> {
+                            onEvent(SearchFieldEvent.MoveFocusDown)
+                            true
+                        }
+
+                        else -> false
                     }
-                    Key.DirectionDown -> {
-                        onEvent(SearchFieldEvent.MoveFocusDown)
-                        true
-                    }
-                    else -> false
+                } else {
+                    false
                 }
-            } else false
-        },
+            },
         textStyle = textStyle,
         keyboardOptions = KeyboardOptions(
             autoCorrectEnabled = false,
@@ -76,31 +82,29 @@ fun SearchField(
             onEvent(SearchFieldEvent.Enter)
         },
         lineLimits = TextFieldLineLimits.SingleLine,
-        cursorBrush = SolidColor(themeResolver.color(Color.Primary)),
+        cursorBrush = SolidColor(PluginColor.Primary.toColor()),
         decorator = { content ->
             val shape = if (state.isKeyboardPresent) {
                 RoundedCornerShape(
-                    bottomStart = themeResolver.spacing(Spacing.Large),
-                    bottomEnd = themeResolver.spacing(Spacing.Large)
+                    bottomStart = PluginSpacing.Large.toDp(),
+                    bottomEnd = PluginSpacing.Large.toDp()
                 )
             } else {
-                RoundedCornerShape(
-                    themeResolver.spacing(Spacing.Large)
-                )
+                RoundedCornerShape(PluginSpacing.Large.toDp())
             }
-            val shadowSpread = themeResolver.spacing(Spacing.ExtraSmall)
-            val shadowOffset = themeResolver.spacing(Spacing.Small)
+            val shadowSpread = PluginSpacing.ExtraSmall.toDp()
+            val shadowOffset = PluginSpacing.Small.toDp()
             Box(
                 decoratorModifier
                     .border(
                         BorderStroke(
-                            themeResolver.spacing(Spacing.ExtraSmall) / 2,
-                            color = themeResolver.color(Color.Outline)
+                            PluginSpacing.ExtraSmall.toDp() / 2,
+                            color = PluginColor.Outline.toColor()
                         ),
                         shape
                     )
                     .dropShadow(shape = shape) {
-                        color = androidx.compose.ui.graphics.Color.Black
+                        color = Color.Black
                         spread = shadowSpread.toPx()
                         alpha = 0.4f
                         radius = shadowOffset.toPx()
@@ -109,8 +113,8 @@ fun SearchField(
                             y = 2.dp.toPx()
                         )
                     }
-                    .background(themeResolver.color(Color.SurfaceContainer), shape)
-                    .padding(themeResolver.spacing(Spacing.Large),)
+                    .background(PluginColor.SurfaceContainer.toColor(), shape)
+                    .padding(PluginSpacing.Large.toDp())
                     .fillMaxWidth()
             ) {
                 content()
@@ -118,7 +122,7 @@ fun SearchField(
                     Text(
                         stringResource(Res.string.search_field_placeholder),
                         style = textStyle,
-                        color = themeResolver.color(Color.OnSurface),
+                        color = PluginColor.OnSurface.toColor(),
                         modifier = Modifier.alpha(0.5f)
                     )
                 }
@@ -135,8 +139,8 @@ data class SearchFieldState(
 
 sealed class SearchFieldEvent {
     data object Enter : SearchFieldEvent()
-    data object MoveFocusUp: SearchFieldEvent()
-    data object MoveFocusDown: SearchFieldEvent()
+    data object MoveFocusUp : SearchFieldEvent()
+    data object MoveFocusDown : SearchFieldEvent()
 }
 
 @Preview

@@ -6,10 +6,7 @@ import kotlinx.coroutines.flow.map
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.time.Clock
-import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.api.presentation.CommandListItem
-import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
@@ -134,14 +131,7 @@ internal class SearchIndexRepositoryImpl(
                 commandName = command,
                 itemId = CommandItemId(itemId)
             ),
-            listEntry = CommandListItem(
-                id = CommandItemId(itemId),
-                icon = icon?.let { iconValue ->
-                    iconType?.let { Icon(iconValue, Icon.Type.valueOf(it)) }
-                },
-                title = title?.let(UiText::Plain),
-                description = description?.let(UiText::Plain)
-            ),
+            listEntry = toPluginListEntry(),
             titleMatches = titleMatches,
             descriptionMatches = descriptionMatches
         )

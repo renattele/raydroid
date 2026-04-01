@@ -43,89 +43,90 @@ fun SearchScreen(modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
-        val focus = remember { FocusRequester() }
-        LaunchedEffect(Unit) {
-            focus.requestFocus()
-        }
-        val listState = rememberLazyListState()
-        LaunchedEffect(state.focusedItemIndex) {
-            if (state.focusedItemIndex != null) {
-                listState.scrollToItem(state.focusedItemIndex)
+    ResourceResolverProvider(state.plugins) {
+        Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
+            val focus = remember { FocusRequester() }
+            LaunchedEffect(Unit) {
+                focus.requestFocus()
             }
-        }
-        state.alerts.forEach { alert ->
-            AlertDialog(
-                onDismissRequest = {
-                    state.eventSink(SearchScreenEvent.DismissAlert(alert))
-                },
-                confirmButton = {
-                    Button(onClick = {
-                        state.eventSink(SearchScreenEvent.ConfirmAlert(alert))
-                    }) {
-                        Text(alert.confirmAction.title.asText())
-                    }
-                },
-                dismissButton = if (alert.dismissAction != null) {
-                    {
-                        TextButton(onClick = {
+            val listState = rememberLazyListState()
+            LaunchedEffect(state.focusedItemIndex) {
+                if (state.focusedItemIndex != null) {
+                    listState.scrollToItem(state.focusedItemIndex)
+                }
+            }
+            state.alerts.forEach { alert ->
+                AlertDialog(
+                    onDismissRequest = {
+                        if (alert.dismissAction != null) {
                             state.eventSink(SearchScreenEvent.DismissAlert(alert))
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            state.eventSink(SearchScreenEvent.ConfirmAlert(alert))
                         }) {
-                            Text(alert.dismissAction!!.title.asText())
+                            Text(alert.confirmAction.title.asText())
+                        }
+                    },
+                    dismissButton = if (alert.dismissAction != null) {
+                        {
+                            TextButton(onClick = {
+                                state.eventSink(SearchScreenEvent.DismissAlert(alert))
+                            }) {
+                                Text(alert.dismissAction!!.title.asText())
+                            }
+                        }
+                    } else {
+                        null
+                    },
+                    title = {
+                        Text(alert.title.asText())
+                    },
+                    text = {
+                        Text(alert.message.asText())
+                    }
+                )
+            }
+            LazyColumn(
+                Modifier
+                    .background(MaterialTheme.colorScheme.background)
+                    .weight(1f),
+                reverseLayout = true,
+                state = listState
+            ) {
+                if (state.searchResults != null) {
+                    itemsIndexed(state.searchResults.results) { index, searchResult ->
+                        if (searchResult is SearchResultSet.CachedSearchResult) {
+                            SearchListItem(searchResult, onClick = {
+                                state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
+                            }, focused = index == state.focusedItemIndex)
+                        } else if (searchResult is SearchResultSet.LiveSearchResult) {
+                            ComposeRayRenderer(
+                                searchResult.presentation.content
+                            )
                         }
                     }
-                } else null,
-                title = {
-                    Text(alert.title.asText())
+                }
+            }
+            SearchField(
+                state.searchFieldState.copy(canGoOnEnter = state.focusedItemIndex != null),
+                onEvent = { event ->
+                    when (event) {
+                        SearchFieldEvent.Enter -> state.eventSink(SearchScreenEvent.Enter())
+                        SearchFieldEvent.MoveFocusDown -> state.eventSink(SearchScreenEvent.MoveFocusPrevious)
+                        SearchFieldEvent.MoveFocusUp -> state.eventSink(SearchScreenEvent.MoveFocusNext)
+                    }
                 },
-                text = {
-                    Text(alert.message.asText())
+                Modifier.focusRequester(focus)
+            )
+            ActionPanel(
+                toasts = state.toasts,
+                focusedItem = state.focusedItemIndex?.let { index ->
+                    state.searchResults?.results?.getOrNull(index)?.listEntry
                 }
             )
         }
-        LazyColumn(
-            Modifier
-                .background(MaterialTheme.colorScheme.background)
-                .weight(1f),
-            reverseLayout = true,
-            state = listState
-        ) {
-            if (state.searchResults != null) {
-                itemsIndexed(state.searchResults.results) { index, searchResult ->
-                    if (searchResult is SearchResultSet.CachedSearchResult) {
-                        state.plugins[searchResult.resultId.pluginId]?.let { runtime ->
-                            ResourceResolverProvider(runtime) {
-                                SearchListItem(searchResult, onClick = {
-                                    state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
-                                }, focused = index == state.focusedItemIndex)
-                            }
-                        }
-                    } else if (searchResult is SearchResultSet.LiveSearchResult) {
-                        ComposeRayRenderer(
-                            searchResult.runtime,
-                            searchResult.presentation.content
-                        )
-                    }
-                }
-            }
-        }
-        SearchField(
-            state.searchFieldState.copy(canGoOnEnter = state.focusedItemIndex != null),
-            onEvent = { event ->
-                when (event) {
-                    SearchFieldEvent.Enter -> state.eventSink(SearchScreenEvent.Enter())
-                    SearchFieldEvent.MoveFocusDown -> state.eventSink(SearchScreenEvent.MoveFocusPrevious)
-                    SearchFieldEvent.MoveFocusUp -> state.eventSink(SearchScreenEvent.MoveFocusNext)
-                }
-            },
-            Modifier.focusRequester(focus)
-        )
-        ActionPanel(
-            toasts = state.toasts,
-            focusedItem = state.focusedItemIndex?.let { index ->
-                state.searchResults?.results?.getOrNull(index)?.listEntry
-            }
-        )
     }
 }
 

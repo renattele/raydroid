@@ -3,33 +3,25 @@ package ru.raydroid.plugin.host.impl.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
-import org.jetbrains.compose.resources.stringResource
-import raydroid.plugin.host.impl.generated.resources.Res
-import raydroid.plugin.host.impl.generated.resources.search_field_placeholder
 import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.api.presentation.CommandListItem
-import ru.raydroid.plugin.api.model.UiText
-import ru.raydroid.plugin.api.ui.Color
-import ru.raydroid.plugin.api.ui.FontSize
-import ru.raydroid.plugin.api.ui.Icon
-import ru.raydroid.plugin.api.ui.IconData
-import ru.raydroid.plugin.api.ui.Spacing
-import ru.raydroid.plugin.api.ui.TextData
+import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
+import ru.raydroid.plugin.host.api.ui.PluginColor
+import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginFontSize
+import ru.raydroid.plugin.host.api.ui.PluginIcon
+import ru.raydroid.plugin.host.api.ui.PluginIconData
+import ru.raydroid.plugin.host.api.ui.PluginSpacing
+import ru.raydroid.plugin.host.api.ui.PluginTextData
+import ru.raydroid.plugin.host.api.ui.PluginUiText
 
 @Composable
 fun SearchListItem(
@@ -43,31 +35,28 @@ fun SearchListItem(
 
 @Composable
 fun CommandListItemView(
-    listEntry: CommandListItem,
+    listEntry: PluginCommandListItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     focused: Boolean = false
 ) {
-    val themeResolver = LocalThemeResolver.current
     val backgroundColor = if (focused) {
-        themeResolver.color(Color.SurfaceBright)
+        PluginColor.SurfaceBright
     } else {
-        themeResolver.color(Color.Surface)
+        PluginColor.Surface
     }
     Row(
         modifier
-            .clickable {
-                onClick()
-            }
+            .clickable { onClick() }
             .fillMaxWidth()
-            .background(backgroundColor),
+            .background(backgroundColor.toColor()),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(themeResolver.spacing(Spacing.Medium))
+        horizontalArrangement = Arrangement.spacedBy(PluginSpacing.Medium.toDp())
     ) {
         val icon = listEntry.icon
         if (icon != null) {
             IconRenderer(
-                data = IconData(
+                data = PluginIconData(
                     icon = icon
                 )
             )
@@ -76,19 +65,19 @@ fun CommandListItemView(
             val title = listEntry.title
             if (title != null) {
                 TextRenderer(
-                    data = TextData(
+                    data = PluginTextData(
                         text = title,
-                        fontSize = FontSize.Large
+                        fontSize = PluginFontSize.Large
                     )
                 )
             }
             val description = listEntry.description
             if (description != null) {
                 TextRenderer(
-                    data = TextData(
+                    data = PluginTextData(
                         text = description,
-                        fontSize = FontSize.Small,
-                        color = Color.OutlineVariant
+                        fontSize = PluginFontSize.Small,
+                        color = PluginColor.OutlineVariant
                     )
                 )
             }
@@ -101,15 +90,13 @@ fun CommandListItemView(
 private fun ListItemPreview() {
     RaydroidPreviewTheme {
         CommandListItemView(
-            listEntry = CommandListItem(
+            listEntry = PluginCommandListItem(
                 id = CommandItemId("1"),
-                icon = Icon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
-                title = UiText.Plain("123"),
-                description = UiText.Resource("456")
+                icon = PluginIcon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
+                title = PluginUiText.Plain("123"),
+                description = PluginUiText.Resource(PluginId.Invalid, "456")
             ),
-            onClick = {
-
-            }
+            onClick = {}
         )
     }
 }

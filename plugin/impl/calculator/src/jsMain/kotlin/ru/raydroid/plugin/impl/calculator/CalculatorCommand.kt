@@ -41,13 +41,11 @@ class CalculatorCommand : CommandService() {
     }
 
     override fun CommandListScope.content() {
-        if (result.isNotEmpty()) {
-            entry(CommandItemId.Static, actions = {
-                action("123", title = UiText.Plain("Copy"))
-            }) {
-                Column {
-                    Text(UiText.Plain(result))
-                }
+        entry(CommandItemId.Static, actions = {
+            action("123", title = UiText.Resource("app.name"))
+        }) {
+            Column {
+                Text(UiText.Plain(result))
             }
         }
     }

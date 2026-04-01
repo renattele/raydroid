@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.event.NotificationEvent
 import ru.raydroid.plugin.host.api.domain.model.PluginId
@@ -28,6 +27,7 @@ import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenItemUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
+import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.impl.presentation.SearchFieldState
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -176,7 +176,7 @@ class SearchViewModel(
                     }
                     emitEventUseCase.invoke(
                         event.alert.pluginId,
-                        NotificationEvent.AlertResult(event.alert.dismissAction)
+                        NotificationEvent.AlertResult(NotificationEvent.Selection.Dismiss)
                     )
                 }
 
@@ -188,7 +188,7 @@ class SearchViewModel(
                     }
                     emitEventUseCase.invoke(
                         event.alert.pluginId,
-                        NotificationEvent.AlertResult(event.alert.confirmAction)
+                        NotificationEvent.AlertResult(NotificationEvent.Selection.Confirm)
                     )
                 }
 
@@ -211,7 +211,7 @@ data class SearchScreenState(
     ),
     val searchResults: SearchResultSet? = null,
     val plugins: Map<PluginId, PluginRuntime> = emptyMap(),
-    val focusedItem: CommandListItem? = null,
+    val focusedItem: PluginCommandListItem? = null,
     val focusedItemIndex: Int? = null,
     val alerts: List<NotificationEvent.Alert> = emptyList(),
     val toasts: List<NotificationEvent.ShowToast> = emptyList(),

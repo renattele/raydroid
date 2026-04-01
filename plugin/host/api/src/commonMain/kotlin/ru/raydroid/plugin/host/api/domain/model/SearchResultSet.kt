@@ -1,28 +1,26 @@
 package ru.raydroid.plugin.host.api.domain.model
 
-import ru.raydroid.plugin.api.presentation.CommandListItem
-import ru.raydroid.plugin.api.presentation.CommandPresentation
-import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
 
 data class SearchResultSet(
     val results: List<SearchResult>,
 ) {
     sealed interface SearchResult {
         val resultId: SearchResultId
-        val listEntry: CommandListItem
+        val listEntry: PluginCommandListItem
     }
 
     data class CachedSearchResult(
         override val resultId: SearchResultId,
-        override val listEntry: CommandListItem,
+        override val listEntry: PluginCommandListItem,
         val titleMatches: List<IntRange>,
         val descriptionMatches: List<IntRange>
     ) : SearchResult
 
     data class LiveSearchResult(
         override val resultId: SearchResultId,
-        override val listEntry: CommandListItem,
-        val runtime: PluginRuntime,
-        val presentation: CommandPresentation
+        override val listEntry: PluginCommandListItem,
+        val presentation: PluginCommandPresentation
     ) : SearchResult
 }

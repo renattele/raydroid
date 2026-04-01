@@ -1,8 +1,6 @@
 package ru.raydroid.plugin.host.impl.data.search
 
 import okio.ByteString.Companion.toByteString
-import okio.IOException
-import okio.Path.Companion.toPath
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
@@ -11,6 +9,8 @@ import ru.raydroid.plugin.host.api.domain.service.PluginLoader
 import ru.raydroid.plugin.host.api.domain.model.PluginDescriptor
 import ru.raydroid.plugin.host.impl.data.plugin.LocalPluginDataSource
 import ru.raydroid.plugin.host.impl.data.plugin.ResourcePluginDataSource
+import ru.raydroid.plugin.host.impl.resource.readBinaryResource
+import ru.raydroid.plugin.host.impl.resource.resolveStringVariants
 
 internal interface SearchResourceResolver {
     fun session(): Session
@@ -73,14 +73,8 @@ internal class SearchResourceResolverImpl(
                 if (icon == null || icon.type != Icon.Type.Resource) return icon
                 val metadata = metadataCache.getOrPutMetadata(pluginId) ?: return icon
 
-                return try {
-                    val bytes = metadata.resources.read("plugin/resources/${icon.value}".toPath()) {
-                        readByteArray()
-                    }
-                    Icon.Base64(bytes.toByteString().base64())
-                } catch (_: IOException) {
-                    icon
-                }
+                val bytes = readBinaryResource(metadata.resources, icon.value) ?: return icon
+                return Icon.Base64(bytes.toByteString().base64())
             }
         }
     }
@@ -111,31 +105,10 @@ internal class SearchResourceResolverImpl(
             return linkedMapOf(DEFAULT_STRINGS_BUCKET to text.text)
         }
 
-        val stringBuckets = metadata.manifest.resources
-            .filterKeys { key -> key.startsWith(STRINGS_BUCKET_PREFIX) }
-        val defaultBucket = stringBuckets[DEFAULT_STRINGS_BUCKET]
-        val resolved = linkedMapOf<String, String>()
-
-        stringBuckets.forEach { (bucketName, resources) ->
-            val value = resources[text.text] ?: defaultBucket?.get(text.text)
-            if (value != null) {
-                resolved[bucketName] = value
-            }
-        }
-
-        if (resolved.isEmpty()) {
-            resolved[DEFAULT_STRINGS_BUCKET] = text.text
-        } else if (defaultBucket != null && defaultBucket[text.text] != null) {
-            if (!resolved.containsKey(DEFAULT_STRINGS_BUCKET)) {
-                resolved[DEFAULT_STRINGS_BUCKET] = defaultBucket.getValue(text.text)
-            }
-        }
-
-        return resolved
+        return resolveStringVariants(metadata.manifest.resources, text.text)
     }
 
     private companion object {
-        const val STRINGS_BUCKET_PREFIX = "strings"
         const val DEFAULT_STRINGS_BUCKET = "strings"
     }
 }

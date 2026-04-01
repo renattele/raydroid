@@ -1,9 +1,6 @@
 package ru.raydroid.plugin.host.impl.data.search
 
-import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.api.presentation.CommandListItem
-import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
@@ -65,7 +62,7 @@ internal class CachedSearchRanker : SearchRanker {
                         commandName = score.candidate.command,
                         itemId = CommandItemId(score.candidate.itemId)
                     ),
-                    listEntry = score.candidate.toListEntry(),
+                    listEntry = score.candidate.toPluginListEntry(),
                     titleMatches = score.titleMatches,
                     descriptionMatches = score.descriptionMatches
                 )
@@ -620,15 +617,4 @@ internal data class NormalizedText(
 
 private fun String.substring(range: IntRange): String {
     return substring(range.first, range.last + 1)
-}
-
-private fun SearchIndexCacheSearchEntity.toListEntry(): CommandListItem {
-    return CommandListItem(
-        id = CommandItemId(itemId),
-        icon = icon?.let { iconValue ->
-            iconType?.let { Icon(iconValue, Icon.Type.valueOf(it)) }
-        },
-        title = title?.let(UiText::Plain),
-        description = description?.let(UiText::Plain)
-    )
 }

@@ -1,134 +1,101 @@
 package ru.raydroid.plugin.host.impl.presentation
 
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ru.raydroid.plugin.api.ui.Color
-import ru.raydroid.plugin.api.ui.FontSize
-import ru.raydroid.plugin.api.ui.IconSize
-import ru.raydroid.plugin.api.ui.Spacing
-
-interface ThemeResolver {
-    fun resolveSpacing(spacing: Spacing): Dp
-    fun resolveTextSize(fontSize: FontSize): TextUnit
-    fun resolveIconSize(iconSize: IconSize): Dp
-    fun resolveColor(color: Color): androidx.compose.ui.graphics.Color
-}
+import ru.raydroid.plugin.host.api.ui.PluginColor
+import ru.raydroid.plugin.host.api.ui.PluginFontSize
+import ru.raydroid.plugin.host.api.ui.PluginIconSize
+import ru.raydroid.plugin.host.api.ui.PluginSpacing
 
 @Composable
-fun ThemeResolver.color(color: Color) = remember(color) {
-    resolveColor(color)
+fun PluginColor.toColor(): Color {
+    val colorScheme = MaterialTheme.colorScheme
+    return when (this) {
+        PluginColor.Primary -> colorScheme.primary
+        PluginColor.PrimaryContainer -> colorScheme.primaryContainer
+        PluginColor.OnPrimary -> colorScheme.onPrimary
+        PluginColor.OnPrimaryContainer -> colorScheme.onPrimaryContainer
+        PluginColor.Secondary -> colorScheme.secondary
+        PluginColor.OnSecondary -> colorScheme.onSecondary
+        PluginColor.SecondaryContainer -> colorScheme.secondaryContainer
+        PluginColor.OnSecondaryContainer -> colorScheme.onSecondaryContainer
+        PluginColor.Tertiary -> colorScheme.tertiary
+        PluginColor.OnTertiary -> colorScheme.onTertiary
+        PluginColor.TertiaryContainer -> colorScheme.tertiaryContainer
+        PluginColor.OnTertiaryContainer -> colorScheme.onTertiaryContainer
+        PluginColor.Error -> colorScheme.error
+        PluginColor.ErrorContainer -> colorScheme.errorContainer
+        PluginColor.OnError -> colorScheme.onError
+        PluginColor.OnErrorContainer -> colorScheme.onErrorContainer
+        PluginColor.PrimaryFixed -> colorScheme.primaryFixed
+        PluginColor.PrimaryFixedDim -> colorScheme.primaryFixedDim
+        PluginColor.OnPrimaryFixed -> colorScheme.onPrimaryFixed
+        PluginColor.OnPrimaryFixedVariant -> colorScheme.onPrimaryFixedVariant
+        PluginColor.SecondaryFixed -> colorScheme.secondaryFixed
+        PluginColor.SecondaryFixedDim -> colorScheme.secondaryFixedDim
+        PluginColor.OnSecondaryFixed -> colorScheme.onSecondaryFixed
+        PluginColor.OnSecondaryFixedVariant -> colorScheme.onSecondaryFixedVariant
+        PluginColor.TertiaryFixed -> colorScheme.tertiaryFixed
+        PluginColor.TertiaryFixedDim -> colorScheme.tertiaryFixedDim
+        PluginColor.OnTertiaryFixed -> colorScheme.onTertiaryFixed
+        PluginColor.OnTertiaryFixedVariant -> colorScheme.onTertiaryFixedVariant
+        PluginColor.SurfaceDim -> colorScheme.surfaceDim
+        PluginColor.Surface -> colorScheme.surface
+        PluginColor.SurfaceBright -> colorScheme.surfaceBright
+        PluginColor.SurfaceContainerLowest -> colorScheme.surfaceContainerLowest
+        PluginColor.SurfaceContainerLow -> colorScheme.surfaceContainerLow
+        PluginColor.SurfaceContainer -> colorScheme.surfaceContainer
+        PluginColor.SurfaceContainerHigh -> colorScheme.surfaceContainerHigh
+        PluginColor.SurfaceContainerHighest -> colorScheme.surfaceContainerHighest
+        PluginColor.OnSurface -> colorScheme.onSurface
+        PluginColor.OnSurfaceVariant -> colorScheme.onSurfaceVariant
+        PluginColor.Outline -> colorScheme.outline
+        PluginColor.OutlineVariant -> colorScheme.outlineVariant
+        PluginColor.InverseSurface -> colorScheme.inverseSurface
+        PluginColor.InverseOnSurface -> colorScheme.inverseOnSurface
+        PluginColor.InversePrimary -> colorScheme.inversePrimary
+        PluginColor.Scrim -> colorScheme.scrim
+        PluginColor.Transparent -> Color.Transparent
+    }
 }
 
-@Composable
-fun ThemeResolver.fontSize(fontSize: FontSize) = remember(fontSize) {
-    resolveTextSize(fontSize)
+fun PluginSpacing.toDp(): Dp = when (this) {
+    PluginSpacing.Zero -> 0.dp
+    PluginSpacing.ExtraSmall -> 4.dp
+    PluginSpacing.Small -> 8.dp
+    PluginSpacing.Medium -> 12.dp
+    PluginSpacing.Large -> 16.dp
+    PluginSpacing.ExtraLarge -> 28.dp
+    PluginSpacing.Minimal -> Dp.Hairline
+    PluginSpacing.Border -> 1.dp
 }
 
-@Composable
-fun ThemeResolver.spacing(spacing: Spacing) = remember(spacing) {
-    resolveSpacing(spacing)
+fun PluginFontSize.toTextUnit(): TextUnit = when (this) {
+    PluginFontSize.ExtraSmall -> 12.sp
+    PluginFontSize.Small -> 16.sp
+    PluginFontSize.Medium -> 20.sp
+    PluginFontSize.Large -> 24.sp
+    PluginFontSize.ExtraLarge -> 28.sp
 }
 
-@Composable
-fun ThemeResolver.iconSize(iconSize: IconSize) = remember(iconSize) {
-    resolveIconSize(iconSize)
-}
-
-internal val LocalThemeResolver = staticCompositionLocalOf<ThemeResolver> { error("No ThemeResolver is provided") }
-
-internal class ThemeResolverImpl(
-    private val colorScheme: ColorScheme
-): ThemeResolver {
-    override fun resolveSpacing(spacing: Spacing): Dp = when (spacing) {
-        Spacing.Zero -> 0.dp
-        Spacing.ExtraSmall -> 4.dp
-        Spacing.Small -> 8.dp
-        Spacing.Medium -> 12.dp
-        Spacing.Large -> 16.dp
-        Spacing.ExtraLarge -> 28.dp
-        Spacing.Minimal -> Dp.Hairline
-        Spacing.Border -> 1.dp
-    }
-
-    override fun resolveTextSize(fontSize: FontSize): TextUnit = when (fontSize) {
-        FontSize.ExtraSmall -> 12.sp
-        FontSize.Small -> 16.sp
-        FontSize.Medium -> 20.sp
-        FontSize.Large -> 24.sp
-        FontSize.ExtraLarge -> 28.sp
-    }
-
-    override fun resolveIconSize(iconSize: IconSize): Dp = when (iconSize) {
-        IconSize.ExtraSmall -> 16.dp
-        IconSize.Small -> 24.dp
-        IconSize.Medium -> 48.dp
-        IconSize.Large -> 72.dp
-        IconSize.ExtraLarge -> 96.dp
-    }
-
-    override fun resolveColor(color: Color): androidx.compose.ui.graphics.Color = when (color) {
-        Color.Primary -> colorScheme.primary
-        Color.PrimaryContainer -> colorScheme.primaryContainer
-        Color.OnPrimary -> colorScheme.onPrimary
-        Color.OnPrimaryContainer -> colorScheme.onPrimaryContainer
-        Color.Secondary -> colorScheme.secondary
-        Color.OnSecondary -> colorScheme.onSecondary
-        Color.SecondaryContainer -> colorScheme.secondaryContainer
-        Color.OnSecondaryContainer -> colorScheme.onSecondaryContainer
-        Color.Tertiary -> colorScheme.tertiary
-        Color.OnTertiary -> colorScheme.onTertiary
-        Color.TertiaryContainer -> colorScheme.tertiaryContainer
-        Color.OnTertiaryContainer -> colorScheme.onTertiaryContainer
-        Color.Error -> colorScheme.error
-        Color.ErrorContainer -> colorScheme.errorContainer
-        Color.OnError -> colorScheme.onError
-        Color.OnErrorContainer -> colorScheme.onErrorContainer
-        Color.PrimaryFixed -> colorScheme.primaryFixed
-        Color.PrimaryFixedDim -> colorScheme.primaryFixedDim
-        Color.OnPrimaryFixed -> colorScheme.onPrimaryFixed
-        Color.OnPrimaryFixedVariant -> colorScheme.onPrimaryFixedVariant
-        Color.SecondaryFixed -> colorScheme.secondaryFixed
-        Color.SecondaryFixedDim -> colorScheme.secondaryFixedDim
-        Color.OnSecondaryFixed -> colorScheme.onSecondaryFixed
-        Color.OnSecondaryFixedVariant -> colorScheme.onSecondaryFixedVariant
-        Color.TertiaryFixed -> colorScheme.tertiaryFixed
-        Color.TertiaryFixedDim -> colorScheme.tertiaryFixedDim
-        Color.OnTertiaryFixed -> colorScheme.onTertiaryFixed
-        Color.OnTertiaryFixedVariant -> colorScheme.onTertiaryFixedVariant
-        Color.SurfaceDim -> colorScheme.surfaceDim
-        Color.Surface -> colorScheme.surface
-        Color.SurfaceBright -> colorScheme.surfaceBright
-        Color.SurfaceContainerLowest -> colorScheme.surfaceContainerLowest
-        Color.SurfaceContainerLow -> colorScheme.surfaceContainerLow
-        Color.SurfaceContainer -> colorScheme.surfaceContainer
-        Color.SurfaceContainerHigh -> colorScheme.surfaceContainerHigh
-        Color.SurfaceContainerHighest -> colorScheme.surfaceContainerHighest
-        Color.OnSurface -> colorScheme.onSurface
-        Color.OnSurfaceVariant -> colorScheme.onSurfaceVariant
-        Color.Outline -> colorScheme.outline
-        Color.OutlineVariant -> colorScheme.outlineVariant
-        Color.InverseSurface -> colorScheme.inverseSurface
-        Color.InverseOnSurface -> colorScheme.inverseOnSurface
-        Color.InversePrimary -> colorScheme.inversePrimary
-        Color.Scrim -> colorScheme.scrim
-        Color.Transparent -> androidx.compose.ui.graphics.Color.Transparent
-    }
+fun PluginIconSize.toDp(): Dp = when (this) {
+    PluginIconSize.ExtraSmall -> 16.dp
+    PluginIconSize.Small -> 24.dp
+    PluginIconSize.Medium -> 48.dp
+    PluginIconSize.Large -> 72.dp
+    PluginIconSize.ExtraLarge -> 96.dp
 }
 
 @Composable
 fun RaydroidPreviewTheme(content: @Composable () -> Unit) {
     MaterialTheme {
-        ThemeProvider {
-            PreviewResourceResolverProvider {
-                content()
-            }
+        PreviewResourceResolverProvider {
+            content()
         }
     }
 }

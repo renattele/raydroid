@@ -4,21 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.KeyboardReturn
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -31,42 +26,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import raydroid.plugin.host.impl.generated.resources.Res
-import raydroid.plugin.host.impl.generated.resources.search_field_placeholder
 import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.api.presentation.CommandListItem
-import ru.raydroid.plugin.api.presentation.CommandListAction
-import ru.raydroid.plugin.api.model.UiText
-import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
-import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge.Toast.Style.*
-import ru.raydroid.plugin.api.ui.Color
-import ru.raydroid.plugin.api.ui.FontSize
-import ru.raydroid.plugin.api.ui.Icon
-import ru.raydroid.plugin.api.ui.Spacing
-import ru.raydroid.plugin.api.ui.TextData
-import ru.raydroid.plugin.host.api.event.NotificationEvent
 import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.event.NotificationEvent
+import ru.raydroid.plugin.host.api.ui.PluginColor
+import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
+import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginFontSize
+import ru.raydroid.plugin.host.api.ui.PluginIcon
+import ru.raydroid.plugin.host.api.ui.PluginSpacing
+import ru.raydroid.plugin.host.api.ui.PluginTextData
+import ru.raydroid.plugin.host.api.ui.PluginUiText
 import kotlin.math.pow
-import kotlin.math.sqrt
 
 @Composable
 fun ActionPanel(
     toasts: List<NotificationEvent.ShowToast>,
-    focusedItem: CommandListItem?,
+    focusedItem: PluginCommandListItem?,
     modifier: Modifier = Modifier
 ) {
-    val themeResolver = LocalThemeResolver.current
     Row(
         modifier
             .height(PanelHeight)
-            .background(themeResolver.color(Color.SurfaceContainer))
-            .padding(horizontal = themeResolver.spacing(Spacing.Medium))
+            .background(PluginColor.SurfaceContainer.toColor())
+            .padding(horizontal = PluginSpacing.Medium.toDp())
     ) {
         Toasts(toasts, Modifier.weight(1f))
         Action(focusedItem, Modifier.fillMaxHeight().weight(1f))
@@ -78,13 +64,13 @@ private fun Toasts(
     toasts: List<NotificationEvent.ShowToast>,
     modifier: Modifier = Modifier,
 ) {
-    val themeResolver = LocalThemeResolver.current
     Box(modifier = modifier) {
         toasts.forEachIndexed { index, toast ->
             val invertedIndex = toasts.lastIndex - index
-            val backgroundColor = themeResolver.color(Color.SurfaceContainer)
+            val backgroundColor = PluginColor.SurfaceContainer.toColor()
             Toast(
-                toast.toast, Modifier
+                toast.toast,
+                Modifier
                     .graphicsLayer {
                         val scale = 1f - (invertedIndex / 20f)
                         translationY =
@@ -96,14 +82,14 @@ private fun Toasts(
                         drawContent()
                         drawRect(backgroundColor.copy(alpha = invertedIndex / 3f))
                     }
-                    .padding(vertical = themeResolver.spacing(Spacing.Medium))
+                    .padding(vertical = PluginSpacing.Medium.toDp())
                     .border(
-                        themeResolver.spacing(Spacing.Border),
-                        themeResolver.color(Color.Primary),
-                        RoundedCornerShape(themeResolver.spacing(Spacing.Large))
+                        PluginSpacing.Border.toDp(),
+                        PluginColor.Primary.toColor(),
+                        RoundedCornerShape(PluginSpacing.Large.toDp())
                     )
-                    .clip(RoundedCornerShape(themeResolver.spacing(Spacing.Large)))
-                    .background(themeResolver.color(Color.SurfaceBright))
+                    .clip(RoundedCornerShape(PluginSpacing.Large.toDp()))
+                    .background(PluginColor.SurfaceBright.toColor())
                     .height(ToastHeight)
                     .fillMaxWidth()
             )
@@ -112,13 +98,12 @@ private fun Toasts(
 }
 
 @Composable
-private fun Action(focusedItem: CommandListItem?, modifier: Modifier = Modifier) {
-    val themeResolver = LocalThemeResolver.current
+private fun Action(focusedItem: PluginCommandListItem?, modifier: Modifier = Modifier) {
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(
-            themeResolver.spacing(Spacing.Medium),
+            PluginSpacing.Medium.toDp(),
             Alignment.End
         )
     ) {
@@ -128,10 +113,10 @@ private fun Action(focusedItem: CommandListItem?, modifier: Modifier = Modifier)
             }
             if (primaryAction != null) {
                 TextRenderer(
-                    TextData(
+                    PluginTextData(
                         text = primaryAction.title,
-                        color = Color.OnSurfaceVariant,
-                        fontSize = FontSize.Small
+                        color = PluginColor.OnSurfaceVariant,
+                        fontSize = PluginFontSize.Small
                     )
                 )
                 KeyHint {
@@ -144,32 +129,21 @@ private fun Action(focusedItem: CommandListItem?, modifier: Modifier = Modifier)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun Toast(toast: NotificationServiceBridge.Toast, modifier: Modifier = Modifier) {
-    val themeResolver = LocalThemeResolver.current
+private fun Toast(toast: NotificationEvent.Toast, modifier: Modifier = Modifier) {
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(
-            themeResolver.spacing(Spacing.ExtraSmall)
-        )
+        horizontalArrangement = Arrangement.spacedBy(PluginSpacing.ExtraSmall.toDp())
     ) {
-        CompositionLocalProvider(LocalContentColor provides themeResolver.color(Color.OnTertiaryContainer)) {
+        CompositionLocalProvider(LocalContentColor provides PluginColor.OnTertiaryContainer.toColor()) {
             Box(
                 modifier = Modifier,
                 contentAlignment = Alignment.Center
             ) {
                 when (toast.style) {
-                    Animated -> {
-                        CircularWavyProgressIndicator()
-                    }
-
-                    Success -> {
-                        Icon(Icons.Default.Done, contentDescription = null)
-                    }
-
-                    Failure -> {
-                        Icon(Icons.Default.Close, contentDescription = null)
-                    }
+                    NotificationEvent.Toast.Style.Animated -> CircularWavyProgressIndicator()
+                    NotificationEvent.Toast.Style.Success -> Icon(Icons.Default.Done, contentDescription = null)
+                    NotificationEvent.Toast.Style.Failure -> Icon(Icons.Default.Close, contentDescription = null)
                 }
             }
             Text(toast.message.asText())
@@ -179,21 +153,14 @@ private fun Toast(toast: NotificationServiceBridge.Toast, modifier: Modifier = M
 
 @Composable
 private fun KeyHint(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val themeResolver = LocalThemeResolver.current
     Box(
         modifier
-            .clip(RoundedCornerShape(themeResolver.spacing(Spacing.Medium)))
-            .background(themeResolver.color(Color.SurfaceContainerLowest))
-            .padding(themeResolver.spacing(Spacing.Small))
+            .clip(RoundedCornerShape(PluginSpacing.Medium.toDp()))
+            .background(PluginColor.SurfaceContainerLowest.toColor())
+            .padding(PluginSpacing.Small.toDp())
     ) {
         content()
     }
-}
-
-private fun NotificationServiceBridge.Toast.Style.backgroundColor() = when (this) {
-    Animated -> Color.Transparent
-    Success -> Color.Primary
-    Failure -> Color.Error
 }
 
 private val PanelHeight = 80.dp
@@ -206,35 +173,38 @@ private fun ActionPanelPreview() {
         ActionPanel(
             toasts = listOf(
                 NotificationEvent.ShowToast(
-                    PluginId.Invalid, toast = NotificationServiceBridge.Toast(
-                        message = UiText.Plain("Message"),
-                        style = Animated
+                    PluginId.Invalid,
+                    toast = NotificationEvent.Toast(
+                        message = PluginUiText.Plain("Message"),
+                        style = NotificationEvent.Toast.Style.Animated
                     )
                 ),
                 NotificationEvent.ShowToast(
-                    PluginId.Invalid, toast = NotificationServiceBridge.Toast(
-                        message = UiText.Plain("Message2"),
-                        style = Success
+                    PluginId.Invalid,
+                    toast = NotificationEvent.Toast(
+                        message = PluginUiText.Plain("Message2"),
+                        style = NotificationEvent.Toast.Style.Success
                     )
                 ),
                 NotificationEvent.ShowToast(
-                    PluginId.Invalid, toast = NotificationServiceBridge.Toast(
-                        message = UiText.Plain("Message3"),
-                        style = Success
+                    PluginId.Invalid,
+                    toast = NotificationEvent.Toast(
+                        message = PluginUiText.Plain("Message3"),
+                        style = NotificationEvent.Toast.Style.Success
                     )
                 )
             ),
-            focusedItem = CommandListItem(
+            focusedItem = PluginCommandListItem(
                 id = CommandItemId.Static,
-                icon = Icon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
-                title = UiText.Plain("Open"),
-                description = UiText.Plain("Open"),
+                icon = PluginIcon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
+                title = PluginUiText.Plain("Open"),
+                description = PluginUiText.Plain("Open"),
                 actions = listOf(
-                    CommandListAction(
+                    PluginCommandListAction(
                         id = "",
-                        title = UiText.Plain("Action 1"),
-                        description = UiText.Plain("Action 2"),
-                        icon = Icon.Url("https://i.imgur.com/UVpA9a0.jpeg")
+                        title = PluginUiText.Plain("Action 1"),
+                        description = PluginUiText.Plain("Action 2"),
+                        icon = PluginIcon.Url("https://i.imgur.com/UVpA9a0.jpeg")
                     )
                 )
             )
