@@ -11,6 +11,7 @@ import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.host.Host
 import ru.raydroid.plugin.api.host.service.NotificationService
+import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.ui.Column
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.Text
@@ -43,6 +44,18 @@ class CalculatorCommand : CommandService() {
     override fun CommandListScope.content() {
         entry(CommandItemId.Static, actions = {
             action("123", title = UiText.Resource("app.name"))
+            group(UiText.Plain("111")) {
+                action(
+                    "456",
+                    title = UiText.Resource("app.description"),
+                    style = CommandListAction.Style.Destructive
+                )
+                action(
+                    "789",
+                    title = UiText.Resource("app.description"),
+                    style = CommandListAction.Style.Destructive
+                )
+            }
         }) {
             Column {
                 Text(UiText.Plain(result))

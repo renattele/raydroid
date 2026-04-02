@@ -11,6 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.intl.Locale
 import coil3.compose.AsyncImage
 import ru.raydroid.plugin.host.api.domain.model.PluginId
@@ -149,6 +150,7 @@ internal fun IconRenderer(data: PluginIconData, modifier: Modifier = Modifier) {
         model = resource,
         contentDescription = data.contentDescription,
         modifier = modifier.size(data.size.toDp()),
+        colorFilter = data.color?.let { color -> ColorFilter.tint(color.toColor()) }
     )
 }
 

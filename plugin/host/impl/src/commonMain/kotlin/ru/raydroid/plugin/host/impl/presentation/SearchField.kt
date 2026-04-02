@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.dropShadow
@@ -30,19 +31,24 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import org.jetbrains.compose.resources.stringResource
 import raydroid.plugin.host.impl.generated.resources.Res
 import raydroid.plugin.host.impl.generated.resources.search_field_placeholder
+import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.ui.PluginColor
+import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginSpacing
+import ru.raydroid.plugin.host.api.ui.PluginUiText
 
 @Composable
 fun SearchField(
     state: SearchFieldState,
     onEvent: (event: SearchFieldEvent) -> Unit,
     modifier: Modifier = Modifier,
-    decoratorModifier: Modifier = Modifier
+    decoratorModifier: Modifier = Modifier,
+    actionContent: (@Composable () -> Unit)? = null
 ) {
     val isEmpty = remember { derivedStateOf { state.fieldState.text.isEmpty() } }
     val textStyle = TextStyle(
@@ -94,37 +100,44 @@ fun SearchField(
             }
             val shadowSpread = PluginSpacing.ExtraSmall.toDp()
             val shadowOffset = PluginSpacing.Small.toDp()
-            Box(
-                decoratorModifier
-                    .border(
-                        BorderStroke(
-                            PluginSpacing.ExtraSmall.toDp() / 2,
-                            color = PluginColor.Outline.toColor()
-                        ),
-                        shape
-                    )
-                    .dropShadow(shape = shape) {
-                        color = Color.Black
-                        spread = shadowSpread.toPx()
-                        alpha = 0.4f
-                        radius = shadowOffset.toPx()
-                        offset = Offset(
-                            x = 0f,
-                            y = 2.dp.toPx()
+            Box {
+                Box(
+                    decoratorModifier
+                        .border(
+                            BorderStroke(
+                                PluginSpacing.ExtraSmall.toDp() / 2,
+                                color = PluginColor.Outline.toColor()
+                            ),
+                            shape
+                        )
+                        .dropShadow(shape = shape) {
+                            color = Color.Black
+                            spread = shadowSpread.toPx()
+                            alpha = 0.4f
+                            radius = shadowOffset.toPx()
+                            offset = Offset(
+                                x = 0f,
+                                y = 2.dp.toPx()
+                            )
+                        }
+                        .background(PluginColor.SurfaceContainer.toColor(), shape)
+                        .padding(PluginSpacing.Large.toDp())
+                        .fillMaxWidth()
+                ) {
+                    content()
+                    if (isEmpty.value) {
+                        Text(
+                            stringResource(Res.string.search_field_placeholder),
+                            style = textStyle,
+                            color = PluginColor.OnSurface.toColor(),
+                            modifier = Modifier.alpha(0.5f)
                         )
                     }
-                    .background(PluginColor.SurfaceContainer.toColor(), shape)
-                    .padding(PluginSpacing.Large.toDp())
-                    .fillMaxWidth()
-            ) {
-                content()
-                if (isEmpty.value) {
-                    Text(
-                        stringResource(Res.string.search_field_placeholder),
-                        style = textStyle,
-                        color = PluginColor.OnSurface.toColor(),
-                        modifier = Modifier.alpha(0.5f)
-                    )
+                }
+                if (actionContent != null) {
+                    Box(Modifier.align(Alignment.CenterEnd)) {
+                        actionContent()
+                    }
                 }
             }
         }
@@ -152,6 +165,13 @@ private fun SearchFieldPreview() {
                 fieldState = TextFieldState()
             ),
             onEvent = {}
-        )
+        ) {
+            ActionPanel(listOf(), PluginCommandListItem(
+                id = CommandItemId.Static,
+                icon = null,
+                title = PluginUiText.Plain("Copy"),
+                description = PluginUiText.Plain("Description")
+            ))
+        }
     }
 }

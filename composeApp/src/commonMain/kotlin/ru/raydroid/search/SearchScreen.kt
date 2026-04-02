@@ -119,13 +119,14 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     }
                 },
                 Modifier.focusRequester(focus)
-            )
-            ActionPanel(
-                toasts = state.toasts,
-                focusedItem = state.focusedItemIndex?.let { index ->
-                    state.searchResults?.results?.getOrNull(index)?.listEntry
-                }
-            )
+            ) {
+                ActionPanel(
+                    toasts = state.toasts,
+                    focusedItem = state.focusedItemIndex?.let { index ->
+                        state.searchResults?.results?.getOrNull(index)?.listEntry
+                    }
+                )
+            }
         }
     }
 }

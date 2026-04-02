@@ -16,27 +16,19 @@ fun main() {
     startKoin {
         modules(appModule)
     }
-    val executorService = Executors.newSingleThreadExecutor {
-        Thread(
-            /* group = */ null,
-            /* task = */ it,
-            /* name = */ "Zipline",
-            // Need increased stack size because otherwise we get stack overflow on really simple extensions
-            /* stackSize = */ 512000
-        )
-    }
+    val hotReloadEnabled = System.getProperty("compose.reload.isActive") == "true"
     application {
         val windowState = rememberWindowState(
             position = WindowPosition.Aligned(Alignment.Center),
-            size = DpSize(600.dp, 200.dp)
+            size = DpSize(600.dp, 400.dp)
         )
         Window(
             onCloseRequest = ::exitApplication,
             state = windowState,
             alwaysOnTop = true,
             resizable = false,
-            undecorated = true,
-            transparent = true,
+            undecorated = !hotReloadEnabled, // disabling on hot reload to properly move window so IDE properly visible
+            transparent = !hotReloadEnabled,
             title = "KotlinTest",
         ) {
             App()

@@ -11,7 +11,8 @@ data class PluginTextData(
 data class PluginIconData(
     val icon: PluginIcon,
     val contentDescription: String? = null,
-    val size: PluginIconSize = PluginIconSize.Medium
+    val size: PluginIconSize = PluginIconSize.Medium,
+    val color: PluginColor? = null
 ) : PluginRayNodeData()
 
 data class PluginImageData(
