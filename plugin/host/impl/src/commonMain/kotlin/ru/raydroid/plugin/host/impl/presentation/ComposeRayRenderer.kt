@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -136,7 +137,7 @@ internal fun ImageRenderer(data: PluginImageData, modifier: Modifier = Modifier)
     AsyncImage(
         model = resource,
         contentDescription = data.contentDescription,
-        modifier = modifier
+        modifier = modifier.clip(data.shape.toShape())
     )
 }
 
@@ -156,7 +157,7 @@ internal fun IconRenderer(data: PluginIconData, modifier: Modifier = Modifier) {
 
 @Composable
 internal fun BoxRenderer(data: PluginBoxData, modifier: Modifier = Modifier) {
-    Box(modifier, contentAlignment = data.alignment.toComposeAlignment()) {
+    Box(modifier.clip(data.shape.toShape()), contentAlignment = data.alignment.toComposeAlignment()) {
         ComposeRayItemRenderer(data.children)
     }
 }
@@ -177,7 +178,7 @@ private fun PluginBoxAlignment.toComposeAlignment() = when (this) {
 private fun OrientedBoxRenderer(data: PluginOrientedBoxData, modifier: Modifier = Modifier) {
     if (data.orientation == PluginOrientation.Vertical) {
         Column(
-            modifier,
+            modifier.clip(data.shape.toShape()),
             horizontalAlignment = data.alignment.toComposeHorizontalAlignment(),
             verticalArrangement = if (data.spacing != PluginSpacing.Zero) {
                 Arrangement.spacedBy(data.spacing.toDp())
@@ -189,7 +190,7 @@ private fun OrientedBoxRenderer(data: PluginOrientedBoxData, modifier: Modifier 
         }
     } else {
         Row(
-            modifier,
+            modifier.clip(data.shape.toShape()),
             horizontalArrangement = if (data.spacing != PluginSpacing.Zero) {
                 Arrangement.spacedBy(data.spacing.toDp())
             } else {

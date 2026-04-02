@@ -27,6 +27,7 @@ kotlin {
             implementation(libs.bundles.lifecycleCompose)
             implementation(libs.bundles.koin)
             implementation(libs.bundles.koin.compose)
+            implementation(projects.core.designsystem)
             implementation(projects.shared)
             implementation(projects.plugin.api)
             implementation(projects.plugin.host.api)

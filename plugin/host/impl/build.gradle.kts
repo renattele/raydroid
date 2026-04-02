@@ -39,6 +39,7 @@ kotlin {
             implementation(libs.sqlite.bundled)
             implementation(libs.datastore)
             implementation(libs.datastore.preferences)
+            implementation(projects.core.designsystem)
             implementation(projects.plugin.api)
             implementation(projects.plugin.host.api)
         }

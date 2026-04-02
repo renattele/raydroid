@@ -61,7 +61,7 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
                         title = title,
                         description = description,
                         icon = icon,
-                        actions = actionList
+                        actions = actionList,
                     )
                     presentations[id] = CommandPresentation(
                         listEntry = listEntry,

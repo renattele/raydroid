@@ -19,11 +19,13 @@ data class PluginImageData(
     val image: PluginImage,
     val contentDescription: String? = null,
     val width: Int? = null,
-    val height: Int? = null
+    val height: Int? = null,
+    val shape: PluginShapeToken = PluginShapeToken.None
 ) : PluginRayNodeData()
 
 data class PluginBoxData(
     val alignment: PluginBoxAlignment,
+    val shape: PluginShapeToken = PluginShapeToken.None,
     val children: List<PluginRayNodeData>
 ) : PluginRayNodeData()
 
@@ -32,5 +34,6 @@ data class PluginOrientedBoxData(
     val alignment: PluginAlignment,
     val arrangement: PluginArrangement,
     val spacing: PluginSpacing,
+    val shape: PluginShapeToken = PluginShapeToken.None,
     val children: List<PluginRayNodeData>
 ) : PluginRayNodeData()

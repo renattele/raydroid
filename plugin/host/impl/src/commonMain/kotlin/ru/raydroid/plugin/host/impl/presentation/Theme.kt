@@ -1,20 +1,26 @@
 package ru.raydroid.plugin.host.impl.presentation
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import ru.raydroid.core.designsystem.RaydroidFontSizeToken
+import ru.raydroid.core.designsystem.RaydroidIconSizeToken
+import ru.raydroid.core.designsystem.RaydroidMotionSpec
+import ru.raydroid.core.designsystem.RaydroidMotionToken
+import ru.raydroid.core.designsystem.RaydroidShapeToken
+import ru.raydroid.core.designsystem.RaydroidSpacingToken
 import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginIconSize
+import ru.raydroid.plugin.host.api.ui.PluginMotionToken
+import ru.raydroid.plugin.host.api.ui.PluginShapeToken
 import ru.raydroid.plugin.host.api.ui.PluginSpacing
 
 @Composable
 fun PluginColor.toColor(): Color {
-    val colorScheme = MaterialTheme.colorScheme
+    val colorScheme = ru.raydroid.core.designsystem.RaydroidTheme.colorScheme
     return when (this) {
         PluginColor.Primary -> colorScheme.primary
         PluginColor.PrimaryContainer -> colorScheme.primaryContainer
@@ -64,36 +70,71 @@ fun PluginColor.toColor(): Color {
     }
 }
 
-fun PluginSpacing.toDp(): Dp = when (this) {
-    PluginSpacing.Zero -> 0.dp
-    PluginSpacing.ExtraSmall -> 4.dp
-    PluginSpacing.Small -> 8.dp
-    PluginSpacing.Medium -> 12.dp
-    PluginSpacing.Large -> 16.dp
-    PluginSpacing.ExtraLarge -> 28.dp
-    PluginSpacing.Minimal -> Dp.Hairline
-    PluginSpacing.Border -> 1.dp
-}
-
-fun PluginFontSize.toTextUnit(): TextUnit = when (this) {
-    PluginFontSize.ExtraSmall -> 12.sp
-    PluginFontSize.Small -> 16.sp
-    PluginFontSize.Medium -> 20.sp
-    PluginFontSize.Large -> 24.sp
-    PluginFontSize.ExtraLarge -> 28.sp
-}
-
-fun PluginIconSize.toDp(): Dp = when (this) {
-    PluginIconSize.ExtraSmall -> 16.dp
-    PluginIconSize.Small -> 24.dp
-    PluginIconSize.Medium -> 48.dp
-    PluginIconSize.Large -> 72.dp
-    PluginIconSize.ExtraLarge -> 96.dp
+fun PluginSpacing.toSpacingToken(): RaydroidSpacingToken = when (this) {
+    PluginSpacing.Zero -> RaydroidSpacingToken.Zero
+    PluginSpacing.Minimal -> RaydroidSpacingToken.Minimal
+    PluginSpacing.Border -> RaydroidSpacingToken.Border
+    PluginSpacing.ExtraSmall -> RaydroidSpacingToken.ExtraSmall
+    PluginSpacing.Small -> RaydroidSpacingToken.Small
+    PluginSpacing.Medium -> RaydroidSpacingToken.Medium
+    PluginSpacing.Large -> RaydroidSpacingToken.Large
+    PluginSpacing.ExtraLarge -> RaydroidSpacingToken.ExtraLarge
 }
 
 @Composable
+fun PluginSpacing.toDp(): Dp = ru.raydroid.core.designsystem.RaydroidTheme.spacing.value(toSpacingToken())
+
+private fun PluginFontSize.toFontSizeToken(): RaydroidFontSizeToken = when (this) {
+    PluginFontSize.ExtraSmall -> RaydroidFontSizeToken.ExtraSmall
+    PluginFontSize.Small -> RaydroidFontSizeToken.Small
+    PluginFontSize.Medium -> RaydroidFontSizeToken.Medium
+    PluginFontSize.Large -> RaydroidFontSizeToken.Large
+    PluginFontSize.ExtraLarge -> RaydroidFontSizeToken.ExtraLarge
+}
+
+@Composable
+fun PluginFontSize.toTextUnit(): TextUnit =
+    ru.raydroid.core.designsystem.RaydroidTheme.typographyScale.fontSize(toFontSizeToken())
+
+private fun PluginIconSize.toIconSizeToken(): RaydroidIconSizeToken = when (this) {
+    PluginIconSize.ExtraSmall -> RaydroidIconSizeToken.ExtraSmall
+    PluginIconSize.Small -> RaydroidIconSizeToken.Small
+    PluginIconSize.Medium -> RaydroidIconSizeToken.Medium
+    PluginIconSize.Large -> RaydroidIconSizeToken.Large
+    PluginIconSize.ExtraLarge -> RaydroidIconSizeToken.ExtraLarge
+}
+
+@Composable
+fun PluginIconSize.toDp(): Dp = ru.raydroid.core.designsystem.RaydroidTheme.iconSizes.value(toIconSizeToken())
+
+fun PluginShapeToken.toRaydroidShapeToken(): RaydroidShapeToken = when (this) {
+    PluginShapeToken.None -> RaydroidShapeToken.None
+    PluginShapeToken.ExtraSmall -> RaydroidShapeToken.ExtraSmall
+    PluginShapeToken.Small -> RaydroidShapeToken.Small
+    PluginShapeToken.Medium -> RaydroidShapeToken.Medium
+    PluginShapeToken.Large -> RaydroidShapeToken.Large
+    PluginShapeToken.ExtraLarge -> RaydroidShapeToken.ExtraLarge
+    PluginShapeToken.Full -> RaydroidShapeToken.Full
+}
+
+@Composable
+fun PluginShapeToken.toShape(): Shape =
+    ru.raydroid.core.designsystem.RaydroidTheme.shapes.shape(toRaydroidShapeToken())
+
+fun PluginMotionToken.toRaydroidMotionToken(): RaydroidMotionToken = when (this) {
+    PluginMotionToken.None -> RaydroidMotionToken.None
+    PluginMotionToken.Fast -> RaydroidMotionToken.Fast
+    PluginMotionToken.Default -> RaydroidMotionToken.Default
+    PluginMotionToken.Emphasized -> RaydroidMotionToken.Emphasized
+}
+
+@Composable
+fun PluginMotionToken.toMotionSpec(): RaydroidMotionSpec =
+    ru.raydroid.core.designsystem.RaydroidTheme.motionScheme.spec(toRaydroidMotionToken())
+
+@Composable
 fun RaydroidPreviewTheme(content: @Composable () -> Unit) {
-    MaterialTheme {
+    ru.raydroid.core.designsystem.RaydroidTheme {
         PreviewResourceResolverProvider {
             content()
         }

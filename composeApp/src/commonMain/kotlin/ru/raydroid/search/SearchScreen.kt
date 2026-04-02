@@ -3,26 +3,29 @@ package ru.raydroid.search
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.impl.presentation.ActionPanel
 import ru.raydroid.plugin.host.impl.presentation.ComposeRayRenderer
@@ -44,7 +47,13 @@ fun SearchScreen(modifier: Modifier = Modifier) {
 @Composable
 fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
     ResourceResolverProvider(state.plugins) {
-        Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
+        val spacing = RaydroidTheme.spacing
+        Column(
+            modifier
+                .fillMaxSize()
+                .padding(spacing.small),
+            verticalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Bottom)
+        ) {
             val focus = remember { FocusRequester() }
             LaunchedEffect(Unit) {
                 focus.requestFocus()
@@ -90,8 +99,9 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             }
             LazyColumn(
                 Modifier
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(RaydroidTheme.colorScheme.background)
                     .weight(1f),
+                contentPadding = PaddingValues(vertical = spacing.extraSmall),
                 reverseLayout = true,
                 state = listState
             ) {

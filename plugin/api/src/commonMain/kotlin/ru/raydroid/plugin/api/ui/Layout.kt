@@ -55,16 +55,18 @@ enum class Arrangement {
 @Serializable
 data class BoxData(
     val alignment: BoxAlignment,
+    val shape: ShapeToken = ShapeToken.None,
     val children: List<RayNodeData>
 ): RayNodeData()
 
 @Ray
 fun RayScope.Box(
     alignment: BoxAlignment = BoxAlignment.TopStart,
+    shape: ShapeToken = ShapeToken.None,
     content: RayScope.() -> Unit
 ) {
     val children = fork(content)
-    add(BoxData(alignment, children))
+    add(BoxData(alignment, shape, children))
 }
 
 @Serializable
@@ -73,6 +75,7 @@ data class OrientedBoxData(
     val alignment: Alignment,
     val arrangement: Arrangement,
     val spacing: Spacing,
+    val shape: ShapeToken = ShapeToken.None,
     val children: List<RayNodeData>
 ): RayNodeData()
 
@@ -81,10 +84,11 @@ fun RayScope.Row(
     spacing: Spacing = Spacing.Zero,
     alignment: Alignment = Alignment.Start,
     arrangement: Arrangement = Arrangement.Start,
+    shape: ShapeToken = ShapeToken.None,
     content: RayScope.() -> Unit
 ) {
     val children = fork(content)
-    add(OrientedBoxData(Orientation.Horizontal, alignment, arrangement, spacing, children))
+    add(OrientedBoxData(Orientation.Horizontal, alignment, arrangement, spacing, shape, children))
 }
 
 @Ray
@@ -92,8 +96,9 @@ fun RayScope.Column(
     spacing: Spacing = Spacing.Zero,
     alignment: Alignment = Alignment.Start,
     arrangement: Arrangement = Arrangement.Start,
+    shape: ShapeToken = ShapeToken.None,
     content: RayScope.() -> Unit
 ) {
     val children = fork(content)
-    add(OrientedBoxData(Orientation.Vertical, alignment, arrangement, spacing, children))
+    add(OrientedBoxData(Orientation.Vertical, alignment, arrangement, spacing, shape, children))
 }

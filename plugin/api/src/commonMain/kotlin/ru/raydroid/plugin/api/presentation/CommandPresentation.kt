@@ -27,7 +27,7 @@ data class CommandListItem(
     val icon: Icon?,
     val title: UiText?,
     val description: UiText?,
-    val actions: List<CommandListAction> = emptyList()
+    val actions: List<CommandListAction> = emptyList(),
 )
 
 @Serializable

@@ -11,5 +11,8 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.bundles.composeCommon)
         }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
     }
 }

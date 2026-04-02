@@ -16,7 +16,8 @@ data class ImageData(
     val image: Image,
     val contentDescription: String? = null,
     val width: Int? = null,
-    val height: Int? = null
+    val height: Int? = null,
+    val shape: ShapeToken = ShapeToken.None,
 ): RayNodeData()
 
 @Ray
@@ -24,12 +25,14 @@ fun RayScope.Image(
     image: Image,
     contentDescription: String?,
     width: Int? = null,
-    height: Int? = null
+    height: Int? = null,
+    shape: ShapeToken = ShapeToken.None,
 ) {
     add(ImageData(
         image = image,
         contentDescription = contentDescription,
         width = width,
-        height = height
+        height = height,
+        shape = shape
     ))
 }

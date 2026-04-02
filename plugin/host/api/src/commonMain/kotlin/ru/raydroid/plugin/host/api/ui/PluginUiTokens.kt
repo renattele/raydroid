@@ -76,6 +76,23 @@ enum class PluginIconSize {
     ExtraLarge
 }
 
+enum class PluginShapeToken {
+    None,
+    ExtraSmall,
+    Small,
+    Medium,
+    Large,
+    ExtraLarge,
+    Full
+}
+
+enum class PluginMotionToken {
+    None,
+    Fast,
+    Default,
+    Emphasized
+}
+
 enum class PluginSpacing {
     Zero,
     Minimal,

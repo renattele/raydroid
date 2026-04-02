@@ -1,18 +1,12 @@
 package ru.raydroid.plugin.host.impl.presentation
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,10 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
-import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -35,11 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
@@ -50,8 +40,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
-import kotlinx.coroutines.withContext
+import ru.raydroid.core.designsystem.RaydroidMotionToken
+import ru.raydroid.core.designsystem.RaydroidShapeToken
+import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.event.NotificationEvent
@@ -62,7 +53,6 @@ import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
 import ru.raydroid.plugin.host.api.ui.PluginIconSize
-import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginTextData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import kotlin.math.pow
@@ -73,9 +63,10 @@ fun ActionPanel(
     focusedItem: PluginCommandListItem?,
     modifier: Modifier = Modifier
 ) {
+    val spacing = RaydroidTheme.spacing
     Row(
         modifier
-            .padding(horizontal = PluginSpacing.Medium.toDp())
+            .padding(horizontal = spacing.medium)
     ) {
         Action(focusedItem, Modifier.weight(1f))
     }
@@ -86,6 +77,8 @@ private fun Toasts(
     toasts: List<NotificationEvent.ShowToast>,
     modifier: Modifier = Modifier,
 ) {
+    val spacing = RaydroidTheme.spacing
+    val toastShape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Large)
     Box(modifier = modifier) {
         toasts.forEachIndexed { index, toast ->
             val invertedIndex = toasts.lastIndex - index
@@ -104,13 +97,13 @@ private fun Toasts(
                         drawContent()
                         drawRect(backgroundColor.copy(alpha = invertedIndex / 3f))
                     }
-                    .padding(vertical = PluginSpacing.Medium.toDp())
+                    .padding(vertical = spacing.medium)
                     .border(
-                        PluginSpacing.Border.toDp(),
+                        spacing.border,
                         PluginColor.Primary.toColor(),
-                        RoundedCornerShape(PluginSpacing.Large.toDp())
+                        toastShape
                     )
-                    .clip(RoundedCornerShape(PluginSpacing.Large.toDp()))
+                    .clip(toastShape)
                     .background(PluginColor.SurfaceBright.toColor())
             )
         }
@@ -120,15 +113,17 @@ private fun Toasts(
 @Composable
 private fun Action(focusedItem: PluginCommandListItem?, modifier: Modifier = Modifier) {
     val showPopup = remember { mutableStateOf(false) }
+    val spacing = RaydroidTheme.spacing
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(
-            PluginSpacing.Medium.toDp(),
+            spacing.medium,
             Alignment.End
         )
     ) {
         if (focusedItem != null) {
+            val popupMotion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Default)
             val primaryAction = remember(focusedItem) {
                 focusedItem.actions.find { it.primary } ?: focusedItem.actions.firstOrNull()
             }
@@ -173,14 +168,8 @@ private fun Action(focusedItem: PluginCommandListItem?, modifier: Modifier = Mod
                     ) {
                         AnimatedVisibility(
                             showPopup.value,
-                            enter = fadeIn() + scaleIn(
-                                initialScale = 0.9f,
-                                transformOrigin = TransformOrigin(1f, 1f)
-                            ),
-                            exit = fadeOut() + scaleOut(
-                                targetScale = 0.9f,
-                                transformOrigin = TransformOrigin(1f, 1f)
-                            )
+                            enter = popupMotion.popupEnter(TransformOrigin(1f, 1f)),
+                            exit = popupMotion.popupExit(TransformOrigin(1f, 1f))
                         ) {
                             ActionsPopupContent(focusedItem.actions)
                         }
@@ -200,9 +189,10 @@ private fun ActionsPopupContent(
         actions.groupBy { it.group }
             .entries.toList()
     }
+    val popupShape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     LazyColumn(
         modifier
-            .clip(RoundedCornerShape(PluginSpacing.Medium.toDp()))
+            .clip(popupShape)
             .background(PluginColor.SurfaceBright.toColor().copy(alpha = 0.7f))
             .height(PopupHeight)
             .width(PopupWidth)
@@ -220,11 +210,21 @@ private fun ActionsPopupContent(
 
 @Composable
 private fun ActionsPopupAction(action: PluginCommandListAction, modifier: Modifier = Modifier) {
-    Row(modifier) {
-        val color = when (action.style) {
-            PluginCommandListAction.Style.Default -> PluginColor.OnSurface
-            PluginCommandListAction.Style.Destructive -> PluginColor.Error
-        }
+    val spacing = RaydroidTheme.spacing
+    val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Small)
+    val color = when (action.style) {
+        PluginCommandListAction.Style.Default -> PluginColor.OnSurface
+        PluginCommandListAction.Style.Destructive -> PluginColor.Error
+    }
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(PluginColor.Surface.toColor())
+            .padding(horizontal = spacing.medium, vertical = spacing.small),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         action.icon?.let { icon ->
             IconRenderer(
                 PluginIconData(
@@ -243,7 +243,7 @@ private fun Toast(toast: NotificationEvent.Toast, modifier: Modifier = Modifier)
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(PluginSpacing.ExtraSmall.toDp())
+        horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall)
     ) {
         CompositionLocalProvider(LocalContentColor provides PluginColor.OnTertiaryContainer.toColor()) {
             Box(
@@ -275,14 +275,16 @@ private fun KeyHint(
     color: Color = PluginColor.PrimaryContainer.toColor(),
     content: @Composable () -> Unit
 ) {
+    val spacing = RaydroidTheme.spacing
+    val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Small)
     Box(
         modifier
-            .clip(RoundedCornerShape(PluginSpacing.Small.toDp()))
+            .clip(shape)
             .clickable(enabled = onClick != null) {
                 onClick?.invoke()
             }
             .background(color)
-            .padding(PluginSpacing.Small.toDp())
+            .padding(spacing.small)
     ) {
         content()
     }

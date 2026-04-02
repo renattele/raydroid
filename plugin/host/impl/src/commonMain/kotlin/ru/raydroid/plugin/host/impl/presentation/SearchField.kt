@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -35,11 +34,12 @@ import androidx.compose.ui.zIndex
 import org.jetbrains.compose.resources.stringResource
 import raydroid.plugin.host.impl.generated.resources.Res
 import raydroid.plugin.host.impl.generated.resources.search_field_placeholder
+import ru.raydroid.core.designsystem.RaydroidShapeToken
+import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
-import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 
 @Composable
@@ -51,6 +51,7 @@ fun SearchField(
     actionContent: (@Composable () -> Unit)? = null
 ) {
     val isEmpty = remember { derivedStateOf { state.fieldState.text.isEmpty() } }
+    val spacing = RaydroidTheme.spacing
     val textStyle = TextStyle(
         color = PluginColor.OnSurface.toColor(),
         fontSize = PluginFontSize.Small.toTextUnit()
@@ -91,21 +92,18 @@ fun SearchField(
         cursorBrush = SolidColor(PluginColor.Primary.toColor()),
         decorator = { content ->
             val shape = if (state.isKeyboardPresent) {
-                RoundedCornerShape(
-                    bottomStart = PluginSpacing.Large.toDp(),
-                    bottomEnd = PluginSpacing.Large.toDp()
-                )
+                RaydroidTheme.shapes.attachedBottom(RaydroidShapeToken.Large)
             } else {
-                RoundedCornerShape(PluginSpacing.Large.toDp())
+                RaydroidTheme.shapes.shape(RaydroidShapeToken.Large)
             }
-            val shadowSpread = PluginSpacing.ExtraSmall.toDp()
-            val shadowOffset = PluginSpacing.Small.toDp()
+            val shadowSpread = spacing.extraSmall
+            val shadowOffset = spacing.small
             Box {
                 Box(
                     decoratorModifier
                         .border(
                             BorderStroke(
-                                PluginSpacing.ExtraSmall.toDp() / 2,
+                                spacing.extraSmall / 2,
                                 color = PluginColor.Outline.toColor()
                             ),
                             shape
@@ -121,7 +119,7 @@ fun SearchField(
                             )
                         }
                         .background(PluginColor.SurfaceContainer.toColor(), shape)
-                        .padding(PluginSpacing.Large.toDp())
+                        .padding(spacing.large)
                         .fillMaxWidth()
                 ) {
                     content()

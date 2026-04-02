@@ -6,11 +6,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
+import ru.raydroid.core.designsystem.RaydroidMotionToken
+import ru.raydroid.core.designsystem.RaydroidShapeToken
+import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
@@ -19,7 +26,6 @@ import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
-import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginTextData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 
@@ -40,18 +46,35 @@ fun CommandListItemView(
     modifier: Modifier = Modifier,
     focused: Boolean = false
 ) {
+    val spacing = RaydroidTheme.spacing
+    val motionSpec = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Default)
+    val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     val backgroundColor = if (focused) {
         PluginColor.SurfaceBright
     } else {
         PluginColor.Surface
     }
+    val animatedBackground = animateColorAsState(
+        targetValue = backgroundColor.toColor(),
+        animationSpec = motionSpec.colorSpec()
+    )
+    val animatedScale = animateFloatAsState(
+        targetValue = if (focused) 1f + motionSpec.scaleDelta else 1f,
+        animationSpec = motionSpec.floatSpec()
+    )
     Row(
         modifier
             .clickable { onClick() }
             .fillMaxWidth()
-            .background(backgroundColor.toColor()),
+            .graphicsLayer {
+                scaleX = animatedScale.value
+                scaleY = animatedScale.value
+            }
+            .clip(shape)
+            .background(animatedBackground.value)
+            .padding(horizontal = spacing.medium, vertical = spacing.small),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(PluginSpacing.Medium.toDp())
+        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         val icon = listEntry.icon
         if (icon != null) {
@@ -61,7 +84,7 @@ fun CommandListItemView(
                 )
             )
         }
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
             val title = listEntry.title
             if (title != null) {
                 TextRenderer(

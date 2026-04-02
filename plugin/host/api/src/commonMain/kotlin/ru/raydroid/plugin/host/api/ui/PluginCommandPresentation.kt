@@ -7,7 +7,7 @@ data class PluginCommandListItem(
     val icon: PluginIcon?,
     val title: PluginUiText?,
     val description: PluginUiText?,
-    val actions: List<PluginCommandListAction> = emptyList()
+    val actions: List<PluginCommandListAction> = emptyList(),
 )
 
 data class PluginCommandListAction(

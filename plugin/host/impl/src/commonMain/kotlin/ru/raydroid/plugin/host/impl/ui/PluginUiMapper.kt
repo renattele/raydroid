@@ -15,9 +15,11 @@ import ru.raydroid.plugin.api.ui.IconData
 import ru.raydroid.plugin.api.ui.IconSize
 import ru.raydroid.plugin.api.ui.Image
 import ru.raydroid.plugin.api.ui.ImageData
+import ru.raydroid.plugin.api.ui.MotionToken
 import ru.raydroid.plugin.api.ui.Orientation
 import ru.raydroid.plugin.api.ui.OrientedBoxData
 import ru.raydroid.plugin.api.ui.RayNodeData
+import ru.raydroid.plugin.api.ui.ShapeToken
 import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
 import ru.raydroid.plugin.host.api.domain.model.PluginId
@@ -35,9 +37,11 @@ import ru.raydroid.plugin.host.api.ui.PluginIconData
 import ru.raydroid.plugin.host.api.ui.PluginIconSize
 import ru.raydroid.plugin.host.api.ui.PluginImage
 import ru.raydroid.plugin.host.api.ui.PluginImageData
+import ru.raydroid.plugin.host.api.ui.PluginMotionToken
 import ru.raydroid.plugin.host.api.ui.PluginOrientation
 import ru.raydroid.plugin.host.api.ui.PluginOrientedBoxData
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
+import ru.raydroid.plugin.host.api.ui.PluginShapeToken
 import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginTextData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
@@ -122,6 +126,23 @@ internal fun IconSize.toPluginIconSize(): PluginIconSize = when (this) {
     IconSize.ExtraLarge -> PluginIconSize.ExtraLarge
 }
 
+internal fun ShapeToken.toPluginShapeToken(): PluginShapeToken = when (this) {
+    ShapeToken.None -> PluginShapeToken.None
+    ShapeToken.ExtraSmall -> PluginShapeToken.ExtraSmall
+    ShapeToken.Small -> PluginShapeToken.Small
+    ShapeToken.Medium -> PluginShapeToken.Medium
+    ShapeToken.Large -> PluginShapeToken.Large
+    ShapeToken.ExtraLarge -> PluginShapeToken.ExtraLarge
+    ShapeToken.Full -> PluginShapeToken.Full
+}
+
+internal fun MotionToken.toPluginMotionToken(): PluginMotionToken = when (this) {
+    MotionToken.None -> PluginMotionToken.None
+    MotionToken.Fast -> PluginMotionToken.Fast
+    MotionToken.Default -> PluginMotionToken.Default
+    MotionToken.Emphasized -> PluginMotionToken.Emphasized
+}
+
 internal fun Spacing.toPluginSpacing(): PluginSpacing = when (this) {
     Spacing.Zero -> PluginSpacing.Zero
     Spacing.Minimal -> PluginSpacing.Minimal
@@ -197,6 +218,7 @@ internal fun CommandPresentation.toPluginCommandPresentation(pluginId: PluginId)
 internal fun RayNodeData.toPluginRayNodeData(pluginId: PluginId): PluginRayNodeData = when (this) {
     is BoxData -> PluginBoxData(
         alignment = alignment.toPluginBoxAlignment(),
+        shape = shape.toPluginShapeToken(),
         children = children.map { it.toPluginRayNodeData(pluginId) }
     )
     is OrientedBoxData -> PluginOrientedBoxData(
@@ -204,6 +226,7 @@ internal fun RayNodeData.toPluginRayNodeData(pluginId: PluginId): PluginRayNodeD
         alignment = alignment.toPluginAlignment(),
         arrangement = arrangement.toPluginArrangement(),
         spacing = spacing.toPluginSpacing(),
+        shape = shape.toPluginShapeToken(),
         children = children.map { it.toPluginRayNodeData(pluginId) }
     )
     is TextData -> PluginTextData(
@@ -220,7 +243,8 @@ internal fun RayNodeData.toPluginRayNodeData(pluginId: PluginId): PluginRayNodeD
         image = image.toPluginImage(pluginId),
         contentDescription = contentDescription,
         width = width,
-        height = height
+        height = height,
+        shape = shape.toPluginShapeToken()
     )
 }
 
