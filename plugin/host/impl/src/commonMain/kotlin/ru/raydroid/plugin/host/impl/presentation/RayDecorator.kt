@@ -1,0 +1,77 @@
+package ru.raydroid.plugin.host.impl.presentation
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.stringResource
+import raydroid.plugin.host.impl.generated.resources.Res
+import raydroid.plugin.host.impl.generated.resources.live_results_reference
+import ru.raydroid.core.designsystem.RaydroidTheme
+import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.host.api.ui.PluginColor
+import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginFontSize
+import ru.raydroid.plugin.host.api.ui.PluginTextData
+import ru.raydroid.plugin.host.api.ui.PluginUiText
+
+@Composable
+fun RayDecorator(
+    listItem: PluginCommandListItem,
+    commandName: PluginUiText,
+    pluginName: PluginUiText,
+    modifier: Modifier = Modifier,
+    title: PluginUiText? = listItem.title,
+    content: @Composable () -> Unit
+) {
+    Column(modifier.background(RaydroidTheme.colorScheme.primaryContainer)) {
+        Box(Modifier.fillMaxWidth()) {
+            content()
+        }
+        Row {
+            title?.let { title ->
+                TextRenderer(
+                    PluginTextData(
+                        text = title,
+                        fontSize = PluginFontSize.ExtraSmall,
+                        color = PluginColor.OnPrimaryContainer
+                    )
+                )
+            }
+            TextRenderer(
+                PluginTextData(
+                    text = commandName,
+                    fontSize = PluginFontSize.ExtraSmall,
+                    color = PluginColor.OnPrimaryContainer
+                )
+            )
+            Spacer(Modifier.weight(1f))
+            Text(stringResource(Res.string.live_results_reference, pluginName.asText()))
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun RayDecoratorPreview() {
+    RaydroidPreviewTheme {
+        RayDecorator(
+            listItem = PluginCommandListItem(
+                CommandItemId.Static,
+                icon = null,
+                title = PluginUiText.Plain("Hello"),
+                description = null
+            ), commandName = PluginUiText.Plain("Command"),
+            pluginName = PluginUiText.Plain("Plugin"),
+            Modifier.fillMaxWidth()
+        ) {
+            Text("Hello")
+        }
+    }
+}

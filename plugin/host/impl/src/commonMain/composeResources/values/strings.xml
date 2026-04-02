@@ -1,3 +1,4 @@
 <resources>
     <string name="search_field_placeholder">Search something...</string>
+    <string name="live_results_reference">by %1$s</string>
 </resources>

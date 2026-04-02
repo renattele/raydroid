@@ -3,6 +3,7 @@ package ru.raydroid.plugin.api.manifest
 import app.cash.zipline.ZiplineService
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import ru.raydroid.plugin.api.model.UiText
 
 @Serializable
 enum class Platform {
@@ -16,9 +17,12 @@ enum class Platform {
 @Serializable
 data class Manifest(
     val name: String,
-    val title: String,
-    val description: String,
-    val author: String,
+    @Serializable(with = ManifestUiTextSerializer::class)
+    val title: UiText,
+    @Serializable(with = ManifestUiTextSerializer::class)
+    val description: UiText,
+    @Serializable(with = ManifestUiTextSerializer::class)
+    val author: UiText,
     val version: Int,
     val platforms: List<Platform>,
     val categories: List<String>,

@@ -14,6 +14,7 @@ import okio.fakefilesystem.FakeFileSystem
 import ru.raydroid.plugin.api.manifest.Command
 import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.manifest.Platform
+import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
@@ -220,9 +221,9 @@ private fun passthroughResourceResolver(): SearchResourceResolver {
 private fun testManifest(name: String = "ru.test.plugin"): Manifest {
     return Manifest(
         name = name,
-        title = "Test",
-        description = "Test manifest",
-        author = "Codex",
+        title = UiText.Plain("Test"),
+        description = UiText.Plain("Test manifest"),
+        author = UiText.Plain("Codex"),
         version = 1,
         platforms = listOf(Platform.MacOS),
         categories = emptyList(),
@@ -230,8 +231,8 @@ private fun testManifest(name: String = "ru.test.plugin"): Manifest {
         commands = listOf(
             Command(
                 service = "apps",
-                title = "Apps",
-                description = "Apps command",
+                title = UiText.Plain("Apps"),
+                description = UiText.Plain("Apps command"),
                 mode = Command.Mode.View,
                 match = null,
                 arguments = emptyList(),

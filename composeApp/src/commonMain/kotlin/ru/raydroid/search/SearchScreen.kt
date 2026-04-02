@@ -26,9 +26,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import ru.raydroid.core.designsystem.RaydroidTheme
+import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
+import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.api.ui.PluginUiText
+import ru.raydroid.plugin.host.api.ui.orUnknown
+import ru.raydroid.plugin.host.api.ui.toPluginUiText
 import ru.raydroid.plugin.host.impl.presentation.ActionPanel
 import ru.raydroid.plugin.host.impl.presentation.ComposeRayRenderer
+import ru.raydroid.plugin.host.impl.presentation.RayDecorator
 import ru.raydroid.plugin.host.impl.presentation.RaydroidPreviewTheme
 import ru.raydroid.plugin.host.impl.presentation.ResourceResolverProvider
 import ru.raydroid.plugin.host.impl.presentation.SearchField
@@ -112,9 +118,20 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                 state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
                             }, focused = index == state.focusedItemIndex)
                         } else if (searchResult is SearchResultSet.LiveSearchResult) {
-                            ComposeRayRenderer(
-                                searchResult.presentation.content
-                            )
+                            RayDecorator(
+                                listItem = searchResult.listEntry,
+                                title = searchResult.rayDecoratorTitle,
+                                commandName = remember(state.plugins) {
+                                    searchResult.rayDecoratorCommandName(state.plugins)
+                                },
+                                pluginName = remember(state.plugins) {
+                                    searchResult.rayDecoratorPluginName(state.plugins)
+                                }
+                            ) {
+                                ComposeRayRenderer(
+                                    searchResult.presentation.content
+                                )
+                            }
                         }
                     }
                 }
@@ -153,3 +170,26 @@ fun SearchScreenPreview() {
         SearchScreen(state)
     }
 }
+
+private val SearchResultSet.LiveSearchResult.rayDecoratorTitle: PluginUiText?
+    get() = listEntry.title
+
+private fun SearchResultSet.LiveSearchResult.rayDecoratorCommandName(
+    plugins: Map<PluginId, PluginRuntime>
+): PluginUiText =
+    plugins[resultId.pluginId]
+        ?.manifest
+        ?.commands
+        ?.firstOrNull { command -> command.service == resultId.commandName }
+        ?.title
+        ?.toPluginUiText(resultId.pluginId)
+        .orUnknown()
+
+private fun SearchResultSet.LiveSearchResult.rayDecoratorPluginName(
+    plugins: Map<PluginId, PluginRuntime>
+): PluginUiText =
+    plugins[resultId.pluginId]
+        ?.manifest
+        ?.title
+        ?.toPluginUiText(resultId.pluginId)
+        .orUnknown()

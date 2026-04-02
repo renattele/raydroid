@@ -1,13 +1,16 @@
 package ru.raydroid.plugin.api.manifest
 
 import kotlinx.serialization.Serializable
+import ru.raydroid.plugin.api.model.UiText
 
 
 @Serializable
 data class Command(
     val service: String,
-    val title: String,
-    val description: String,
+    @Serializable(with = ManifestUiTextSerializer::class)
+    val title: UiText,
+    @Serializable(with = ManifestUiTextSerializer::class)
+    val description: UiText,
     val mode: Mode,
     val match: String?,
     val arguments: List<Argument>,
