@@ -7,7 +7,8 @@ data class Icon(val value: String, val type: Type) {
     enum class Type {
         Url,
         Resource,
-        Base64
+        Base64,
+        Builtin
     }
     companion object {
         fun Url(url: String) = Icon(url, Type.Url)
@@ -15,6 +16,8 @@ data class Icon(val value: String, val type: Type) {
         fun Resource(resource: String) = Icon(resource, Type.Resource)
 
         fun Base64(base64: String) = Icon(base64, Type.Base64)
+
+        fun Builtin(name: String) = Icon(name, Type.Builtin)
     }
 }
 

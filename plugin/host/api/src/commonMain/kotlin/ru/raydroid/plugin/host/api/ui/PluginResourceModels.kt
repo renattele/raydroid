@@ -17,6 +17,7 @@ sealed interface PluginIcon {
         val key: String
     ) : PluginIcon
     data class Base64(val base64: String) : PluginIcon
+    data class Builtin(val name: String) : PluginIcon
 }
 
 sealed interface PluginImage {

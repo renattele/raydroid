@@ -4,11 +4,14 @@ import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
+import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
+import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 class PluginUiMapperTest {
     @Test
@@ -34,5 +37,20 @@ class PluginUiMapperTest {
 
         assertEquals("delete", mapped.actions.single().id)
         assertEquals(PluginCommandListAction.Style.Destructive, mapped.actions.single().style)
+    }
+
+    @Test
+    fun `command list item maps built in icons`() {
+        val pluginId = PluginId("ru.test.plugin")
+        val item = CommandListItem(
+            id = CommandItemId("item"),
+            icon = Icon.Builtin("ArrowDropUp"),
+            title = UiText.Plain("Title"),
+            description = null,
+        )
+
+        val mapped = item.toPluginCommandListItem(pluginId)
+
+        assertEquals("ArrowDropUp", assertIs<PluginIcon.Builtin>(mapped.icon).name)
     }
 }

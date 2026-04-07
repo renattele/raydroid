@@ -27,5 +27,6 @@ private fun String.toPluginIcon(
         Icon.Type.Url -> PluginIcon.Url(this)
         Icon.Type.Resource -> PluginIcon.Resource(pluginId = pluginId, key = this)
         Icon.Type.Base64 -> PluginIcon.Base64(this)
+        Icon.Type.Builtin -> PluginIcon.Builtin(this)
     }
 }

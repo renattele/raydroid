@@ -5,13 +5,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.intl.Locale
 import coil3.compose.AsyncImage
@@ -25,8 +27,8 @@ import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
 import ru.raydroid.plugin.host.api.ui.PluginImage
 import ru.raydroid.plugin.host.api.ui.PluginImageData
-import ru.raydroid.plugin.host.api.ui.PluginOrientedBoxData
 import ru.raydroid.plugin.host.api.ui.PluginOrientation
+import ru.raydroid.plugin.host.api.ui.PluginOrientedBoxData
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginTextData
@@ -36,6 +38,7 @@ import ru.raydroid.plugin.host.impl.resource.resolveLocalizedString
 
 @Composable
 fun PreviewResourceResolverProvider(content: @Composable () -> Unit) {
+    val builtinIconResolver = remember { OutlinedMaterialBuiltinIconResolver() }
     val resolver = remember {
         object : ResourceResolver {
             override fun resolveText(text: PluginUiText): String = when (text) {
@@ -43,10 +46,11 @@ fun PreviewResourceResolverProvider(content: @Composable () -> Unit) {
                 is PluginUiText.Resource -> text.key
             }
 
-            override fun resolveIcon(icon: PluginIcon): Any? = when (icon) {
-                is PluginIcon.Url -> icon.url
-                is PluginIcon.Base64 -> icon.base64
+            override fun resolveIcon(icon: PluginIcon): ResolvedPluginIcon? = when (icon) {
+                is PluginIcon.Url -> ResolvedPluginIcon.ImageModel(icon.url)
+                is PluginIcon.Base64 -> ResolvedPluginIcon.ImageModel(icon.base64)
                 is PluginIcon.Resource -> null
+                is PluginIcon.Builtin -> ResolvedPluginIcon.Vector(builtinIconResolver.resolve(icon.name))
             }
 
             override fun resolveImage(image: PluginImage): Any? = when (image) {
@@ -66,8 +70,13 @@ fun ResourceResolverProvider(
     content: @Composable () -> Unit
 ) {
     val locale = Locale.current
+    val builtinIconResolver = remember { OutlinedMaterialBuiltinIconResolver() }
     val resolver = remember(plugins, locale) {
-        ResourceResolverImpl(plugins = plugins, language = locale.language)
+        PluginResourceResolver(
+            plugins = plugins,
+            language = locale.language,
+            builtinIconResolver = builtinIconResolver
+        )
     }
     CompositionLocalProvider(LocalResourceResolver provides resolver) {
         content()
@@ -82,9 +91,10 @@ fun ComposeRayRenderer(
     ComposeRayItemRenderer(data, modifier)
 }
 
-private class ResourceResolverImpl(
+internal class PluginResourceResolver(
     private val plugins: Map<PluginId, PluginRuntime>,
     private val language: String,
+    private val builtinIconResolver: BuiltinIconResolver,
 ) : ResourceResolver {
     override fun resolveText(text: PluginUiText): String = when (text) {
         is PluginUiText.Plain -> text.text
@@ -96,12 +106,13 @@ private class ResourceResolverImpl(
         }
     }
 
-    override fun resolveIcon(icon: PluginIcon): Any? = when (icon) {
-        is PluginIcon.Url -> icon.url
-        is PluginIcon.Base64 -> icon.base64
-        is PluginIcon.Resource -> plugins[icon.pluginId]?.let { runtime ->
-            readBinaryResource(runtime.resources, icon.key)
-        }
+    override fun resolveIcon(icon: PluginIcon): ResolvedPluginIcon? = when (icon) {
+        is PluginIcon.Url -> ResolvedPluginIcon.ImageModel(icon.url)
+        is PluginIcon.Base64 -> ResolvedPluginIcon.ImageModel(icon.base64)
+        is PluginIcon.Resource -> plugins[icon.pluginId]
+            ?.let { runtime -> readBinaryResource(runtime.resources, icon.key) }
+            ?.let(ResolvedPluginIcon::ImageModel)
+        is PluginIcon.Builtin -> ResolvedPluginIcon.Vector(builtinIconResolver.resolve(icon.name))
     }
 
     override fun resolveImage(image: PluginImage): Any? = when (image) {
@@ -131,7 +142,7 @@ fun ComposeRayItemRenderer(
 @Composable
 internal fun ImageRenderer(data: PluginImageData, modifier: Modifier = Modifier) {
     val resourceResolver = LocalResourceResolver.current
-    val resource = remember(data.image) {
+    val resource = remember(resourceResolver, data.image) {
         resourceResolver.resolveImage(data.image)
     }
     AsyncImage(
@@ -144,15 +155,24 @@ internal fun ImageRenderer(data: PluginImageData, modifier: Modifier = Modifier)
 @Composable
 internal fun IconRenderer(data: PluginIconData, modifier: Modifier = Modifier) {
     val resourceResolver = LocalResourceResolver.current
-    val resource = remember(data.icon) {
+    val resource = remember(resourceResolver, data.icon) {
         resourceResolver.resolveIcon(data.icon)
     }
-    AsyncImage(
-        model = resource,
-        contentDescription = data.contentDescription,
-        modifier = modifier.size(data.size.toDp()),
-        colorFilter = data.color?.let { color -> ColorFilter.tint(color.toColor()) }
-    )
+    when (resource) {
+        is ResolvedPluginIcon.ImageModel -> AsyncImage(
+            model = resource.model,
+            contentDescription = data.contentDescription,
+            modifier = modifier.size(data.size.toDp()),
+            colorFilter = data.color?.let { color -> ColorFilter.tint(color.toColor()) }
+        )
+        is ResolvedPluginIcon.Vector -> Icon(
+            imageVector = resource.imageVector,
+            contentDescription = data.contentDescription,
+            modifier = modifier.size(data.size.toDp()),
+            tint = data.color?.toColor() ?: LocalContentColor.current
+        )
+        null -> Unit
+    }
 }
 
 @Composable

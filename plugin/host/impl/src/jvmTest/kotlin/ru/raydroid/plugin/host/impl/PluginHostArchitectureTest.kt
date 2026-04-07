@@ -18,6 +18,7 @@ import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
+import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
 import ru.raydroid.plugin.host.api.domain.model.PluginId
@@ -45,6 +46,7 @@ import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheSearchEnti
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheWithContent
 import ru.raydroid.plugin.host.impl.runtime.PluginRuntimeCoordinatorImpl
 import ru.raydroid.plugin.host.api.domain.service.PluginLoader
+import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandPresentation
@@ -89,6 +91,71 @@ class PluginHostArchitectureTest {
         assertEquals("item-1", cached.resultId.itemId.value)
         assertEquals("Calculator", assertIs<PluginUiText.Plain>(cached.listEntry.title).text)
         assertEquals("System app", assertIs<PluginUiText.Plain>(cached.listEntry.description).text)
+    }
+
+    @Test
+    fun `search index repository restores builtin icons from cached entities`() = runTest {
+        val dao = FakeSearchIndexCacheDao(
+            recentResults = listOf(
+                SearchIndexCacheSearchEntity(
+                    cacheId = 1,
+                    contentId = 1,
+                    pluginId = "ru.test.plugin",
+                    command = "apps",
+                    itemId = "item-1",
+                    icon = "ArrowDropUp",
+                    iconType = Icon.Type.Builtin.name,
+                    title = "Calculator",
+                    description = "System app",
+                    lastUsedAtEpochMs = null,
+                    usageCount = 0,
+                )
+            )
+        )
+        val repository = SearchIndexRepositoryImpl(
+            cacheDao = dao,
+            resourceResolver = passthroughResourceResolver(),
+            clock = kotlin.time.Clock.System,
+            ranker = CachedSearchRanker(),
+        )
+
+        val result = repository.search("", limit = 10).first().single()
+
+        val cached = assertIs<SearchResultSet.CachedSearchResult>(result)
+        assertEquals("ArrowDropUp", assertIs<PluginIcon.Builtin>(cached.listEntry.icon).name)
+    }
+
+    @Test
+    fun `search index repository persists builtin icons on update`() = runTest {
+        val dao = FakeSearchIndexCacheDao(recentResults = emptyList())
+        val repository = SearchIndexRepositoryImpl(
+            cacheDao = dao,
+            resourceResolver = passthroughResourceResolver(),
+            clock = kotlin.time.Clock.System,
+            ranker = CachedSearchRanker(),
+        )
+
+        repository.update(
+            listOf(
+                SearchIndexMutation.Upsert(
+                    resultId = SearchResultId(
+                        pluginId = PluginId("ru.test.plugin"),
+                        commandName = "apps",
+                        itemId = CommandItemId("item-1"),
+                    ),
+                    listEntry = CommandListItem(
+                        id = CommandItemId("item-1"),
+                        icon = Icon.Builtin("ArrowDropUp"),
+                        title = UiText.Plain("Calculator"),
+                        description = UiText.Plain("System app"),
+                    )
+                )
+            )
+        )
+
+        val inserted = requireNotNull(dao.lastInserted)
+        assertEquals("ArrowDropUp", inserted.searchIndexCache.icon)
+        assertEquals(Icon.Type.Builtin.name, inserted.searchIndexCache.iconType)
     }
 
     @Test
@@ -291,6 +358,12 @@ private class RecordingSearchIndexRepository : SearchIndexRepository {
 private class FakeSearchIndexCacheDao(
     private val recentResults: List<SearchIndexCacheSearchEntity>,
 ) : SearchIndexCacheDao() {
+    var lastInserted: SearchIndexCacheWithContent? = null
+
+    override suspend fun insert(entity: SearchIndexCacheWithContent) {
+        lastInserted = entity
+    }
+
     override suspend fun insertListItem(entity: SearchIndexCacheEntity): Long = 0
     override suspend fun deleteListItem(pluginId: String, command: String, itemId: String) = Unit
     override suspend fun updateListItem(entity: SearchIndexCacheEntity) = Unit

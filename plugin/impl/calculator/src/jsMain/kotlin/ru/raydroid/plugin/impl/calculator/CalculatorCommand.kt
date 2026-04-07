@@ -48,7 +48,8 @@ class CalculatorCommand : CommandService() {
                 action(
                     "456",
                     title = UiText.Resource("app.description"),
-                    style = CommandListAction.Style.Destructive
+                    style = CommandListAction.Style.Destructive,
+                    icon = Icon.Builtin("Clear")
                 )
                 action(
                     "789",

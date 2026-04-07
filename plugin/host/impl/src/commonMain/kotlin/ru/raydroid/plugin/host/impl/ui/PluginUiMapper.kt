@@ -55,6 +55,7 @@ internal fun Icon.toPluginIcon(pluginId: PluginId): PluginIcon = when (type) {
     Icon.Type.Url -> PluginIcon.Url(value)
     Icon.Type.Resource -> PluginIcon.Resource(pluginId = pluginId, key = value)
     Icon.Type.Base64 -> PluginIcon.Base64(value)
+    Icon.Type.Builtin -> PluginIcon.Builtin(value)
 }
 
 internal fun Image.toPluginImage(pluginId: PluginId): PluginImage = when (this) {
