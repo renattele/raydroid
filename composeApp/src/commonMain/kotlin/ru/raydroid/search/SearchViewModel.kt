@@ -111,7 +111,8 @@ class SearchViewModel(
                                     }
                                 } else {
                                     state.focusedItemIndex
-                                }
+                                },
+                                showActions = false
                             )
                         }
                         updatedFocus = true
@@ -147,7 +148,8 @@ class SearchViewModel(
                                 state.focusedItemIndex?.let { itemIndex ->
                                     (itemIndex + 1).coerceIn(0, searchResults.results.size)
                                 }
-                            }
+                            },
+                            showActions = false
                         )
                     }
                 }
@@ -159,7 +161,24 @@ class SearchViewModel(
                                 state.focusedItemIndex?.let { itemIndex ->
                                     (itemIndex - 1).coerceIn(0, searchResults.results.size)
                                 }
-                            }
+                            },
+                            showActions = false
+                        )
+                    }
+                }
+
+                SearchScreenEvent.ToggleActions -> {
+                    _state.update { state ->
+                        state.copy(
+                            showActions = !state.showActions
+                        )
+                    }
+                }
+
+                SearchScreenEvent.HideActions -> {
+                    _state.update { state ->
+                        state.copy(
+                            showActions = false
                         )
                     }
                 }
@@ -213,6 +232,7 @@ data class SearchScreenState(
     val plugins: Map<PluginId, PluginRuntime> = emptyMap(),
     val focusedItem: PluginCommandListItem? = null,
     val focusedItemIndex: Int? = null,
+    val showActions: Boolean = false,
     val alerts: List<NotificationEvent.Alert> = emptyList(),
     val toasts: List<NotificationEvent.ShowToast> = emptyList(),
     val eventSink: (SearchScreenEvent) -> Unit
@@ -224,6 +244,8 @@ sealed interface SearchScreenEvent {
     data class Enter(val resultId: SearchResultId? = null) : SearchScreenEvent
     data object MoveFocusPrevious : SearchScreenEvent
     data object MoveFocusNext : SearchScreenEvent
+    data object ToggleActions : SearchScreenEvent
+    data object HideActions : SearchScreenEvent
     data class DismissAlert(val alert: NotificationEvent.Alert) : SearchScreenEvent
     data class ConfirmAlert(val alert: NotificationEvent.Alert) : SearchScreenEvent
     data class HideToast(val toast: NotificationEvent.ShowToast) : SearchScreenEvent

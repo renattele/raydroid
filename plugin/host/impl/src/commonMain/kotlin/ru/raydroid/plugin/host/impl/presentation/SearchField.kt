@@ -169,7 +169,7 @@ private fun SearchFieldPreview() {
                 icon = null,
                 title = PluginUiText.Plain("Copy"),
                 description = PluginUiText.Plain("Description")
-            ))
+            ), false, {})
         }
     }
 }

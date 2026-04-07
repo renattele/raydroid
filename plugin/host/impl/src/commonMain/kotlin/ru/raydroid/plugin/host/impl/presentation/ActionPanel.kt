@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,7 +26,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,11 +34,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import ru.raydroid.core.designsystem.RaydroidMotionToken
 import ru.raydroid.core.designsystem.RaydroidShapeToken
 import ru.raydroid.core.designsystem.RaydroidTheme
@@ -61,6 +57,8 @@ import kotlin.math.pow
 fun ActionPanel(
     toasts: List<NotificationEvent.ShowToast>,
     focusedItem: PluginCommandListItem?,
+    showActions: Boolean,
+    onToggleActions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val spacing = RaydroidTheme.spacing
@@ -68,7 +66,12 @@ fun ActionPanel(
         modifier
             .padding(horizontal = spacing.medium)
     ) {
-        Action(focusedItem, Modifier.weight(1f))
+        Action(
+            focusedItem = focusedItem,
+            showActions = showActions,
+            onToggleActions = onToggleActions,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -111,8 +114,12 @@ private fun Toasts(
 }
 
 @Composable
-private fun Action(focusedItem: PluginCommandListItem?, modifier: Modifier = Modifier) {
-    val showPopup = remember { mutableStateOf(false) }
+private fun Action(
+    focusedItem: PluginCommandListItem?,
+    showActions: Boolean,
+    onToggleActions: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val spacing = RaydroidTheme.spacing
     Row(
         modifier,
@@ -123,7 +130,6 @@ private fun Action(focusedItem: PluginCommandListItem?, modifier: Modifier = Mod
         )
     ) {
         if (focusedItem != null) {
-            val popupMotion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Default)
             val primaryAction = remember(focusedItem) {
                 focusedItem.actions.find { it.primary } ?: focusedItem.actions.firstOrNull()
             }
@@ -144,36 +150,23 @@ private fun Action(focusedItem: PluginCommandListItem?, modifier: Modifier = Mod
                     )
                 }
                 KeyHint(
-                    onClick = {
-                        showPopup.value = !showPopup.value
-                    },
-                    color = PluginColor.TertiaryContainer.toColor()
+                    onClick = onToggleActions,
+                    color = if (showActions) {
+                        PluginColor.Tertiary.toColor()
+                    } else {
+                        PluginColor.TertiaryContainer.toColor()
+                    }
                 ) {
                     Icon(
                         Icons.Filled.KeyboardArrowUp,
                         contentDescription = null,
                         Modifier.size(PluginIconSize.ExtraSmall.toDp()),
-                        tint = PluginColor.OnTertiaryContainer.toColor()
-                    )
-                    val density = LocalDensity.current
-                    val offset = with(density) {
-                        PluginIconSize.ExtraSmall.toDp().roundToPx() * 3 / 4
-                    }
-                    Popup(
-                        alignment = Alignment.BottomEnd,
-                        onDismissRequest = {
-                            showPopup.value = false
-                        },
-                        offset = IntOffset(offset, offset)
-                    ) {
-                        AnimatedVisibility(
-                            showPopup.value,
-                            enter = popupMotion.popupEnter(TransformOrigin(1f, 1f)),
-                            exit = popupMotion.popupExit(TransformOrigin(1f, 1f))
-                        ) {
-                            ActionsPopupContent(focusedItem.actions)
+                        tint = if (showActions) {
+                            PluginColor.OnTertiary.toColor()
+                        } else {
+                            PluginColor.OnTertiaryContainer.toColor()
                         }
-                    }
+                    )
                 }
             }
         }
@@ -181,28 +174,38 @@ private fun Action(focusedItem: PluginCommandListItem?, modifier: Modifier = Mod
 }
 
 @Composable
-private fun ActionsPopupContent(
-    actions: List<PluginCommandListAction>,
+fun ActionsPanelOverlay(
+    focusedItem: PluginCommandListItem?,
+    visible: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val actions = focusedItem?.actions.orEmpty()
+    val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
     val groupedActions = remember(actions) {
         actions.groupBy { it.group }
             .entries.toList()
     }
     val popupShape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
-    LazyColumn(
-        modifier
-            .clip(popupShape)
-            .background(PluginColor.SurfaceBright.toColor().copy(alpha = 0.7f))
-            .height(PopupHeight)
-            .width(PopupWidth)
+    AnimatedVisibility(
+        visible = visible && actions.isNotEmpty(),
+        enter = motion.popupEnter(TransformOrigin(1f, 1f)),
+        exit = motion.popupExit(TransformOrigin(1f, 1f)),
+        modifier = modifier
     ) {
-        items(groupedActions) { (groupName, actionsList) ->
-            if (groupName != null) {
-                Text(groupName.asText())
-            }
-            actionsList.forEach { action ->
-                ActionsPopupAction(action)
+        LazyColumn(
+            Modifier
+                .clip(popupShape)
+                .background(PluginColor.SurfaceBright.toColor().copy(alpha = 0.7f))
+                .heightIn(max = PopupHeight)
+                .width(PopupWidth)
+        ) {
+            items(groupedActions) { (groupName, actionsList) ->
+                if (groupName != null) {
+                    Text(groupName.asText())
+                }
+                actionsList.forEach { action ->
+                    ActionsPopupAction(action)
+                }
             }
         }
     }
@@ -323,6 +326,8 @@ private fun ActionPanelPreview() {
                     )
                 )
             ),
+            showActions = false,
+            onToggleActions = {},
             focusedItem = PluginCommandListItem(
                 id = CommandItemId.Static,
                 icon = PluginIcon.Url("https://i.imgur.com/UVpA9a0.jpeg"),

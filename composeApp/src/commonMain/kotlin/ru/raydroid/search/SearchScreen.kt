@@ -2,6 +2,7 @@ package ru.raydroid.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,7 @@ import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.api.ui.orUnknown
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
 import ru.raydroid.plugin.host.impl.presentation.ActionPanel
+import ru.raydroid.plugin.host.impl.presentation.ActionsPanelOverlay
 import ru.raydroid.plugin.host.impl.presentation.ComposeRayRenderer
 import ru.raydroid.plugin.host.impl.presentation.RayDecorator
 import ru.raydroid.plugin.host.impl.presentation.RaydroidPreviewTheme
@@ -65,6 +67,9 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 focus.requestFocus()
             }
             val listState = rememberLazyListState()
+            val focusedItem = state.focusedItemIndex?.let { index ->
+                state.searchResults?.results?.getOrNull(index)?.listEntry
+            }
             LaunchedEffect(state.focusedItemIndex) {
                 if (state.focusedItemIndex != null) {
                     listState.scrollToItem(state.focusedItemIndex)
@@ -103,38 +108,49 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     }
                 )
             }
-            LazyColumn(
+            Box(
                 Modifier
                     .background(RaydroidTheme.colorScheme.background)
-                    .weight(1f),
-                contentPadding = PaddingValues(vertical = spacing.extraSmall),
-                reverseLayout = true,
-                state = listState
+                    .weight(1f)
             ) {
-                if (state.searchResults != null) {
-                    itemsIndexed(state.searchResults.results) { index, searchResult ->
-                        if (searchResult is SearchResultSet.CachedSearchResult) {
-                            SearchListItem(searchResult, onClick = {
-                                state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
-                            }, focused = index == state.focusedItemIndex)
-                        } else if (searchResult is SearchResultSet.LiveSearchResult) {
-                            RayDecorator(
-                                listItem = searchResult.listEntry,
-                                title = searchResult.rayDecoratorTitle,
-                                commandName = remember(state.plugins) {
-                                    searchResult.rayDecoratorCommandName(state.plugins)
-                                },
-                                pluginName = remember(state.plugins) {
-                                    searchResult.rayDecoratorPluginName(state.plugins)
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = spacing.extraSmall),
+                    reverseLayout = true,
+                    state = listState
+                ) {
+                    if (state.searchResults != null) {
+                        itemsIndexed(state.searchResults.results) { index, searchResult ->
+                            if (searchResult is SearchResultSet.CachedSearchResult) {
+                                SearchListItem(searchResult, onClick = {
+                                    state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
+                                }, focused = index == state.focusedItemIndex)
+                            } else if (searchResult is SearchResultSet.LiveSearchResult) {
+                                RayDecorator(
+                                    listItem = searchResult.listEntry,
+                                    title = searchResult.rayDecoratorTitle,
+                                    commandName = remember(state.plugins) {
+                                        searchResult.rayDecoratorCommandName(state.plugins)
+                                    },
+                                    pluginName = remember(state.plugins) {
+                                        searchResult.rayDecoratorPluginName(state.plugins)
+                                    }
+                                ) {
+                                    ComposeRayRenderer(
+                                        searchResult.presentation.content
+                                    )
                                 }
-                            ) {
-                                ComposeRayRenderer(
-                                    searchResult.presentation.content
-                                )
                             }
                         }
                     }
                 }
+                ActionsPanelOverlay(
+                    focusedItem = focusedItem,
+                    visible = state.showActions,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(spacing.small)
+                )
             }
             SearchField(
                 state.searchFieldState.copy(canGoOnEnter = state.focusedItemIndex != null),
@@ -149,8 +165,10 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             ) {
                 ActionPanel(
                     toasts = state.toasts,
-                    focusedItem = state.focusedItemIndex?.let { index ->
-                        state.searchResults?.results?.getOrNull(index)?.listEntry
+                    focusedItem = focusedItem,
+                    showActions = state.showActions,
+                    onToggleActions = {
+                        state.eventSink(SearchScreenEvent.ToggleActions)
                     }
                 )
             }
