@@ -63,7 +63,8 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
         Column(
             modifier
                 .fillMaxSize()
-                .padding(spacing.small),
+                .background(RaydroidTheme.colorScheme.background)
+                .padding(spacing.medium),
             verticalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Bottom)
         ) {
             val focus = remember { FocusRequester() }
@@ -113,13 +114,11 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 )
             }
             Box(
-                Modifier
-                    .background(RaydroidTheme.colorScheme.background)
-                    .weight(1f)
+                Modifier.weight(1f)
             ) {
                 LazyColumn(
                     Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = spacing.extraSmall),
+                    contentPadding = PaddingValues(top = spacing.extraSmall, bottom = spacing.extraLarge * 2),
                     reverseLayout = true,
                     state = listState
                 ) {
@@ -138,7 +137,8 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                     },
                                     pluginName = remember(state.plugins) {
                                         searchResult.rayDecoratorPluginName(state.plugins)
-                                    }
+                                    },
+                                    focused = index == state.focusedItemIndex
                                 ) {
                                     ComposeRayRenderer(
                                         searchResult.presentation.content

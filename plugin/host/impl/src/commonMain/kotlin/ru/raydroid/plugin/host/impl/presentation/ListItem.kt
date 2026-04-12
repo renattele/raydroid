@@ -47,31 +47,12 @@ fun CommandListItemView(
     focused: Boolean = false
 ) {
     val spacing = RaydroidTheme.spacing
-    val motionSpec = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Default)
     val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
-    val backgroundColor = if (focused) {
-        PluginColor.SurfaceBright
-    } else {
-        PluginColor.Surface
-    }
-    val animatedBackground = animateColorAsState(
-        targetValue = backgroundColor.toColor(),
-        animationSpec = motionSpec.colorSpec()
-    )
-    val animatedScale = animateFloatAsState(
-        targetValue = if (focused) 1f + motionSpec.scaleDelta else 1f,
-        animationSpec = motionSpec.floatSpec()
-    )
     Row(
         modifier
-            .clickable { onClick() }
+            .interactable(focused = focused) { onClick() }
             .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = animatedScale.value
-                scaleY = animatedScale.value
-            }
             .clip(shape)
-            .background(animatedBackground.value)
             .padding(horizontal = spacing.medium, vertical = spacing.small),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(spacing.medium)

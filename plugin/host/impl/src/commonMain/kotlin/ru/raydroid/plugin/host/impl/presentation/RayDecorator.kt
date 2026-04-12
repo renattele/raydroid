@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.stringResource
 import raydroid.plugin.host.impl.generated.resources.Res
@@ -26,11 +28,18 @@ fun RayDecorator(
     listItem: PluginCommandListItem,
     commandName: PluginUiText,
     pluginName: PluginUiText,
+    focused: Boolean,
     modifier: Modifier = Modifier,
     title: PluginUiText? = listItem.title,
     content: @Composable () -> Unit
 ) {
-    Column(modifier.background(RaydroidTheme.colorScheme.primaryContainer)) {
+    Column(
+        modifier
+            .interactable(enabled = false, focused = focused) {}
+            .clip(RaydroidTheme.shapes.medium)
+            .background(RaydroidTheme.colorScheme.primaryContainer)
+            .padding(RaydroidTheme.spacing.small)
+    ) {
         Box(Modifier.fillMaxWidth()) {
             content()
         }
@@ -40,7 +49,7 @@ fun RayDecorator(
                     PluginTextData(
                         text = title,
                         fontSize = PluginFontSize.ExtraSmall,
-                        color = PluginColor.OnPrimaryContainer
+                        color = PluginColor.Outline
                     )
                 )
             }
@@ -69,6 +78,7 @@ private fun RayDecoratorPreview() {
                 description = null
             ), commandName = PluginUiText.Plain("Command"),
             pluginName = PluginUiText.Plain("Plugin"),
+            focused = false,
             Modifier.fillMaxWidth()
         ) {
             Text("Hello")

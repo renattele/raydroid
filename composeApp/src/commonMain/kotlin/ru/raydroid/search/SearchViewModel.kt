@@ -146,7 +146,7 @@ class SearchViewModel(
                         state.copy(
                             focusedItemIndex = state.searchResults?.let { searchResults ->
                                 state.focusedItemIndex?.let { itemIndex ->
-                                    (itemIndex + 1).coerceIn(0, searchResults.results.size)
+                                    (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
                                 }
                             },
                             showActions = false
@@ -159,7 +159,7 @@ class SearchViewModel(
                         state.copy(
                             focusedItemIndex = state.searchResults?.let { searchResults ->
                                 state.focusedItemIndex?.let { itemIndex ->
-                                    (itemIndex - 1).coerceIn(0, searchResults.results.size)
+                                    (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
                                 }
                             },
                             showActions = false
