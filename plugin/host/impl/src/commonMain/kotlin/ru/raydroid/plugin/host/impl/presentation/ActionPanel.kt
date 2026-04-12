@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
@@ -31,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -177,6 +181,7 @@ private fun Action(
 fun ActionsPanelOverlay(
     focusedItem: PluginCommandListItem?,
     visible: Boolean,
+    onActionClick: (PluginCommandListAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val actions = focusedItem?.actions.orEmpty()
@@ -186,6 +191,8 @@ fun ActionsPanelOverlay(
             .entries.toList()
     }
     val popupShape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
+    val popupRadius = RaydroidTheme.spacing.extraSmall
+    val popupShadowColor = RaydroidTheme.colorScheme.outline
     AnimatedVisibility(
         visible = visible && actions.isNotEmpty(),
         enter = motion.popupEnter(TransformOrigin(1f, 1f)),
@@ -194,17 +201,27 @@ fun ActionsPanelOverlay(
     ) {
         LazyColumn(
             Modifier
+                .padding(popupRadius)
+                .dropShadow(popupShape) {
+                    color = popupShadowColor
+                    radius = popupRadius.toPx()
+                }
                 .clip(popupShape)
-                .background(PluginColor.SurfaceBright.toColor().copy(alpha = 0.7f))
+                .background(PluginColor.SurfaceBright.toColor())
                 .heightIn(max = PopupHeight)
                 .width(PopupWidth)
         ) {
-            items(groupedActions) { (groupName, actionsList) ->
-                if (groupName != null) {
-                    Text(groupName.asText())
+            itemsIndexed(groupedActions) { index, (groupName, actionsList) ->
+                Column(
+                    Modifier.padding(RaydroidTheme.spacing.small),
+                    verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+                ) {
+                    actionsList.forEach { action ->
+                        ActionsPopupAction(action, onClick = { onActionClick(action) })
+                    }
                 }
-                actionsList.forEach { action ->
-                    ActionsPopupAction(action)
+                if (index != groupedActions.lastIndex) {
+                    HorizontalDivider()
                 }
             }
         }
@@ -212,7 +229,11 @@ fun ActionsPanelOverlay(
 }
 
 @Composable
-private fun ActionsPopupAction(action: PluginCommandListAction, modifier: Modifier = Modifier) {
+private fun ActionsPopupAction(
+    action: PluginCommandListAction,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val spacing = RaydroidTheme.spacing
     val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Small)
     val color = when (action.style) {
@@ -223,20 +244,28 @@ private fun ActionsPopupAction(action: PluginCommandListAction, modifier: Modifi
         modifier
             .fillMaxWidth()
             .clip(shape)
+            .clickable {
+                onClick()
+            }
             .background(PluginColor.Surface.toColor())
-            .padding(horizontal = spacing.medium, vertical = spacing.small),
+            .padding(RaydroidTheme.spacing.extraSmall),
         horizontalArrangement = Arrangement.spacedBy(spacing.small),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        action.icon?.let { icon ->
-            IconRenderer(
-                PluginIconData(
-                    icon = icon,
-                    color = color
-                )
+        IconRenderer(
+            PluginIconData(
+                icon = action.icon ?: PluginIcon.Builtin("Help"),
+                color = color,
+                size = PluginIconSize.Small
             )
-        }
-        TextRenderer(data = PluginTextData(text = action.title, color = color))
+        )
+        TextRenderer(
+            data = PluginTextData(
+                text = action.title,
+                fontSize = PluginFontSize.Small,
+                color = color
+            )
+        )
     }
 }
 
@@ -295,7 +324,7 @@ private fun KeyHint(
 
 private val PanelHeight = 80.dp
 private val ToastHeight = 60.dp
-private val PopupHeight = 120.dp
+private val PopupHeight = 180.dp
 private val PopupWidth = 240.dp
 
 @Preview

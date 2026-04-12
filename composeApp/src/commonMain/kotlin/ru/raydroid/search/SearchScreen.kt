@@ -147,9 +147,11 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 ActionsPanelOverlay(
                     focusedItem = focusedItem,
                     visible = state.showActions,
+                    onActionClick = {
+
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(spacing.small)
                 )
             }
             SearchField(
