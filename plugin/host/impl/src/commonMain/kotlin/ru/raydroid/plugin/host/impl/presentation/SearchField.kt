@@ -164,7 +164,7 @@ private fun SearchFieldPreview() {
             ),
             onEvent = {}
         ) {
-            ActionPanel(listOf(), PluginCommandListItem(
+            ActionPanel(PluginCommandListItem(
                 id = CommandItemId.Static,
                 icon = null,
                 title = PluginUiText.Plain("Copy"),

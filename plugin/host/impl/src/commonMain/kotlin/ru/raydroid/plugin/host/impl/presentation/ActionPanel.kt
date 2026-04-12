@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.raydroid.core.designsystem.RaydroidMotionToken
@@ -59,7 +60,6 @@ import kotlin.math.pow
 
 @Composable
 fun ActionPanel(
-    toasts: List<NotificationEvent.ShowToast>,
     focusedItem: PluginCommandListItem?,
     showActions: Boolean,
     onToggleActions: () -> Unit,
@@ -80,12 +80,11 @@ fun ActionPanel(
 }
 
 @Composable
-private fun Toasts(
+fun ToastsOverlay(
     toasts: List<NotificationEvent.ShowToast>,
     modifier: Modifier = Modifier,
 ) {
     val spacing = RaydroidTheme.spacing
-    val toastShape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Large)
     Box(modifier = modifier) {
         toasts.forEachIndexed { index, toast ->
             val invertedIndex = toasts.lastIndex - index
@@ -104,14 +103,7 @@ private fun Toasts(
                         drawContent()
                         drawRect(backgroundColor.copy(alpha = invertedIndex / 3f))
                     }
-                    .padding(vertical = spacing.medium)
-                    .border(
-                        spacing.border,
-                        PluginColor.Primary.toColor(),
-                        toastShape
-                    )
-                    .clip(toastShape)
-                    .background(PluginColor.SurfaceBright.toColor())
+                    .padding(end = spacing.extraSmall)
             )
         }
     }
@@ -192,7 +184,6 @@ fun ActionsPanelOverlay(
     }
     val popupShape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     val popupRadius = RaydroidTheme.spacing.extraSmall
-    val popupShadowColor = RaydroidTheme.colorScheme.outline
     AnimatedVisibility(
         visible = visible && actions.isNotEmpty(),
         enter = motion.popupEnter(TransformOrigin(1f, 1f)),
@@ -202,10 +193,13 @@ fun ActionsPanelOverlay(
         LazyColumn(
             Modifier
                 .padding(popupRadius)
-                .dropShadow(popupShape) {
-                    color = popupShadowColor
-                    radius = popupRadius.toPx()
-                }
+                .dropShadow(
+                    popupShape,
+                    shadow = Shadow(
+                        color = RaydroidTheme.colorScheme.outline,
+                        radius = RaydroidTheme.spacing.extraSmall
+                    )
+                )
                 .clip(popupShape)
                 .background(PluginColor.SurfaceBright.toColor())
                 .heightIn(max = PopupHeight)
@@ -273,9 +267,19 @@ private fun ActionsPopupAction(
 @Composable
 private fun Toast(toast: NotificationEvent.Toast, modifier: Modifier = Modifier) {
     Row(
-        modifier,
+        modifier
+            .dropShadow(
+                RaydroidTheme.shapes.medium,
+                shadow = Shadow(
+                    color = RaydroidTheme.colorScheme.outline,
+                    radius = RaydroidTheme.spacing.extraSmall
+                )
+            )
+            .clip(RaydroidTheme.shapes.medium)
+            .background(RaydroidTheme.colorScheme.surfaceBright)
+            .padding(RaydroidTheme.spacing.small),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall)
+        horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
     ) {
         CompositionLocalProvider(LocalContentColor provides PluginColor.OnTertiaryContainer.toColor()) {
             Box(
@@ -283,19 +287,24 @@ private fun Toast(toast: NotificationEvent.Toast, modifier: Modifier = Modifier)
                 contentAlignment = Alignment.Center
             ) {
                 when (toast.style) {
-                    NotificationEvent.Toast.Style.Animated -> CircularWavyProgressIndicator()
+                    NotificationEvent.Toast.Style.Animated -> CircularWavyProgressIndicator(
+                        Modifier.size(PluginIconSize.Small.toDp())
+                    )
+
                     NotificationEvent.Toast.Style.Success -> Icon(
                         Icons.Default.Done,
-                        contentDescription = null
+                        contentDescription = null,
+                        Modifier.size(PluginIconSize.Small.toDp())
                     )
 
                     NotificationEvent.Toast.Style.Failure -> Icon(
                         Icons.Default.Close,
-                        contentDescription = null
+                        contentDescription = null,
+                        Modifier.size(PluginIconSize.Small.toDp())
                     )
                 }
             }
-            Text(toast.message.asText())
+            TextRenderer(PluginTextData(toast.message, fontSize = PluginFontSize.Small))
         }
     }
 }
@@ -331,7 +340,7 @@ private val PopupWidth = 240.dp
 @Composable
 private fun ActionPanelPreview() {
     RaydroidPreviewTheme {
-        ActionPanel(
+        ToastsOverlay(
             toasts = listOf(
                 NotificationEvent.ShowToast(
                     PluginId.Invalid,
@@ -352,22 +361,6 @@ private fun ActionPanelPreview() {
                     toast = NotificationEvent.Toast(
                         message = PluginUiText.Plain("Message3"),
                         style = NotificationEvent.Toast.Style.Success
-                    )
-                )
-            ),
-            showActions = false,
-            onToggleActions = {},
-            focusedItem = PluginCommandListItem(
-                id = CommandItemId.Static,
-                icon = PluginIcon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
-                title = PluginUiText.Plain("Open"),
-                description = PluginUiText.Plain("Open"),
-                actions = listOf(
-                    PluginCommandListAction(
-                        id = "",
-                        title = PluginUiText.Plain("Action 1"),
-                        description = PluginUiText.Plain("Action 2"),
-                        icon = PluginIcon.Url("https://i.imgur.com/UVpA9a0.jpeg")
                     )
                 )
             )

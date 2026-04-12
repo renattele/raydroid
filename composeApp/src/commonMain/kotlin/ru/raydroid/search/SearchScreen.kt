@@ -1,5 +1,7 @@
 package ru.raydroid.search
 
+import androidx.compose.animation.animateBounds
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
@@ -42,6 +45,7 @@ import ru.raydroid.plugin.host.impl.presentation.ResourceResolverProvider
 import ru.raydroid.plugin.host.impl.presentation.SearchField
 import ru.raydroid.plugin.host.impl.presentation.SearchFieldEvent
 import ru.raydroid.plugin.host.impl.presentation.SearchListItem
+import ru.raydroid.plugin.host.impl.presentation.ToastsOverlay
 import ru.raydroid.plugin.host.impl.presentation.asText
 
 @Composable
@@ -144,15 +148,28 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         }
                     }
                 }
-                ActionsPanelOverlay(
-                    focusedItem = focusedItem,
-                    visible = state.showActions,
-                    onActionClick = {
+                LookaheadScope {
+                    Column(
+                        Modifier.align(Alignment.BottomEnd),
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+                    ) {
+                        ToastsOverlay(
+                            toasts = state.toasts,
+                            Modifier.animateBounds(
+                                this@LookaheadScope,
+                                animateMotionFrameOfReference = true
+                            )
+                        )
+                        ActionsPanelOverlay(
+                            focusedItem = focusedItem,
+                            visible = state.showActions,
+                            onActionClick = {
 
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                )
+                            }
+                        )
+                    }
+                }
             }
             SearchField(
                 state.searchFieldState.copy(canGoOnEnter = state.focusedItemIndex != null),
@@ -166,7 +183,6 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 Modifier.focusRequester(focus)
             ) {
                 ActionPanel(
-                    toasts = state.toasts,
                     focusedItem = focusedItem,
                     showActions = state.showActions,
                     onToggleActions = {

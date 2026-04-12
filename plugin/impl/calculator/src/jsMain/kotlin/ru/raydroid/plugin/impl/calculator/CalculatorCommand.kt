@@ -38,7 +38,7 @@ class CalculatorCommand : CommandService() {
             emit(chunk)
         }
     }.onCompletion {
-        Host.notification.hideToast(toast)
+     //   Host.notification.hideToast(toast)
     }
 
     override fun CommandListScope.content() {
