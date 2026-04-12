@@ -266,6 +266,7 @@ private fun ActionsPopupAction(
 private fun Toast(toast: NotificationEvent.Toast, modifier: Modifier = Modifier) {
     Row(
         modifier
+            .width(PopupWidth)
             .dropShadow(
                 RaydroidTheme.shapes.medium,
                 shadow = Shadow(
