@@ -63,9 +63,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
         Column(
             modifier
                 .fillMaxSize()
-                .background(RaydroidTheme.colorScheme.background)
-                .padding(spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Bottom)
+                .background(RaydroidTheme.colorScheme.background),
         ) {
             val focus = remember { FocusRequester() }
             LaunchedEffect(Unit) {
@@ -114,11 +112,17 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 )
             }
             Box(
-                Modifier.weight(1f)
+                Modifier
+                    .weight(1f)
             ) {
                 LazyColumn(
                     Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = spacing.extraSmall, bottom = spacing.extraLarge * 2),
+                    contentPadding = PaddingValues(
+                        start = spacing.medium,
+                        end = spacing.medium,
+                        top = spacing.extraSmall,
+                        bottom = spacing.extraLarge * 2
+                    ),
                     reverseLayout = true,
                     state = listState
                 ) {
@@ -150,7 +154,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 }
                 LookaheadScope {
                     Column(
-                        Modifier.align(Alignment.BottomEnd),
+                        Modifier.padding(spacing.medium).align(Alignment.BottomEnd),
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
                     ) {

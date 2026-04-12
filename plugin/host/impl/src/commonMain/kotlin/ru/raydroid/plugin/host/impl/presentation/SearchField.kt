@@ -4,12 +4,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -56,90 +58,73 @@ fun SearchField(
         color = PluginColor.OnSurface.toColor(),
         fontSize = PluginFontSize.Small.toTextUnit()
     )
-    BasicTextField(
-        state.fieldState,
-        modifier = modifier
-            .fillMaxWidth()
-            .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown) {
-                    when (event.key) {
-                        Key.DirectionUp -> {
-                            onEvent(SearchFieldEvent.MoveFocusUp)
-                            true
-                        }
+    Column(modifier) {
+        HorizontalDivider()
+        BasicTextField(
+            state.fieldState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown) {
+                        when (event.key) {
+                            Key.DirectionUp -> {
+                                onEvent(SearchFieldEvent.MoveFocusUp)
+                                true
+                            }
 
-                        Key.DirectionDown -> {
-                            onEvent(SearchFieldEvent.MoveFocusDown)
-                            true
-                        }
+                            Key.DirectionDown -> {
+                                onEvent(SearchFieldEvent.MoveFocusDown)
+                                true
+                            }
 
-                        else -> false
+                            else -> false
+                        }
+                    } else {
+                        false
                     }
-                } else {
-                    false
-                }
+                },
+            textStyle = textStyle,
+            keyboardOptions = KeyboardOptions(
+                autoCorrectEnabled = false,
+                showKeyboardOnFocus = true,
+                imeAction = if (state.canGoOnEnter) ImeAction.Go else ImeAction.None
+            ),
+            onKeyboardAction = {
+                onEvent(SearchFieldEvent.Enter)
             },
-        textStyle = textStyle,
-        keyboardOptions = KeyboardOptions(
-            autoCorrectEnabled = false,
-            showKeyboardOnFocus = true,
-            imeAction = if (state.canGoOnEnter) ImeAction.Go else ImeAction.None
-        ),
-        onKeyboardAction = {
-            onEvent(SearchFieldEvent.Enter)
-        },
-        lineLimits = TextFieldLineLimits.SingleLine,
-        cursorBrush = SolidColor(PluginColor.Primary.toColor()),
-        decorator = { content ->
-            val shape = if (state.isKeyboardPresent) {
-                RaydroidTheme.shapes.attachedBottom(RaydroidShapeToken.Large)
-            } else {
-                RaydroidTheme.shapes.shape(RaydroidShapeToken.Large)
-            }
-            val shadowSpread = spacing.extraSmall
-            val shadowOffset = spacing.small
-            Box {
-                Box(
-                    decoratorModifier
-                        .border(
-                            BorderStroke(
-                                spacing.extraSmall / 2,
-                                color = PluginColor.Outline.toColor()
-                            ),
-                            shape
-                        )
-                        .dropShadow(shape = shape) {
-                            color = Color.Black
-                            spread = shadowSpread.toPx()
-                            alpha = 0.4f
-                            radius = shadowOffset.toPx()
-                            offset = Offset(
-                                x = 0f,
-                                y = 2.dp.toPx()
+            lineLimits = TextFieldLineLimits.SingleLine,
+            cursorBrush = SolidColor(PluginColor.Primary.toColor()),
+            decorator = { content ->
+                val shape = if (state.isKeyboardPresent) {
+                    RaydroidTheme.shapes.attachedBottom(RaydroidShapeToken.Large)
+                } else {
+                    RaydroidTheme.shapes.shape(RaydroidShapeToken.Large)
+                }
+                Box {
+                    Box(
+                        decoratorModifier
+                            .padding(spacing.large)
+                            .fillMaxWidth()
+                    ) {
+                        content()
+                        if (isEmpty.value) {
+                            Text(
+                                stringResource(Res.string.search_field_placeholder),
+                                style = textStyle,
+                                color = PluginColor.OnSurface.toColor(),
+                                modifier = Modifier.alpha(0.5f)
                             )
                         }
-                        .background(PluginColor.SurfaceContainer.toColor(), shape)
-                        .padding(spacing.large)
-                        .fillMaxWidth()
-                ) {
-                    content()
-                    if (isEmpty.value) {
-                        Text(
-                            stringResource(Res.string.search_field_placeholder),
-                            style = textStyle,
-                            color = PluginColor.OnSurface.toColor(),
-                            modifier = Modifier.alpha(0.5f)
-                        )
                     }
-                }
-                if (actionContent != null) {
-                    Box(Modifier.align(Alignment.CenterEnd)) {
-                        actionContent()
+                    if (actionContent != null) {
+                        Box(Modifier.align(Alignment.CenterEnd)) {
+                            actionContent()
+                        }
                     }
                 }
             }
-        }
-    )
+        )
+    }
 }
 
 data class SearchFieldState(
