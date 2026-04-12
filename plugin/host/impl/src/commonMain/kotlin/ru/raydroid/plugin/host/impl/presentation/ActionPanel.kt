@@ -229,7 +229,6 @@ private fun ActionsPopupAction(
     modifier: Modifier = Modifier
 ) {
     val spacing = RaydroidTheme.spacing
-    val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Small)
     val color = when (action.style) {
         PluginCommandListAction.Style.Default -> PluginColor.OnSurface
         PluginCommandListAction.Style.Destructive -> PluginColor.Error
@@ -237,8 +236,7 @@ private fun ActionsPopupAction(
     Row(
         modifier
             .fillMaxWidth()
-            .clip(shape)
-            .clickable {
+            .interactable {
                 onClick()
             }
             .background(PluginColor.Surface.toColor())

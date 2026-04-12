@@ -29,7 +29,6 @@ fun Modifier.interactable(
     onClick: () -> Unit
 ): Modifier = composed {
     val interactionSource = remember { MutableInteractionSource() }
-    val indication = remember { ripple() }
     var focused by remember(focused) { mutableStateOf(focused) }
     LaunchedEffect(Unit) {
         interactionSource.interactions.collectLatest { interaction ->
@@ -37,7 +36,6 @@ fun Modifier.interactable(
                 is FocusInteraction.Focus -> focused = true
                 is FocusInteraction.Unfocus -> focused = false
             }
-            println(interaction)
         }
     }
     val scale by animateFloatAsState(
@@ -46,7 +44,7 @@ fun Modifier.interactable(
     )
     val color = RaydroidTheme.colorScheme.primary.copy(alpha = 0.1f)
     val shape = RaydroidTheme.shapes.medium
-    combinedClickable(interactionSource, indication, enabled = enabled, onClick = onClick)
+    combinedClickable(interactionSource, indication = null, enabled = enabled, onClick = onClick)
         .graphicsLayer {
             scaleX = scale
             scaleY = scale
