@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import ru.raydroid.core.designsystem.component.RInteractiveDefaults
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -50,5 +51,11 @@ class RaydroidThemeTest {
         assertEquals(120, reduced.spec(RaydroidMotionToken.Default).durationMillis)
         assertEquals(0f, reduced.spec(RaydroidMotionToken.Default).scaleDelta)
         assertEquals(false, reduced.spec(RaydroidMotionToken.Emphasized).usesExpressiveSpatialMotion)
+    }
+
+    @Test
+    fun `interactive scale follows focused state`() {
+        assertEquals(1f, RInteractiveDefaults.targetScale(focused = false))
+        assertEquals(1.02f, RInteractiveDefaults.targetScale(focused = true))
     }
 }

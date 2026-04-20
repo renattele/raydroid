@@ -1,27 +1,22 @@
 package ru.raydroid.plugin.host.impl.presentation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import ru.raydroid.core.designsystem.RaydroidMotionToken
 import ru.raydroid.core.designsystem.RaydroidShapeToken
 import ru.raydroid.core.designsystem.RaydroidTheme
+import ru.raydroid.core.designsystem.component.RText
+import ru.raydroid.core.designsystem.component.rInteractable
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
@@ -44,7 +39,7 @@ fun SearchListItem(
     val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     Row(
         modifier
-            .interactable(focused = focused) { onClick() }
+            .rInteractable(focused = focused) { onClick() }
             .fillMaxWidth()
             .clip(shape)
             .padding(horizontal = spacing.medium, vertical = spacing.small),
@@ -66,14 +61,14 @@ fun SearchListItem(
             )
             val title = result.listEntry.title
             if (title != null) {
-                Text(
+                RText(
                     text = title.asText().highlight(result.titleMatches, highlightStyle),
                     fontSize = PluginFontSize.Large.toTextUnit()
                 )
             }
             val description = result.listEntry.description
             if (description != null) {
-                Text(
+                RText(
                     text = description.asText().highlight(result.descriptionMatches, highlightStyle),
                     fontSize = PluginFontSize.Small.toTextUnit(),
                     color = PluginColor.OutlineVariant.toColor()
@@ -94,7 +89,7 @@ fun CommandListItemView(
     val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     Row(
         modifier
-            .interactable(focused = focused) { onClick() }
+            .rInteractable(focused = focused) { onClick() }
             .fillMaxWidth()
             .clip(shape)
             .padding(horizontal = spacing.medium, vertical = spacing.small),

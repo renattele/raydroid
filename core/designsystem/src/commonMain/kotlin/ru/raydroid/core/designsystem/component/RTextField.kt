@@ -1,0 +1,76 @@
+package ru.raydroid.core.designsystem.component
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.text.TextStyle
+import ru.raydroid.core.designsystem.RaydroidTheme
+
+@Composable
+fun RTextField(
+    state: TextFieldState,
+    modifier: Modifier = Modifier,
+    textStyle: TextStyle = TextStyle(
+        color = RaydroidTheme.colorScheme.onSurface,
+        fontSize = RaydroidTheme.typographyScale.small
+    ),
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    onKeyboardAction: () -> Unit = {},
+    lineLimits: TextFieldLineLimits = TextFieldLineLimits.SingleLine,
+    cursorColor: Color = RaydroidTheme.colorScheme.primary,
+    contentPadding: PaddingValues = PaddingValues(RaydroidTheme.spacing.large),
+    contentModifier: Modifier = Modifier,
+    onPreviewKeyEvent: ((KeyEvent) -> Boolean)? = null,
+    placeholder: (@Composable BoxScope.() -> Unit)? = null,
+    trailingContent: (@Composable BoxScope.() -> Unit)? = null,
+) {
+    BasicTextField(
+        state,
+        modifier = modifier.then(
+            if (onPreviewKeyEvent != null) {
+                Modifier.onPreviewKeyEvent(onPreviewKeyEvent)
+            } else {
+                Modifier
+            }
+        ),
+        textStyle = textStyle,
+        keyboardOptions = keyboardOptions,
+        onKeyboardAction = {
+            onKeyboardAction()
+        },
+        lineLimits = lineLimits,
+        cursorBrush = SolidColor(cursorColor),
+        decorator = { content ->
+            Box {
+                Box(
+                    contentModifier
+                        .padding(contentPadding)
+                        .fillMaxWidth()
+                ) {
+                    content()
+                    if (state.text.isEmpty() && placeholder != null) {
+                        placeholder()
+                    }
+                }
+                if (trailingContent != null) {
+                    Box(Modifier.align(Alignment.CenterEnd)) {
+                        trailingContent()
+                    }
+                }
+            }
+        }
+    )
+}

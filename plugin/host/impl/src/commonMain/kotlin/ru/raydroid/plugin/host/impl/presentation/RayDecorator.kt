@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,6 +15,8 @@ import org.jetbrains.compose.resources.stringResource
 import raydroid.plugin.host.impl.generated.resources.Res
 import raydroid.plugin.host.impl.generated.resources.live_results_reference
 import ru.raydroid.core.designsystem.RaydroidTheme
+import ru.raydroid.core.designsystem.component.RText
+import ru.raydroid.core.designsystem.component.rInteractable
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
@@ -35,7 +36,7 @@ fun RayDecorator(
 ) {
     Column(
         modifier
-            .interactable(enabled = false, focused = focused) {}
+            .rInteractable(enabled = false, focused = focused) {}
             .clip(RaydroidTheme.shapes.medium)
             .background(RaydroidTheme.colorScheme.primaryContainer)
             .padding(RaydroidTheme.spacing.small)
@@ -61,7 +62,7 @@ fun RayDecorator(
                 )
             )
             Spacer(Modifier.weight(1f))
-            Text(stringResource(Res.string.live_results_reference, pluginName.asText()))
+            RText(stringResource(Res.string.live_results_reference, pluginName.asText()))
         }
     }
 }
@@ -81,7 +82,7 @@ private fun RayDecoratorPreview() {
             focused = false,
             Modifier.fillMaxWidth()
         ) {
-            Text("Hello")
+            RText("Hello")
         }
     }
 }

@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -17,6 +15,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.intl.Locale
 import coil3.compose.AsyncImage
+import ru.raydroid.core.designsystem.component.RIcon
+import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginAlignment
@@ -165,7 +165,7 @@ internal fun IconRenderer(data: PluginIconData, modifier: Modifier = Modifier) {
             modifier = modifier.size(data.size.toDp()),
             colorFilter = data.color?.let { color -> ColorFilter.tint(color.toColor()) }
         )
-        is ResolvedPluginIcon.Vector -> Icon(
+        is ResolvedPluginIcon.Vector -> RIcon(
             imageVector = resource.imageVector,
             contentDescription = data.contentDescription,
             modifier = modifier.size(data.size.toDp()),
@@ -255,7 +255,7 @@ private fun PluginArrangement.toComposeVerticalArrangement() = when (this) {
 
 @Composable
 internal fun TextRenderer(data: PluginTextData, modifier: Modifier = Modifier) {
-    Text(
+    RText(
         text = data.text.asText(),
         modifier = modifier,
         fontSize = data.fontSize.toTextUnit(),

@@ -2,8 +2,6 @@ package ru.raydroid.plugin.host.impl.presentation
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,36 +12,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.dropShadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.raydroid.core.designsystem.RaydroidMotionToken
 import ru.raydroid.core.designsystem.RaydroidShapeToken
 import ru.raydroid.core.designsystem.RaydroidTheme
+import ru.raydroid.core.designsystem.component.RDivider
+import ru.raydroid.core.designsystem.component.RIcon
+import ru.raydroid.core.designsystem.component.RKeyHint
+import ru.raydroid.core.designsystem.component.RLoadingIndicator
+import ru.raydroid.core.designsystem.component.RPopupSurface
+import ru.raydroid.core.designsystem.component.rInteractable
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.event.NotificationEvent
@@ -137,15 +131,15 @@ private fun Action(
                         fontSize = PluginFontSize.ExtraSmall
                     )
                 )
-                KeyHint {
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardReturn,
+                RKeyHint {
+                    RIcon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
                         contentDescription = null,
-                        Modifier.size(PluginIconSize.ExtraSmall.toDp()),
+                        modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
                         tint = PluginColor.OnPrimaryContainer.toColor()
                     )
                 }
-                KeyHint(
+                RKeyHint(
                     onClick = onToggleActions,
                     color = if (showActions) {
                         PluginColor.Tertiary.toColor()
@@ -153,10 +147,10 @@ private fun Action(
                         PluginColor.TertiaryContainer.toColor()
                     }
                 ) {
-                    Icon(
-                        Icons.Filled.KeyboardArrowUp,
+                    RIcon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
                         contentDescription = null,
-                        Modifier.size(PluginIconSize.ExtraSmall.toDp()),
+                        modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
                         tint = if (showActions) {
                             PluginColor.OnTertiary.toColor()
                         } else {
@@ -190,32 +184,27 @@ fun ActionsPanelOverlay(
         exit = motion.popupExit(TransformOrigin(1f, 1f)),
         modifier = modifier
     ) {
-        LazyColumn(
-            Modifier
+        RPopupSurface(
+            modifier = Modifier
                 .padding(popupRadius)
-                .dropShadow(
-                    popupShape,
-                    shadow = Shadow(
-                        color = RaydroidTheme.colorScheme.outline,
-                        radius = RaydroidTheme.spacing.extraSmall
-                    )
-                )
-                .clip(popupShape)
-                .background(PluginColor.SurfaceBright.toColor())
                 .heightIn(max = PopupHeight)
-                .width(PopupWidth)
+                .width(PopupWidth),
+            shape = popupShape,
+            color = PluginColor.SurfaceBright.toColor()
         ) {
-            itemsIndexed(groupedActions) { index, (groupName, actionsList) ->
-                Column(
-                    Modifier.padding(RaydroidTheme.spacing.small),
-                    verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
-                ) {
-                    actionsList.forEach { action ->
-                        ActionsPopupAction(action, onClick = { onActionClick(action) })
+            LazyColumn {
+                itemsIndexed(groupedActions) { index, (groupName, actionsList) ->
+                    Column(
+                        Modifier.padding(RaydroidTheme.spacing.small),
+                        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+                    ) {
+                        actionsList.forEach { action ->
+                            ActionsPopupAction(action, onClick = { onActionClick(action) })
+                        }
                     }
-                }
-                if (index != groupedActions.lastIndex) {
-                    HorizontalDivider()
+                    if (index != groupedActions.lastIndex) {
+                        RDivider()
+                    }
                 }
             }
         }
@@ -236,7 +225,7 @@ private fun ActionsPopupAction(
     Row(
         modifier
             .fillMaxWidth()
-            .interactable {
+            .rInteractable {
                 onClick()
             }
             .background(PluginColor.Surface.toColor())
@@ -261,72 +250,44 @@ private fun ActionsPopupAction(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun Toast(toast: NotificationEvent.Toast, modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .width(PopupWidth)
-            .dropShadow(
-                RaydroidTheme.shapes.medium,
-                shadow = Shadow(
-                    color = RaydroidTheme.colorScheme.outline,
-                    radius = RaydroidTheme.spacing.extraSmall
-                )
-            )
-            .clip(RaydroidTheme.shapes.medium)
-            .background(RaydroidTheme.colorScheme.surfaceBright)
-            .padding(RaydroidTheme.spacing.small),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+    RPopupSurface(
+        modifier = modifier.width(PopupWidth),
+        shape = RaydroidTheme.shapes.medium,
+        color = RaydroidTheme.colorScheme.surfaceBright
     ) {
-        CompositionLocalProvider(LocalContentColor provides PluginColor.OnTertiaryContainer.toColor()) {
-            Box(
-                modifier = Modifier,
-                contentAlignment = Alignment.Center
-            ) {
-                when (toast.style) {
-                    NotificationEvent.Toast.Style.Animated -> CircularWavyProgressIndicator(
-                        Modifier.size(PluginIconSize.Small.toDp())
-                    )
+        Row(
+            Modifier.padding(RaydroidTheme.spacing.small),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+        ) {
+            CompositionLocalProvider(LocalContentColor provides PluginColor.OnTertiaryContainer.toColor()) {
+                Box(
+                    modifier = Modifier,
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (toast.style) {
+                        NotificationEvent.Toast.Style.Animated -> RLoadingIndicator(
+                            Modifier.size(PluginIconSize.Small.toDp())
+                        )
 
-                    NotificationEvent.Toast.Style.Success -> Icon(
-                        Icons.Default.Done,
-                        contentDescription = null,
-                        Modifier.size(PluginIconSize.Small.toDp())
-                    )
+                        NotificationEvent.Toast.Style.Success -> RIcon(
+                            imageVector = Icons.Default.Done,
+                            contentDescription = null,
+                            modifier = Modifier.size(PluginIconSize.Small.toDp())
+                        )
 
-                    NotificationEvent.Toast.Style.Failure -> Icon(
-                        Icons.Default.Close,
-                        contentDescription = null,
-                        Modifier.size(PluginIconSize.Small.toDp())
-                    )
+                        NotificationEvent.Toast.Style.Failure -> RIcon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(PluginIconSize.Small.toDp())
+                        )
+                    }
                 }
+                TextRenderer(PluginTextData(toast.message, fontSize = PluginFontSize.Small))
             }
-            TextRenderer(PluginTextData(toast.message, fontSize = PluginFontSize.Small))
         }
-    }
-}
-
-@Composable
-private fun KeyHint(
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    color: Color = PluginColor.PrimaryContainer.toColor(),
-    content: @Composable () -> Unit
-) {
-    val spacing = RaydroidTheme.spacing
-    val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Small)
-    Box(
-        modifier
-            .clip(shape)
-            .clickable(enabled = onClick != null) {
-                onClick?.invoke()
-            }
-            .background(color)
-            .padding(spacing.small)
-    ) {
-        content()
     }
 }
 

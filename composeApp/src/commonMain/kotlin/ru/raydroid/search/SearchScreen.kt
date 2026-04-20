@@ -12,11 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,6 +25,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
 import ru.raydroid.core.designsystem.RaydroidTheme
+import ru.raydroid.core.designsystem.component.RAlertDialog
+import ru.raydroid.core.designsystem.component.RButton
+import ru.raydroid.core.designsystem.component.RText
+import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
@@ -55,7 +54,6 @@ fun SearchScreen(modifier: Modifier = Modifier) {
     SearchScreen(state, modifier)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
     ResourceResolverProvider(state.plugins) {
@@ -79,35 +77,35 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 }
             }
             state.alerts.forEach { alert ->
-                AlertDialog(
+                RAlertDialog(
                     onDismissRequest = {
                         if (alert.dismissAction != null) {
                             state.eventSink(SearchScreenEvent.DismissAlert(alert))
                         }
                     },
                     confirmButton = {
-                        Button(onClick = {
+                        RButton(onClick = {
                             state.eventSink(SearchScreenEvent.ConfirmAlert(alert))
                         }) {
-                            Text(alert.confirmAction.title.asText())
+                            RText(alert.confirmAction.title.asText())
                         }
                     },
                     dismissButton = if (alert.dismissAction != null) {
                         {
-                            TextButton(onClick = {
+                            RTextButton(onClick = {
                                 state.eventSink(SearchScreenEvent.DismissAlert(alert))
                             }) {
-                                Text(alert.dismissAction!!.title.asText())
+                                RText(alert.dismissAction!!.title.asText())
                             }
                         }
                     } else {
                         null
                     },
                     title = {
-                        Text(alert.title.asText())
+                        RText(alert.title.asText())
                     },
                     text = {
-                        Text(alert.message.asText())
+                        RText(alert.message.asText())
                     }
                 )
             }
@@ -153,13 +151,13 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     }
                 }
                 if (state.searchResults == null && state.isSearching) {
-                    Text(
+                    RText(
                         text = "Searching...",
                         modifier = Modifier.align(Alignment.Center),
                         color = RaydroidTheme.colorScheme.onBackground
                     )
                 } else if (state.searchResults?.results?.isEmpty() == true && !state.isSearching) {
-                    Text(
+                    RText(
                         text = "No results",
                         modifier = Modifier.align(Alignment.Center),
                         color = RaydroidTheme.colorScheme.onBackground
