@@ -4,6 +4,7 @@ import app.cash.zipline.ZiplineService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.serialization.Serializable
+import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandActionScope
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
@@ -15,6 +16,12 @@ import ru.raydroid.plugin.api.ui.Ray
 sealed class CommandAction {
     @Serializable
     data class Enter(val hoveredId: CommandItemId) : CommandAction()
+
+    @Serializable
+    data class ExecuteAction(
+        val itemId: CommandItemId,
+        val actionId: CommandActionId
+    ) : CommandAction()
 
     @Serializable
     class Type : CommandAction()

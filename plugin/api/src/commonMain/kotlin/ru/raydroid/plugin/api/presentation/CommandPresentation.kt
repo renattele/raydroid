@@ -22,6 +22,10 @@ value class CommandItemId(val value: String) {
 }
 
 @Serializable
+@JvmInline
+value class CommandActionId(val value: String)
+
+@Serializable
 data class CommandListItem(
     val id: CommandItemId,
     val icon: Icon?,
@@ -32,7 +36,7 @@ data class CommandListItem(
 
 @Serializable
 data class CommandListAction(
-    val id: String,
+    val id: CommandActionId,
     val title: UiText,
     val description: UiText?,
     val icon: Icon?,
@@ -65,6 +69,25 @@ interface CommandActionScope {
     @Ray
     fun action(
         id: String,
+        title: UiText,
+        icon: Icon? = null,
+        description: UiText? = null,
+        style: CommandListAction.Style = CommandListAction.Style.Default,
+        primary: Boolean = false
+    ) {
+        action(
+            id = CommandActionId(id),
+            title = title,
+            icon = icon,
+            description = description,
+            style = style,
+            primary = primary
+        )
+    }
+
+    @Ray
+    fun action(
+        id: CommandActionId,
         title: UiText,
         icon: Icon? = null,
         description: UiText? = null,

@@ -168,8 +168,8 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         ActionsPanelOverlay(
                             focusedItem = focusedItem,
                             visible = state.showActions,
-                            onActionClick = {
-
+                            onActionClick = { action ->
+                                state.eventSink(SearchScreenEvent.EnterAction(action))
                             }
                         )
                     }

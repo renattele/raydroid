@@ -27,6 +27,8 @@ import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenItemUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
+import ru.raydroid.plugin.host.api.event.NotificationEvent.*
+import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.impl.presentation.SearchFieldState
 
@@ -129,9 +131,7 @@ class SearchViewModel(
                 is SearchScreenEvent.Enter -> {
                     val state = _state.value
                     val openResultId =
-                        event.resultId ?: state.focusedItemIndex?.let { focusedItemIndex ->
-                            state.searchResults?.results[focusedItemIndex]?.resultId
-                        }
+                        event.resultId ?: state.focusedResultId()
                     if (openResultId == null) {
                         return@launch
                     }
@@ -195,7 +195,7 @@ class SearchViewModel(
                     }
                     emitEventUseCase.invoke(
                         event.alert.pluginId,
-                        NotificationEvent.AlertResult(NotificationEvent.Selection.Dismiss)
+                        AlertResult(NotificationEvent.Selection.Dismiss)
                     )
                 }
 
@@ -207,7 +207,7 @@ class SearchViewModel(
                     }
                     emitEventUseCase.invoke(
                         event.alert.pluginId,
-                        NotificationEvent.AlertResult(NotificationEvent.Selection.Confirm)
+                        AlertResult(NotificationEvent.Selection.Confirm)
                     )
                 }
 
@@ -217,6 +217,16 @@ class SearchViewModel(
                             toasts = state.toasts - event.toast
                         )
                     }
+                }
+
+                is SearchScreenEvent.EnterAction -> {
+                    val state = _state.value
+                    val openResultId = state.focusedResultId() ?: return@launch
+                    openItemUseCase(
+                        state.searchFieldState.fieldState.text.toString(),
+                        openResultId,
+                        event.action.id
+                    )
                 }
             }
             println("After state: ${_state.value}")
@@ -238,10 +248,16 @@ data class SearchScreenState(
     val eventSink: (SearchScreenEvent) -> Unit
 )
 
+private fun SearchScreenState.focusedResultId(): SearchResultId? =
+    focusedItemIndex?.let { itemIndex ->
+        searchResults?.results?.getOrNull(itemIndex)?.resultId
+    }
+
 @Immutable
 sealed interface SearchScreenEvent {
     data class QueryChanged(val query: String) : SearchScreenEvent
     data class Enter(val resultId: SearchResultId? = null) : SearchScreenEvent
+    data class EnterAction(val action: PluginCommandListAction) : SearchScreenEvent
     data object MoveFocusPrevious : SearchScreenEvent
     data object MoveFocusNext : SearchScreenEvent
     data object ToggleActions : SearchScreenEvent

@@ -15,6 +15,7 @@ import ru.raydroid.plugin.api.manifest.Command
 import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.manifest.Platform
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
@@ -223,6 +224,43 @@ class PluginHostArchitectureTest {
         val update = runtime.updates.single()
         assertEquals("calc", update.first)
         assertEquals(CommandAction.Enter(CommandItemId("item-1")), update.second)
+        assertEquals(resultId, searchRepository.lastUpdatedUsage)
+    }
+
+    @Test
+    fun `open item use case dispatches command list action and updates usage`() = runTest {
+        val runtime = FakePluginRuntime(manifest = testManifest())
+        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
+        val searchRepository = RecordingSearchIndexRepository()
+        val useCase = OpenItemUseCase(
+            pluginRuntimeRegistry = object : PluginRuntimeRegistry {
+                override suspend fun load(runtime: PluginRuntime) = Unit
+                override suspend fun unload(runtime: PluginRuntime) = Unit
+                override fun get(): PluginRuntimeCoordinator = coordinator
+            },
+            searchIndexRepository = searchRepository,
+        )
+        val resultId = SearchResultId(
+            pluginId = runtime.pluginId,
+            commandName = "apps",
+            itemId = CommandItemId("item-1"),
+        )
+
+        useCase(
+            query = "calc",
+            resultId = resultId,
+            actionId = CommandActionId("delete")
+        )
+
+        val update = runtime.updates.single()
+        assertEquals("calc", update.first)
+        assertEquals(
+            CommandAction.ExecuteAction(
+                itemId = CommandItemId("item-1"),
+                actionId = CommandActionId("delete")
+            ),
+            update.second
+        )
         assertEquals(resultId, searchRepository.lastUpdatedUsage)
     }
 

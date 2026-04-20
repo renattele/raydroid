@@ -2,6 +2,7 @@ package ru.raydroid.plugin.api.runtime
 
 import kotlinx.coroutines.flow.Flow
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandActionScope
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListAction
@@ -99,7 +100,7 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
                 }
 
                 override fun action(
-                    id: String,
+                    id: CommandActionId,
                     title: UiText,
                     icon: Icon?,
                     description: UiText?,

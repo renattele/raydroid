@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.host.impl
 
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
@@ -24,7 +25,7 @@ class PluginUiMapperTest {
             description = UiText.Plain("Description"),
             actions = listOf(
                 CommandListAction(
-                    id = "delete",
+                    id = CommandActionId("delete"),
                     title = UiText.Plain("Delete"),
                     description = null,
                     icon = null,
@@ -35,7 +36,7 @@ class PluginUiMapperTest {
 
         val mapped = item.toPluginCommandListItem(pluginId)
 
-        assertEquals("delete", mapped.actions.single().id)
+        assertEquals(CommandActionId("delete"), mapped.actions.single().id)
         assertEquals(PluginCommandListAction.Style.Destructive, mapped.actions.single().style)
     }
 
