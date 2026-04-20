@@ -1,10 +1,18 @@
 package ru.raydroid.plugin.host.impl.data.search
 
+import ru.raydroid.plugin.api.manifest.Resources
+import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.RankedSearchResult
+import ru.raydroid.plugin.host.api.domain.model.SearchResultId
+import ru.raydroid.plugin.host.api.domain.model.SearchResultScore
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
+import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
+import ru.raydroid.plugin.host.api.domain.service.SearchResultRanker
+import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheSearchEntity
+import ru.raydroid.plugin.host.impl.resource.resolveStringVariants
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.ln
@@ -12,34 +20,40 @@ import kotlin.math.max
 import kotlin.math.min
 
 internal interface SearchRanker {
-    fun rank(
-        query: NormalizedText,
+    fun rankCached(
+        query: SearchQuery,
         ftsCandidates: List<SearchIndexCacheSearchEntity>,
         fallbackCandidates: List<SearchIndexCacheSearchEntity>,
         limit: Int,
         nowEpochMs: Long
-    ): List<SearchResultSet.SearchResult>
+    ): List<RankedSearchResult>
+
+    fun rankRecent(
+        candidates: List<SearchIndexCacheSearchEntity>,
+        limit: Int,
+        nowEpochMs: Long
+    ): List<RankedSearchResult>
 }
 
-internal class CachedSearchRanker : SearchRanker {
-    override fun rank(
-        query: NormalizedText,
+internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
+    override fun rankCached(
+        query: SearchQuery,
         ftsCandidates: List<SearchIndexCacheSearchEntity>,
         fallbackCandidates: List<SearchIndexCacheSearchEntity>,
         limit: Int,
         nowEpochMs: Long
-    ): List<SearchResultSet.SearchResult> {
+    ): List<RankedSearchResult> {
         val desiredCandidates = min(max(limit * RANKING_MULTIPLIER, limit), MAX_CANDIDATES)
         val candidates = selectCandidates(
-            ftsCandidates = ftsCandidates,
+            primaryCandidates = ftsCandidates,
             fallbackCandidates = fallbackCandidates,
             desiredCandidates = desiredCandidates
         )
-        val bestByItem = linkedMapOf<SearchItemKey, ScoredCandidate>()
+        val bestByItem = linkedMapOf<SearchItemKey, ScoredCachedCandidate>()
 
         candidates.forEach { candidate ->
-            val score = scoreCandidate(query = query, candidate = candidate, nowEpochMs = nowEpochMs)
-            if (!score.matched) return@forEach
+            val score = scoreCachedCandidate(query = query, candidate = candidate, nowEpochMs = nowEpochMs)
+            if (!score.score.matched) return@forEach
 
             val key = SearchItemKey(
                 pluginId = candidate.pluginId,
@@ -47,105 +61,263 @@ internal class CachedSearchRanker : SearchRanker {
                 itemId = candidate.itemId
             )
             val previous = bestByItem[key]
-            if (previous == null || scoredCandidateComparator.compare(score, previous) < 0) {
+            if (previous == null || rankedComparator.compare(score.ranked, previous.ranked) < 0) {
                 bestByItem[key] = score
             }
         }
 
         return bestByItem.values
-            .sortedWith(scoredCandidateComparator)
+            .map { it.ranked }
+            .sortedWith(rankedComparator)
             .take(limit)
-            .map { score ->
-                SearchResultSet.CachedSearchResult(
-                    resultId = SearchResultId(
-                        pluginId = PluginId(score.candidate.pluginId),
-                        commandName = score.candidate.command,
-                        itemId = CommandItemId(score.candidate.itemId)
-                    ),
-                    listEntry = score.candidate.toPluginListEntry(),
-                    titleMatches = score.titleMatches,
-                    descriptionMatches = score.descriptionMatches
+    }
+
+    override fun rankRecent(
+        candidates: List<SearchIndexCacheSearchEntity>,
+        limit: Int,
+        nowEpochMs: Long
+    ): List<RankedSearchResult> {
+        return candidates
+            .distinctBy { candidate -> SearchItemKey(candidate.pluginId, candidate.command, candidate.itemId) }
+            .mapIndexed { index, candidate ->
+                RankedSearchResult(
+                    result = candidate.toCachedSearchResult(emptyList(), emptyList()),
+                    score = SearchResultScore(
+                        textScore = 0.0,
+                        usageBoost = usageBoost(
+                            lastUsedAtEpochMs = candidate.lastUsedAtEpochMs,
+                            usageCount = candidate.usageCount,
+                            nowEpochMs = nowEpochMs
+                        ),
+                        stableOrder = index.toLong()
+                    )
                 )
             }
+            .sortedWith(rankedComparator)
+            .take(limit)
     }
 
-    private fun scoreCandidate(
-        query: NormalizedText,
+    override fun rankLive(
+        query: String,
+        contentSnapshot: List<PluginRuntimeCoordinator.ContentItem>,
+        limit: Int
+    ): List<RankedSearchResult> {
+        val normalizedQuery = SearchQueryNormalizer.from(query)
+        if (contentSnapshot.isEmpty()) return emptyList()
+
+        return contentSnapshot
+            .mapIndexedNotNull { index, contentItem ->
+                val command = contentItem.runtime.manifest.commands
+                    .firstOrNull { command -> command.service == contentItem.resultId.commandName }
+                val commandMatch = command?.match
+                val regexBoost = if (commandMatch == null) {
+                    0.0
+                } else {
+                    matchRegexBoost(match = commandMatch, rawQuery = query)
+                        ?: return@mapIndexedNotNull null
+                }
+                val resources = contentItem.runtime.manifest.resources
+                val pluginTexts = contentItem.runtime.manifest.title.resolve(resources)
+                val commandTitleTexts = command?.title.resolve(resources)
+                val commandDescriptionTexts = command?.description.resolve(resources)
+                val titleTexts = contentItem.listEntry.title.resolve(resources)
+                val descriptionTexts = contentItem.listEntry.description.resolve(resources)
+                val fields = buildList {
+                    titleTexts.forEach { add(SearchFieldInput(it, FieldWeight.LiveTitle)) }
+                    commandTitleTexts.forEach { add(SearchFieldInput(it, FieldWeight.CommandTitle)) }
+                    pluginTexts.forEach { add(SearchFieldInput(it, FieldWeight.PluginTitle)) }
+                    commandDescriptionTexts.forEach { add(SearchFieldInput(it, FieldWeight.CommandDescription)) }
+                    descriptionTexts.forEach { add(SearchFieldInput(it, FieldWeight.LiveDescription)) }
+                    add(SearchFieldInput(contentItem.resultId.commandName, FieldWeight.CommandName))
+                    add(SearchFieldInput(contentItem.resultId.pluginId.id, FieldWeight.PluginId))
+                }
+                val scored = scoreFields(
+                    query = normalizedQuery,
+                    fields = fields,
+                    usageBoost = LIVE_SOURCE_BOOST + regexBoost,
+                    live = true,
+                    stableOrder = index.toLong()
+                )
+                val score: SearchResultScore? = if (!scored.matched && regexBoost > 0.0) {
+                    SearchResultScore(
+                        textScore = LIVE_REGEX_BOOST,
+                        usageBoost = LIVE_SOURCE_BOOST,
+                        live = true,
+                        titleMatch = true,
+                        stableOrder = index.toLong()
+                    )
+                } else if (!scored.matched && normalizedQuery.isBlank) {
+                    SearchResultScore(
+                        textScore = LIVE_EMPTY_QUERY_SCORE + regexBoost,
+                        usageBoost = LIVE_SOURCE_BOOST,
+                        live = true,
+                        stableOrder = index.toLong()
+                    )
+                } else if (scored.matched) {
+                    scored.toSearchResultScore(live = true, stableOrder = index.toLong())
+                } else {
+                    null
+                }
+                score?.let { liveScore ->
+                    RankedSearchResult(
+                        result = SearchResultSet.LiveSearchResult(
+                            resultId = contentItem.resultId,
+                            listEntry = contentItem.listEntry,
+                            presentation = contentItem.presentation
+                        ),
+                        score = liveScore
+                    )
+                }
+            }
+            .sortedWith(rankedComparator)
+            .take(limit)
+    }
+
+    override fun merge(
+        liveResults: List<RankedSearchResult>,
+        cachedResults: List<RankedSearchResult>,
+        limit: Int
+    ): List<SearchResultSet.SearchResult> {
+        val bestById = linkedMapOf<SearchResultId, RankedSearchResult>()
+        (liveResults + cachedResults).forEach { candidate ->
+            val previous = bestById[candidate.result.resultId]
+            if (
+                previous == null ||
+                candidate.result is SearchResultSet.LiveSearchResult && previous.result !is SearchResultSet.LiveSearchResult ||
+                rankedComparator.compare(candidate, previous) < 0
+            ) {
+                bestById[candidate.result.resultId] = candidate
+            }
+        }
+
+        return bestById.values
+            .sortedWith(rankedComparator)
+            .take(limit)
+            .map { it.result }
+    }
+
+    private fun scoreCachedCandidate(
+        query: SearchQuery,
         candidate: SearchIndexCacheSearchEntity,
         nowEpochMs: Long
-    ): ScoredCandidate {
-        val titleMatch = scoreField(
+    ): ScoredCachedCandidate {
+        val scored = scoreFields(
             query = query,
-            rawText = candidate.title
+            fields = listOf(
+                SearchFieldInput(candidate.title, FieldWeight.CachedTitle),
+                SearchFieldInput(candidate.description, FieldWeight.CachedDescription)
+            ),
+            usageBoost = usageBoost(
+                lastUsedAtEpochMs = candidate.lastUsedAtEpochMs,
+                usageCount = candidate.usageCount,
+                nowEpochMs = nowEpochMs
+            ),
+            live = false,
+            stableOrder = candidate.contentId
         )
-        val descriptionMatch = scoreField(
-            query = query,
-            rawText = candidate.description
+        val ranked = RankedSearchResult(
+            result = candidate.toCachedSearchResult(
+                titleMatches = scored.matches[FieldWeight.CachedTitle].orEmpty(),
+                descriptionMatches = scored.matches[FieldWeight.CachedDescription].orEmpty()
+            ),
+            score = scored.toSearchResultScore(live = false, stableOrder = candidate.contentId)
         )
-        val bestField = listOf(titleMatch, descriptionMatch).minWithOrNull(fieldComparator)
-            ?: FieldMatch.Unmatched
-        val usageBoost = usageBoost(
-            lastUsedAtEpochMs = candidate.lastUsedAtEpochMs,
-            usageCount = candidate.usageCount,
-            nowEpochMs = nowEpochMs
-        )
-
-        return ScoredCandidate(
-            candidate = candidate,
-            matched = bestField.matched,
-            baseScore = bestField.baseScore,
-            editDistance = bestField.editDistance,
-            usageBoost = usageBoost,
-            isTitleMatch = fieldComparator.compare(titleMatch, descriptionMatch) <= 0,
-            fieldLength = bestField.fieldLength,
-            exact = bestField.exact,
-            prefix = bestField.prefix,
-            titleMatches = titleMatch.ranges,
-            descriptionMatches = descriptionMatch.ranges
-        )
+        return ScoredCachedCandidate(score = scored, ranked = ranked)
     }
 
-    private fun scoreField(
-        query: NormalizedText,
-        rawText: String?
-    ): FieldMatch {
+    private fun scoreFields(
+        query: SearchQuery,
+        fields: List<SearchFieldInput>,
+        usageBoost: Double,
+        live: Boolean,
+        stableOrder: Long
+    ): ScoredFields {
+        if (query.isBlank) {
+            return ScoredFields.Unmatched
+        }
+
+        val matches = linkedMapOf<FieldWeight, List<IntRange>>()
+        val best = fields
+            .mapNotNull { input ->
+                scoreField(query = query, rawText = input.text)
+                    .takeIf { it.matched }
+                    ?.let { match ->
+                        matches[input.weight] = match.ranges
+                        match.copy(
+                            baseScore = match.baseScore + input.weight.boost,
+                            weightTitleMatch = input.weight.titleLike
+                        )
+                    }
+            }
+            .minWithOrNull(fieldComparator)
+
+        return if (best == null) {
+            ScoredFields.Unmatched
+        } else {
+            ScoredFields(
+                matched = true,
+                textScore = best.baseScore,
+                editDistance = best.editDistance,
+                usageBoost = usageBoost,
+                exact = best.exact,
+                prefix = best.prefix,
+                titleMatch = best.weightTitleMatch,
+                fieldLength = best.fieldLength,
+                matches = matches,
+                live = live,
+                stableOrder = stableOrder
+            )
+        }
+    }
+
+    private fun scoreField(query: SearchQuery, rawText: String?): FieldMatch {
         if (rawText.isNullOrEmpty()) return FieldMatch.Unmatched
         val field = NormalizedText.from(rawText)
         if (field.text.isEmpty()) return FieldMatch.Unmatched
 
-        val exactIndex = field.text.indexOf(query.text)
+        val acronym = SearchQueryNormalizer.acronym(field)
+        if (query.normalized.text.length >= 2 && acronym.startsWith(query.normalized.text)) {
+            return FieldMatch(
+                matched = true,
+                baseScore = if (acronym == query.normalized.text) 185.0 else 172.0,
+                editDistance = 0,
+                ranges = acronymRanges(field, query.normalized.text.length),
+                fieldLength = field.text.length,
+                exact = acronym == query.normalized.text,
+                prefix = true,
+                matchedAllTokens = true
+            )
+        }
+
+        val exactIndex = field.text.indexOf(query.normalized.text)
         if (exactIndex >= 0) {
-            val range = field.toOriginalRanges(listOf(exactIndex..(exactIndex + query.text.lastIndex)))
+            val range = field.toOriginalRanges(listOf(exactIndex..(exactIndex + query.normalized.text.lastIndex)))
             return FieldMatch(
                 matched = true,
                 baseScore = when {
-                    field.text == query.text -> 220.0
-                    exactIndex == 0 -> 190.0
-                    else -> 165.0
+                    field.text == query.normalized.text -> 240.0
+                    exactIndex == 0 -> 210.0
+                    else -> 170.0
                 },
                 editDistance = 0,
                 ranges = range,
                 fieldLength = field.text.length,
-                exact = field.text == query.text,
+                exact = field.text == query.normalized.text,
                 prefix = exactIndex == 0
             )
         }
 
         val tokenMatch = scoreTokenCoverage(query = query, field = field)
-        if (tokenMatch.matchedAllTokens) {
-            return tokenMatch
-        }
+        if (tokenMatch.matchedAllTokens) return tokenMatch
 
         val subsequenceMatch = scoreOrderedSubsequence(query = query, field = field)
-        if (subsequenceMatch != null) {
-            return subsequenceMatch
-        }
+        if (subsequenceMatch != null) return subsequenceMatch
 
         val bestWindow = bestAlignmentWindow(query = query, field = field)
-        if (bestWindow != null) {
+        if (bestWindow != null && !query.isShort) {
             return FieldMatch(
                 matched = true,
-                baseScore = 120.0 - bestWindow.distance * 10.0 + bestWindow.coverageBonus,
+                baseScore = 118.0 - bestWindow.distance * 10.0 + bestWindow.coverageBonus,
                 editDistance = bestWindow.distance,
                 ranges = field.toOriginalRanges(bestWindow.ranges),
                 fieldLength = field.text.length,
@@ -157,16 +329,12 @@ internal class CachedSearchRanker : SearchRanker {
         return tokenMatch.takeIf { it.matched } ?: FieldMatch.Unmatched
     }
 
-    private fun scoreOrderedSubsequence(
-        query: NormalizedText,
-        field: NormalizedText
-    ): FieldMatch? {
-        if (query.text.isEmpty() || field.text.isEmpty()) return null
+    private fun scoreOrderedSubsequence(query: SearchQuery, field: NormalizedText): FieldMatch? {
+        if (query.normalized.text.length < 2 || field.text.isEmpty()) return null
 
         val matchedPositions = mutableListOf<Int>()
         var searchFrom = 0
-
-        query.text.forEach { queryChar ->
+        query.normalized.text.forEach { queryChar ->
             val nextIndex = field.text.indexOf(queryChar, startIndex = searchFrom)
             if (nextIndex < 0) return null
             matchedPositions += nextIndex
@@ -177,8 +345,8 @@ internal class CachedSearchRanker : SearchRanker {
             .zipWithNext { left, right -> max(0, right - left - 1) }
             .sum()
         val startPenalty = matchedPositions.firstOrNull() ?: 0
-        val coverageBonus = query.text.length.toDouble() / field.text.length.coerceAtLeast(1)
-        val baseScore = 140.0 +
+        val coverageBonus = query.normalized.text.length.toDouble() / field.text.length.coerceAtLeast(1)
+        val baseScore = 136.0 +
             coverageBonus * 12.0 -
             gapPenalty * 3.0 -
             startPenalty * 2.0
@@ -194,23 +362,20 @@ internal class CachedSearchRanker : SearchRanker {
         )
     }
 
-    private fun scoreTokenCoverage(
-        query: NormalizedText,
-        field: NormalizedText
-    ): FieldMatch {
-        if (query.tokens.isEmpty() || field.tokenRanges.isEmpty()) return FieldMatch.Unmatched
+    private fun scoreTokenCoverage(query: SearchQuery, field: NormalizedText): FieldMatch {
+        if (query.normalized.tokens.isEmpty() || field.tokenRanges.isEmpty()) return FieldMatch.Unmatched
 
         val ranges = mutableListOf<IntRange>()
         var matchedTokens = 0
         var prefixMatches = 0
 
-        query.tokens.forEach { queryToken ->
+        query.normalized.tokens.forEach { queryToken ->
             val match = field.tokenRanges.firstNotNullOfOrNull { tokenRange ->
-                val tokenText = field.text.substring(tokenRange)
+                val tokenText = field.text.substring(range = tokenRange)
                 when {
                     tokenText == queryToken -> tokenRange to true
                     tokenText.startsWith(queryToken) -> tokenRange.first..(tokenRange.first + queryToken.lastIndex) to true
-                    tokenText.contains(queryToken) -> {
+                    queryToken.length >= 2 && tokenText.contains(queryToken) -> {
                         val startIndex = tokenText.indexOf(queryToken)
                         (tokenRange.first + startIndex)..(tokenRange.first + startIndex + queryToken.lastIndex) to false
                     }
@@ -219,23 +384,20 @@ internal class CachedSearchRanker : SearchRanker {
             } ?: return@forEach
 
             matchedTokens += 1
-            if (match.second) {
-                prefixMatches += 1
-            }
+            if (match.second) prefixMatches += 1
             ranges += match.first
         }
 
         if (matchedTokens == 0) return FieldMatch.Unmatched
-
-        val matchedAllTokens = matchedTokens == query.tokens.size
+        val matchedAllTokens = matchedTokens == query.normalized.tokens.size
         return FieldMatch(
             matched = true,
             baseScore = if (matchedAllTokens) {
-                150.0 + matchedTokens * 4.0 + prefixMatches * 3.0
+                158.0 + matchedTokens * 4.0 + prefixMatches * 3.0
             } else {
-                80.0 + matchedTokens * 3.0 + prefixMatches * 2.0
+                78.0 + matchedTokens * 3.0 + prefixMatches * 2.0
             },
-            editDistance = max(query.tokens.size - matchedTokens, 0),
+            editDistance = max(query.normalized.tokens.size - matchedTokens, 0),
             ranges = field.toOriginalRanges(mergeRanges(ranges)),
             fieldLength = field.text.length,
             exact = false,
@@ -244,18 +406,15 @@ internal class CachedSearchRanker : SearchRanker {
         )
     }
 
-    private fun bestAlignmentWindow(
-        query: NormalizedText,
-        field: NormalizedText
-    ): WindowAlignment? {
-        if (query.text.isEmpty() || field.text.isEmpty()) return null
-        val maxDistance = max(1, query.text.length / 3)
+    private fun bestAlignmentWindow(query: SearchQuery, field: NormalizedText): WindowAlignment? {
+        if (query.normalized.text.length < 3 || field.text.isEmpty()) return null
+        val maxDistance = max(1, query.normalized.text.length / 3)
         var bestAlignment: WindowAlignment? = null
 
-        candidateWindows(field = field, queryTokenCount = query.tokens.size).forEach { window ->
-            val text = field.text.substring(window)
+        candidateWindows(field = field, queryTokenCount = query.normalized.tokens.size).forEach { window ->
+            val text = field.text.substring(range = window)
             val alignment = editDistanceAlignment(
-                query = query.text,
+                query = query.normalized.text,
                 candidate = text,
                 maxDistance = maxDistance
             ) ?: return@forEach
@@ -277,18 +436,11 @@ internal class CachedSearchRanker : SearchRanker {
         return bestAlignment
     }
 
-    private fun candidateWindows(
-        field: NormalizedText,
-        queryTokenCount: Int
-    ): List<IntRange> {
+    private fun candidateWindows(field: NormalizedText, queryTokenCount: Int): List<IntRange> {
         if (field.tokenRanges.isEmpty()) return listOf(0..field.text.lastIndex)
 
         val tokenCount = max(queryTokenCount, 1)
-        val windowSizes = linkedSetOf(
-            max(1, tokenCount - 1),
-            tokenCount,
-            tokenCount + 1
-        )
+        val windowSizes = linkedSetOf(max(1, tokenCount - 1), tokenCount, tokenCount + 1)
         val windows = linkedSetOf<IntRange>()
 
         windowSizes.forEach { windowSize ->
@@ -307,11 +459,7 @@ internal class CachedSearchRanker : SearchRanker {
         return windows.toList()
     }
 
-    private fun editDistanceAlignment(
-        query: String,
-        candidate: String,
-        maxDistance: Int
-    ): AlignmentResult? {
+    private fun editDistanceAlignment(query: String, candidate: String, maxDistance: Int): AlignmentResult? {
         if (abs(query.length - candidate.length) > maxDistance) return null
 
         val rows = query.length + 1
@@ -367,9 +515,7 @@ internal class CachedSearchRanker : SearchRanker {
                     col -= 1
                     matchedPositions += col
                 }
-                else -> {
-                    row -= 1
-                }
+                else -> row -= 1
             }
         }
 
@@ -382,16 +528,92 @@ internal class CachedSearchRanker : SearchRanker {
         )
     }
 
-    private fun usageBoost(
-        lastUsedAtEpochMs: Long?,
-        usageCount: Long,
-        nowEpochMs: Long
-    ): Double {
+    private fun matchRegexBoost(match: String, rawQuery: String): Double? {
+        return runCatching {
+            if (Regex(match).containsMatchIn(rawQuery)) LIVE_REGEX_BOOST else null
+        }.getOrElse { 0.0 }
+    }
+
+    private fun usageBoost(lastUsedAtEpochMs: Long?, usageCount: Long, nowEpochMs: Long): Double {
         if (lastUsedAtEpochMs == null) return 0.0
         val ageMs = (nowEpochMs - lastUsedAtEpochMs).coerceAtLeast(0)
         val recencyScore = 0.25 * exp(-ageMs / SEVEN_DAYS_MS)
         val frequencyScore = min(0.1, ln((usageCount + 1).toDouble()) / 20.0)
         return min(0.35, recencyScore + frequencyScore)
+    }
+
+    private fun selectCandidates(
+        primaryCandidates: List<SearchIndexCacheSearchEntity>,
+        fallbackCandidates: List<SearchIndexCacheSearchEntity>,
+        desiredCandidates: Int
+    ): List<SearchIndexCacheSearchEntity> {
+        val selected = ArrayList<SearchIndexCacheSearchEntity>(desiredCandidates)
+        val seenContentIds = LinkedHashSet<Long>(desiredCandidates)
+
+        primaryCandidates.forEach { candidate ->
+            if (seenContentIds.add(candidate.contentId)) selected += candidate
+            if (selected.size >= desiredCandidates) return selected
+        }
+
+        fallbackCandidates.forEach { candidate ->
+            if (seenContentIds.add(candidate.contentId)) selected += candidate
+            if (selected.size >= desiredCandidates) return selected
+        }
+
+        return selected
+    }
+
+    private fun SearchIndexCacheSearchEntity.toCachedSearchResult(
+        titleMatches: List<IntRange>,
+        descriptionMatches: List<IntRange>
+    ): SearchResultSet.CachedSearchResult {
+        return SearchResultSet.CachedSearchResult(
+            resultId = SearchResultId(
+                pluginId = PluginId(pluginId),
+                commandName = command,
+                itemId = CommandItemId(itemId)
+            ),
+            listEntry = toPluginListEntry(),
+            titleMatches = titleMatches,
+            descriptionMatches = descriptionMatches
+        )
+    }
+
+    private fun ScoredFields.toSearchResultScore(live: Boolean, stableOrder: Long): SearchResultScore {
+        return SearchResultScore(
+            textScore = textScore,
+            editDistance = editDistance,
+            usageBoost = usageBoost,
+            exact = exact,
+            prefix = prefix,
+            titleMatch = titleMatch,
+            live = live,
+            fieldLength = fieldLength,
+            stableOrder = stableOrder
+        )
+    }
+
+    private fun UiText?.resolve(resources: Resources): List<String> {
+        return when (this?.type) {
+            null -> emptyList()
+            UiText.Type.Plain -> listOf(text)
+            UiText.Type.Resource -> resolveStringVariants(resources, text).values.distinct()
+        }
+    }
+
+    private fun PluginUiText?.resolve(resources: Resources): List<String> {
+        return when (this) {
+            null -> emptyList()
+            is PluginUiText.Plain -> listOf(text)
+            is PluginUiText.Resource -> resolveStringVariants(resources, key).values.distinct()
+        }
+    }
+
+    private fun acronymRanges(field: NormalizedText, length: Int): List<IntRange> {
+        return field.tokenRanges
+            .take(length)
+            .map { tokenRange -> field.toOriginalRanges(listOf(tokenRange.first..tokenRange.first)) }
+            .flatten()
     }
 
     private fun mergeRanges(ranges: List<IntRange>): List<IntRange> {
@@ -414,6 +636,23 @@ internal class CachedSearchRanker : SearchRanker {
         return merged
     }
 
+    private data class SearchFieldInput(
+        val text: String?,
+        val weight: FieldWeight
+    )
+
+    private enum class FieldWeight(val boost: Double, val titleLike: Boolean = false) {
+        CachedTitle(28.0, titleLike = true),
+        LiveTitle(30.0, titleLike = true),
+        CommandTitle(22.0, titleLike = true),
+        PluginTitle(14.0, titleLike = true),
+        CommandName(10.0, titleLike = true),
+        CachedDescription(0.0),
+        LiveDescription(0.0),
+        CommandDescription(0.0),
+        PluginId(-12.0)
+    }
+
     private data class SearchItemKey(
         val pluginId: String,
         val commandName: String,
@@ -433,19 +672,40 @@ internal class CachedSearchRanker : SearchRanker {
         val ranges: List<IntRange>
     )
 
-    private data class ScoredCandidate(
-        val candidate: SearchIndexCacheSearchEntity,
+    private data class ScoredCachedCandidate(
+        val score: ScoredFields,
+        val ranked: RankedSearchResult
+    )
+
+    private data class ScoredFields(
         val matched: Boolean,
-        val baseScore: Double,
+        val textScore: Double,
         val editDistance: Int,
         val usageBoost: Double,
-        val isTitleMatch: Boolean,
-        val fieldLength: Int,
         val exact: Boolean,
         val prefix: Boolean,
-        val titleMatches: List<IntRange>,
-        val descriptionMatches: List<IntRange>
-    )
+        val titleMatch: Boolean,
+        val fieldLength: Int,
+        val matches: Map<FieldWeight, List<IntRange>>,
+        val live: Boolean,
+        val stableOrder: Long
+    ) {
+        companion object {
+            val Unmatched = ScoredFields(
+                matched = false,
+                textScore = Double.NEGATIVE_INFINITY,
+                editDistance = Int.MAX_VALUE,
+                usageBoost = 0.0,
+                exact = false,
+                prefix = false,
+                titleMatch = false,
+                fieldLength = Int.MAX_VALUE,
+                matches = emptyMap(),
+                live = false,
+                stableOrder = Long.MAX_VALUE
+            )
+        }
+    }
 
     private data class FieldMatch(
         val matched: Boolean,
@@ -455,7 +715,8 @@ internal class CachedSearchRanker : SearchRanker {
         val fieldLength: Int,
         val exact: Boolean,
         val prefix: Boolean,
-        val matchedAllTokens: Boolean = false
+        val matchedAllTokens: Boolean = false,
+        val weightTitleMatch: Boolean = false
     ) {
         companion object {
             val Unmatched = FieldMatch(
@@ -470,56 +731,22 @@ internal class CachedSearchRanker : SearchRanker {
         }
     }
 
-    private fun selectCandidates(
-        ftsCandidates: List<SearchIndexCacheSearchEntity>,
-        fallbackCandidates: List<SearchIndexCacheSearchEntity>,
-        desiredCandidates: Int
-    ): List<SearchIndexCacheSearchEntity> {
-        val selected = ArrayList<SearchIndexCacheSearchEntity>(desiredCandidates)
-        val seenContentIds = LinkedHashSet<Long>(desiredCandidates)
-
-        ftsCandidates.forEach { candidate ->
-            if (seenContentIds.add(candidate.contentId)) {
-                selected += candidate
-            }
-            if (selected.size >= desiredCandidates) {
-                return selected
-            }
-        }
-
-        if (selected.size < desiredCandidates) {
-            fallbackCandidates.forEach { candidate ->
-                if (seenContentIds.add(candidate.contentId)) {
-                    selected += candidate
-                }
-                if (selected.size >= desiredCandidates) {
-                    return selected
-                }
-            }
-        }
-
-        return selected
-    }
-
     private companion object {
         const val RANKING_MULTIPLIER = 4
-        const val MAX_CANDIDATES = 512
+        const val MAX_CANDIDATES = 192
         const val SEVEN_DAYS_MS = 7.0 * 24 * 60 * 60 * 1000
+        const val LIVE_SOURCE_BOOST = 0.2
+        const val LIVE_REGEX_BOOST = 48.0
+        const val LIVE_EMPTY_QUERY_SCORE = 4.0
 
         const val DELETE: Byte = 1
         const val INSERT: Byte = 2
         const val DIAGONAL: Byte = 3
     }
 
-    private val fieldComparator = compareBy<FieldMatch>(
-        { !it.matched },
-        { !it.exact },
-        { !it.prefix },
-        { !it.matchedAllTokens },
-        { -it.baseScore },
-        { it.editDistance },
-        { it.fieldLength }
-    )
+    private val fieldComparator = compareByDescending<FieldMatch> { it.baseScore }
+        .thenBy { it.editDistance }
+        .thenBy { it.fieldLength }
 
     private val windowComparator = compareBy<WindowAlignment>(
         { it.distance },
@@ -527,92 +754,15 @@ internal class CachedSearchRanker : SearchRanker {
         { !it.startsAtZero }
     )
 
-    private val scoredCandidateComparator = compareBy<ScoredCandidate>(
-        { !it.exact },
-        { !it.prefix },
-        { -it.baseScore },
-        { it.editDistance },
-        { -it.usageBoost },
-        { !it.isTitleMatch },
-        { it.fieldLength },
-        { it.candidate.contentId }
-    )
-}
-
-internal data class NormalizedText(
-    val text: String,
-    val originalIndices: List<Int>,
-    val tokens: List<String>,
-    val tokenRanges: List<IntRange>
-) {
-    fun toFtsMatchQuery(): String {
-        return tokens.joinToString(" AND ") { "$it*" }
-    }
-
-    fun toOriginalRanges(ranges: List<IntRange>): List<IntRange> {
-        return ranges.mapNotNull { range ->
-            if (range.first !in originalIndices.indices || range.last !in originalIndices.indices) {
-                null
-            } else {
-                originalIndices[range.first]..originalIndices[range.last]
-            }
-        }
-    }
-
-    companion object {
-        fun from(raw: String): NormalizedText {
-            val normalized = StringBuilder(raw.length)
-            val originalIndices = mutableListOf<Int>()
-
-            raw.forEachIndexed { index, char ->
-                when {
-                    char.isLetterOrDigit() -> {
-                        normalized.append(char.lowercaseChar())
-                        originalIndices += index
-                    }
-                    char.isWhitespace() -> {
-                        if (normalized.isNotEmpty() && normalized.last() != ' ') {
-                            normalized.append(' ')
-                            originalIndices += index
-                        }
-                    }
-                }
-            }
-
-            while (normalized.isNotEmpty() && normalized.first() == ' ') {
-                normalized.deleteAt(0)
-                originalIndices.removeAt(0)
-            }
-            while (normalized.isNotEmpty() && normalized.last() == ' ') {
-                normalized.deleteAt(normalized.lastIndex)
-                originalIndices.removeAt(originalIndices.lastIndex)
-            }
-
-            val text = normalized.toString()
-            val tokenRanges = mutableListOf<IntRange>()
-            var tokenStart = -1
-            text.forEachIndexed { index, char ->
-                if (char == ' ') {
-                    if (tokenStart >= 0) {
-                        tokenRanges += tokenStart until index
-                        tokenStart = -1
-                    }
-                } else if (tokenStart < 0) {
-                    tokenStart = index
-                }
-            }
-            if (tokenStart >= 0) {
-                tokenRanges += tokenStart..text.lastIndex
-            }
-
-            return NormalizedText(
-                text = text,
-                originalIndices = originalIndices,
-                tokens = tokenRanges.map { range -> text.substring(range) },
-                tokenRanges = tokenRanges
-            )
-        }
-    }
+    private val rankedComparator = compareByDescending<RankedSearchResult> { it.score.exact }
+        .thenByDescending { it.score.prefix }
+        .thenByDescending { it.score.textScore }
+        .thenBy { it.score.editDistance }
+        .thenByDescending { it.score.usageBoost }
+        .thenByDescending { it.score.live }
+        .thenByDescending { it.score.titleMatch }
+        .thenBy { it.score.fieldLength }
+        .thenBy { it.score.stableOrder }
 }
 
 private fun String.substring(range: IntRange): String {

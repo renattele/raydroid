@@ -10,10 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import ru.raydroid.core.designsystem.RaydroidMotionToken
 import ru.raydroid.core.designsystem.RaydroidShapeToken
@@ -36,7 +40,47 @@ fun SearchListItem(
     modifier: Modifier = Modifier,
     focused: Boolean = false
 ) {
-    CommandListItemView(result.listEntry, onClick, modifier, focused)
+    val spacing = RaydroidTheme.spacing
+    val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
+    Row(
+        modifier
+            .interactable(focused = focused) { onClick() }
+            .fillMaxWidth()
+            .clip(shape)
+            .padding(horizontal = spacing.medium, vertical = spacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        val icon = result.listEntry.icon
+        if (icon != null) {
+            IconRenderer(
+                data = PluginIconData(
+                    icon = icon
+                )
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+            val highlightStyle = SpanStyle(
+                color = PluginColor.Primary.toColor(),
+                fontWeight = FontWeight.SemiBold
+            )
+            val title = result.listEntry.title
+            if (title != null) {
+                Text(
+                    text = title.asText().highlight(result.titleMatches, highlightStyle),
+                    fontSize = PluginFontSize.Large.toTextUnit()
+                )
+            }
+            val description = result.listEntry.description
+            if (description != null) {
+                Text(
+                    text = description.asText().highlight(result.descriptionMatches, highlightStyle),
+                    fontSize = PluginFontSize.Small.toTextUnit(),
+                    color = PluginColor.OutlineVariant.toColor()
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -103,4 +147,20 @@ private fun ListItemPreview() {
             onClick = {}
         )
     }
+}
+
+private fun String.highlight(
+    ranges: List<IntRange>,
+    style: SpanStyle
+): AnnotatedString {
+    if (ranges.isEmpty()) return AnnotatedString(this)
+    return AnnotatedString.Builder(this).apply {
+        ranges.forEach { range ->
+            val start = range.first.coerceIn(0, length)
+            val endExclusive = (range.last + 1).coerceIn(0, length)
+            if (start < endExclusive) {
+                addStyle(style, start, endExclusive)
+            }
+        }
+    }.toAnnotatedString()
 }

@@ -1,22 +1,24 @@
 package ru.raydroid.plugin.host.impl.data.search
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.time.Clock
-import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.RankedSearchResult
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
-import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheContentEntity
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheDao
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheEntity
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheMutation
-import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheSearchEntity
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheWithContent
 
 internal class SearchIndexRepositoryImpl(
@@ -43,35 +45,68 @@ internal class SearchIndexRepositoryImpl(
         )
     }
 
-    override fun search(query: String, limit: Int): Flow<List<SearchResultSet.SearchResult>> {
-        val normalizedQuery = NormalizedText.from(query)
-        if (normalizedQuery.text.isBlank()) {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> {
+        val normalizedQuery = SearchQueryNormalizer.from(query)
+        if (normalizedQuery.isBlank) {
             return cacheDao.recent(limit).map { recentResults ->
-                recentResults.map { result ->
-                    result.toSearchResult(
-                        titleMatches = emptyList(),
-                        descriptionMatches = emptyList()
-                    )
-                }
+                ranker.rankRecent(
+                    candidates = recentResults,
+                    limit = limit,
+                    nowEpochMs = clock.now().toEpochMilliseconds()
+                )
             }
         }
 
         val ftsLimit = min(max(limit * FTS_CANDIDATE_MULTIPLIER, FTS_CANDIDATE_MINIMUM), MAX_CANDIDATES)
-        return combine(
-            cacheDao.searchFtsCandidates(
-                matchQuery = normalizedQuery.toFtsMatchQuery(),
-                limit = ftsLimit
-            ),
-            cacheDao.searchFallbackCandidates(limit = MAX_CANDIDATES)
-        ) { ftsCandidates, fallbackCandidates ->
-            ranker.rank(
+        val fallbackLimit = if (normalizedQuery.isShort) {
+            SHORT_QUERY_FALLBACK_CANDIDATES
+        } else {
+            FUZZY_FALLBACK_CANDIDATES
+        }
+        val strictCandidatesFlow = normalizedQuery.strictFtsQuery?.let { matchQuery ->
+            cacheDao.searchFtsCandidates(matchQuery = matchQuery, limit = ftsLimit)
+        } ?: flowOf(emptyList())
+
+        return strictCandidatesFlow.flatMapLatest { strictCandidates ->
+            val strictResults = ranker.rankCached(
                 query = normalizedQuery,
-                ftsCandidates = ftsCandidates,
-                fallbackCandidates = fallbackCandidates,
+                ftsCandidates = strictCandidates,
+                fallbackCandidates = emptyList(),
                 limit = limit,
                 nowEpochMs = clock.now().toEpochMilliseconds()
             )
-        }
+            val needsRelaxed = strictResults.size < limit && normalizedQuery.relaxedFtsQuery != null
+            val needsFallback = normalizedQuery.isShort || strictResults.size < limit
+
+            if (!needsRelaxed && !needsFallback) {
+                flowOf(strictResults)
+            } else {
+                combine(
+                    if (needsRelaxed) {
+                        cacheDao.searchFtsCandidates(
+                            matchQuery = normalizedQuery.relaxedFtsQuery.orEmpty(),
+                            limit = ftsLimit
+                        )
+                    } else {
+                        flowOf(emptyList())
+                    },
+                    if (needsFallback) {
+                        cacheDao.searchFallbackCandidates(limit = fallbackLimit)
+                    } else {
+                        flowOf(emptyList())
+                    }
+                ) { relaxedCandidates, fallbackCandidates ->
+                    ranker.rankCached(
+                        query = normalizedQuery,
+                        ftsCandidates = strictCandidates + relaxedCandidates,
+                        fallbackCandidates = fallbackCandidates,
+                        limit = limit,
+                        nowEpochMs = clock.now().toEpochMilliseconds()
+                    )
+                }
+            }
+        }.flowOn(Dispatchers.Default)
     }
 
     private suspend fun SearchIndexMutation.Upsert.toCacheEntity(
@@ -92,9 +127,17 @@ internal class SearchIndexRepositoryImpl(
                 iconType = resolvedIcon?.type?.name
             ),
             content = resolvedContent.map { content ->
+                val titleSearch = SearchQueryNormalizer.searchable(content.title)
+                val descriptionSearch = SearchQueryNormalizer.searchable(content.description)
                 SearchIndexCacheContentEntity(
                     title = content.title,
-                    description = content.description
+                    description = content.description,
+                    titleSearch = titleSearch,
+                    descriptionSearch = descriptionSearch,
+                    acronymSearch = listOf(
+                        SearchQueryNormalizer.acronym(content.title),
+                        SearchQueryNormalizer.acronym(content.description)
+                    ).filter { it.isNotBlank() }.joinToString(" ")
                 )
             }
         )
@@ -121,25 +164,11 @@ internal class SearchIndexRepositoryImpl(
         }
     }
 
-    private fun SearchIndexCacheSearchEntity.toSearchResult(
-        titleMatches: List<IntRange>,
-        descriptionMatches: List<IntRange>
-    ): SearchResultSet.SearchResult {
-        return SearchResultSet.CachedSearchResult(
-            resultId = SearchResultId(
-                pluginId = PluginId(pluginId),
-                commandName = command,
-                itemId = CommandItemId(itemId)
-            ),
-            listEntry = toPluginListEntry(),
-            titleMatches = titleMatches,
-            descriptionMatches = descriptionMatches
-        )
-    }
-
     private companion object {
         const val FTS_CANDIDATE_MULTIPLIER = 8
         const val FTS_CANDIDATE_MINIMUM = 64
-        const val MAX_CANDIDATES = 512
+        const val MAX_CANDIDATES = 192
+        const val SHORT_QUERY_FALLBACK_CANDIDATES = 64
+        const val FUZZY_FALLBACK_CANDIDATES = 48
     }
 }

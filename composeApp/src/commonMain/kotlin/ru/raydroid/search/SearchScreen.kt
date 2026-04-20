@@ -152,6 +152,19 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         }
                     }
                 }
+                if (state.searchResults == null && state.isSearching) {
+                    Text(
+                        text = "Searching...",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = RaydroidTheme.colorScheme.onBackground
+                    )
+                } else if (state.searchResults?.results?.isEmpty() == true && !state.isSearching) {
+                    Text(
+                        text = "No results",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = RaydroidTheme.colorScheme.onBackground
+                    )
+                }
                 LookaheadScope {
                     Column(
                         Modifier.padding(spacing.medium).align(Alignment.BottomEnd),

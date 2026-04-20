@@ -23,6 +23,7 @@ import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
 import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.RankedSearchResult
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
@@ -86,7 +87,7 @@ class PluginHostArchitectureTest {
 
         val result = repository.search("", limit = 10).first().single()
 
-        val cached = assertIs<SearchResultSet.CachedSearchResult>(result)
+        val cached = assertIs<SearchResultSet.CachedSearchResult>(result.result)
         assertEquals("ru.test.plugin", cached.resultId.pluginId.id)
         assertEquals("apps", cached.resultId.commandName)
         assertEquals("item-1", cached.resultId.itemId.value)
@@ -122,7 +123,7 @@ class PluginHostArchitectureTest {
 
         val result = repository.search("", limit = 10).first().single()
 
-        val cached = assertIs<SearchResultSet.CachedSearchResult>(result)
+        val cached = assertIs<SearchResultSet.CachedSearchResult>(result.result)
         assertEquals("ArrowDropUp", assertIs<PluginIcon.Builtin>(cached.listEntry.icon).name)
     }
 
@@ -157,6 +158,8 @@ class PluginHostArchitectureTest {
         val inserted = requireNotNull(dao.lastInserted)
         assertEquals("ArrowDropUp", inserted.searchIndexCache.icon)
         assertEquals(Icon.Type.Builtin.name, inserted.searchIndexCache.iconType)
+        assertEquals("calculator", inserted.content.single().titleSearch)
+        assertEquals("system app", inserted.content.single().descriptionSearch)
     }
 
     @Test
@@ -389,7 +392,7 @@ private class RecordingSearchIndexRepository : SearchIndexRepository {
         lastUpdatedUsage = resultId
     }
 
-    override fun search(query: String, limit: Int): Flow<List<SearchResultSet.SearchResult>> =
+    override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> =
         flowOf(emptyList())
 }
 

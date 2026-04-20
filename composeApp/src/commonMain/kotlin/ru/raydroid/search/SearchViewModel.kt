@@ -7,12 +7,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
@@ -32,7 +35,7 @@ import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.impl.presentation.SearchFieldState
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class SearchViewModel(
     private val syncCacheUseCase: SyncCacheUseCase,
     private val loadRuntimesUseCase: LoadRuntimesUseCase,
@@ -50,82 +53,97 @@ class SearchViewModel(
     val state = _state.asStateFlow()
 
     init {
-        viewModelScope.launch(Dispatchers.IO + SupervisorJob()) {
-            launch { syncCacheUseCase() }
-            launch { loadRuntimesUseCase() }
-            launch {
-                getPluginsUseCase().collectLatest { plugins ->
+        viewModelScope.launch(Dispatchers.IO) {
+            syncCacheUseCase()
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            loadRuntimesUseCase()
+        }
+        viewModelScope.launch {
+            getPluginsUseCase().collectLatest { plugins ->
+                _state.update { state ->
+                    state.copy(
+                        plugins = plugins.associateBy {
+                            it.pluginId
+                        }
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            getEventsUseCase().collectLatest { event ->
+                when (val data = event.data) {
+                    is NotificationEvent.Alert -> {
+                        _state.update { state ->
+                            state.copy(
+                                alerts = state.alerts + data
+                            )
+                        }
+                    }
+
+                    is NotificationEvent.ShowToast -> {
+                        _state.update { state ->
+                            state.copy(
+                                toasts = state.toasts + data
+                            )
+                        }
+                    }
+
+                    is NotificationEvent.HideToast -> {
+                        _state.update { state ->
+                            state.copy(
+                                toasts = state.toasts - NotificationEvent.ShowToast(
+                                    pluginId = data.pluginId,
+                                    toast = data.toast
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            snapshotFlow { _state.value.searchFieldState.fieldState.text }
+                .map { text -> text.toString() }
+                .distinctUntilChanged()
+                .onEach {
                     _state.update { state ->
                         state.copy(
-                            plugins = plugins.associateBy {
-                                it.pluginId
-                            }
+                            isSearching = state.searchResults == null,
+                            focusedItemIndex = state.searchResults
+                                ?.results
+                                ?.takeIf { results -> results.isNotEmpty() }
+                                ?.let { 0 },
+                            showActions = false
                         )
                     }
                 }
-            }
-            launch {
-                getEventsUseCase().collectLatest { event ->
-                    when (val data = event.data) {
-                        is NotificationEvent.Alert -> {
-                            _state.update { state ->
-                                state.copy(
-                                    alerts = state.alerts + data
-                                )
-                            }
-                        }
-
-                        is NotificationEvent.ShowToast -> {
-                            _state.update { state ->
-                                state.copy(
-                                    toasts = state.toasts + data
-                                )
-                            }
-                        }
-
-                        is NotificationEvent.HideToast -> {
-                            _state.update { state ->
-                                state.copy(
-                                    toasts = state.toasts - NotificationEvent.ShowToast(
-                                        pluginId = data.pluginId,
-                                        toast = data.toast
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            snapshotFlow { _state.value.searchFieldState.fieldState.text }
-                .distinctUntilChanged()
+                .debounce(SEARCH_DEBOUNCE_MS)
                 .collectLatest { query ->
-                    var updatedFocus = false
-                    searchUseCase(query.toString()).collectLatest { searchResults ->
-                        println(searchResults)
+                    var focusInitialized = false
+                    searchUseCase(query).collectLatest { searchResults ->
                         _state.update { state ->
+                            val focusedIndex = if (!focusInitialized) {
+                                searchResults.results.takeIf { it.isNotEmpty() }?.let { 0 }
+                            } else {
+                                searchResults.results.takeIf { it.isNotEmpty() }?.let { results ->
+                                    state.focusedItemIndex?.coerceIn(0, results.lastIndex)
+                                }
+                            }
+                            focusInitialized = true
                             state.copy(
                                 searchResults = searchResults,
-                                focusedItemIndex = if (!updatedFocus) {
-                                    if (searchResults.results.isNotEmpty()) {
-                                        0
-                                    } else {
-                                        null
-                                    }
-                                } else {
-                                    state.focusedItemIndex
-                                },
+                                focusedItemIndex = focusedIndex,
+                                isSearching = false,
                                 showActions = false
                             )
                         }
-                        updatedFocus = true
                     }
                 }
         }
     }
 
     private fun onEvent(event: SearchScreenEvent) {
-        println("Handling: $event")
-        println("Before state: ${_state.value}")
         viewModelScope.launch {
             when (event) {
                 is SearchScreenEvent.Enter -> {
@@ -229,8 +247,11 @@ class SearchViewModel(
                     )
                 }
             }
-            println("After state: ${_state.value}")
         }
+    }
+
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 24L
     }
 }
 
@@ -242,6 +263,7 @@ data class SearchScreenState(
     val plugins: Map<PluginId, PluginRuntime> = emptyMap(),
     val focusedItem: PluginCommandListItem? = null,
     val focusedItemIndex: Int? = null,
+    val isSearching: Boolean = false,
     val showActions: Boolean = false,
     val alerts: List<NotificationEvent.Alert> = emptyList(),
     val toasts: List<NotificationEvent.ShowToast> = emptyList(),

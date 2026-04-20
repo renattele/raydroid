@@ -19,6 +19,7 @@ import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
 import ru.raydroid.plugin.host.api.domain.service.HostBridgeFactory
 import ru.raydroid.plugin.host.api.domain.service.PluginLoader
+import ru.raydroid.plugin.host.api.domain.service.SearchResultRanker
 import ru.raydroid.plugin.host.api.event.EventGateway
 import ru.raydroid.plugin.host.impl.data.plugin.LocalPluginDataSource
 import ru.raydroid.plugin.host.impl.data.plugin.LocalPluginDataSourceImpl
@@ -64,7 +65,9 @@ val pluginHostModule = module {
     single<ResourcePluginDataSource> {
         ResourcePluginDataSourceImpl(get())
     }
-    singleOf(::CachedSearchRanker) bind SearchRanker::class
+    singleOf(::CachedSearchRanker)
+    single<SearchRanker> { get<CachedSearchRanker>() }
+    single<SearchResultRanker> { get<CachedSearchRanker>() }
     singleOf(::SearchResourceResolverImpl) bind SearchResourceResolver::class
     singleOf(::RemotePluginDataSourceImpl) bind RemotePluginDataSource::class
     singleOf(::PluginRepositoryImpl) bind PluginRepository::class

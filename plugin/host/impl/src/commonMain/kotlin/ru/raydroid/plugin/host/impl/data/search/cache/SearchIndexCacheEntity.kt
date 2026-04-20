@@ -127,7 +127,16 @@ internal data class SearchIndexCacheContentEntity(
     val title: String?,
 
     @ColumnInfo("description")
-    val description: String?
+    val description: String?,
+
+    @ColumnInfo("title_search")
+    val titleSearch: String,
+
+    @ColumnInfo("description_search")
+    val descriptionSearch: String,
+
+    @ColumnInfo("acronym_search")
+    val acronymSearch: String
 )
 
 @Entity(tableName = "list_item_cache_content_fts")
@@ -141,9 +150,12 @@ internal data class SearchIndexCacheContentFtsEntity(
     @ColumnInfo(name = "rowid")
     val rowId: Long,
 
-    @ColumnInfo("title")
-    val title: String?,
+    @ColumnInfo("title_search")
+    val titleSearch: String,
 
-    @ColumnInfo("description")
-    val description: String?
+    @ColumnInfo("description_search")
+    val descriptionSearch: String,
+
+    @ColumnInfo("acronym_search")
+    val acronymSearch: String
 )

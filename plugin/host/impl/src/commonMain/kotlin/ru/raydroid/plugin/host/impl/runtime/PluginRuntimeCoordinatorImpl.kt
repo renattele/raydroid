@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,11 +85,14 @@ internal class PluginRuntimeCoordinatorImpl(
     override suspend fun update(
         query: String,
         action: CommandAction
-    ) {
+    ) = supervisorScope {
         pluginRuntimes.value.map { runtime ->
-            coroutineScope.async {
-                runtime.update(query, action)
+            async {
+                runCatching {
+                    runtime.update(query, action)
+                }
             }
         }.awaitAll()
+        Unit
     }
 }
