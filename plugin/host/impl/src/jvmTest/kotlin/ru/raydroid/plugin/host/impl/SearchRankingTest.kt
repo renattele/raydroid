@@ -3,9 +3,13 @@ package ru.raydroid.plugin.host.impl
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -26,6 +30,8 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
+import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.data.search.CachedSearchRanker
 import ru.raydroid.plugin.host.impl.data.search.SearchQueryNormalizer
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheContentEntity
@@ -47,6 +53,43 @@ class SearchRankingTest {
         assertEquals("visual studio code", query.normalized.text)
         assertEquals("vsc", query.acronym)
         assertEquals("visual* AND studio* AND code*", query.strictFtsQuery)
+    }
+
+    @Test
+    fun `manifest command searchable defaults to true and accepts false`() {
+        val defaultCommand = Json.decodeFromString<Command>(
+            """
+            {
+              "service": "CalculatorCommand",
+              "title": "command.title",
+              "description": "command.description",
+              "mode": "View",
+              "match": null,
+              "arguments": [],
+              "preferences": []
+            }
+            """.trimIndent()
+        )
+        val hiddenCommand = Json.decodeFromString<Command>(
+            """
+            {
+              "service": "CalculatorCommand",
+              "title": "command.title",
+              "description": "command.description",
+              "placeholder": "command.placeholder",
+              "mode": "View",
+              "match": null,
+              "searchable": false,
+              "arguments": [],
+              "preferences": []
+            }
+            """.trimIndent()
+        )
+
+        assertTrue(defaultCommand.searchable)
+        assertNull(defaultCommand.placeholder)
+        assertEquals(UiText.Resource("command.placeholder"), hiddenCommand.placeholder)
+        assertFalse(hiddenCommand.searchable)
     }
 
     @Test
@@ -94,9 +137,22 @@ class SearchRankingTest {
             nowEpochMs = 1_000
         )
 
-        val merged = ranker.merge(liveResults = live, cachedResults = cached, limit = 10)
+        val merged = ranker.merge(commandResults = emptyList(), liveResults = live, cachedResults = cached, limit = 10)
 
         assertIs<SearchResultSet.LiveSearchResult>(merged.single())
+    }
+
+    @Test
+    fun `command title is searchable even when live regex rejects query`() {
+        val runtime = FakeSearchRuntime(
+            manifest = manifest(match = "[0-9].*"),
+            contentItems = emptyList()
+        )
+
+        val rankedCommands = ranker.rankCommands("Calculator", listOf(commandItem(runtime)), limit = 10)
+
+        assertIs<SearchResultSet.CommandSearchResult>(rankedCommands.single().result)
+        assertTrue(ranker.rankLive("Calculator", coordinatorContent(runtime), limit = 10).isEmpty())
     }
 
     @Test
@@ -189,6 +245,24 @@ class SearchRankingTest {
         }
     }
 
+    private fun commandItem(runtime: PluginRuntime): PluginRuntimeCoordinator.CommandItem {
+        val command = runtime.manifest.commands.single()
+        return PluginRuntimeCoordinator.CommandItem(
+            runtime = runtime,
+            listEntry = PluginCommandListItem(
+                id = CommandItemId.CommandRoot,
+                icon = null,
+                title = command.title.toPluginText(runtime.pluginId),
+                description = command.description.toPluginText(runtime.pluginId)
+            ),
+            resultId = SearchResultId(
+                pluginId = runtime.pluginId,
+                commandName = command.service,
+                itemId = CommandItemId.CommandRoot
+            )
+        )
+    }
+
     private fun manifest(match: String?): Manifest {
         return Manifest(
             name = "ru.test.plugin",
@@ -227,7 +301,16 @@ private class FakeSearchRuntime(
 
     override fun content() = content
 
+    override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = MutableStateFlow(null)
+
     override suspend fun update(query: String, action: CommandAction) = Unit
 
+    override suspend fun update(commandName: String, query: String, action: CommandAction) = Unit
+
     override suspend fun unload() = Unit
+}
+
+private fun UiText.toPluginText(pluginId: PluginId): PluginUiText = when (type) {
+    UiText.Type.Plain -> PluginUiText.Plain(text)
+    UiText.Type.Resource -> PluginUiText.Resource(pluginId = pluginId, key = text)
 }

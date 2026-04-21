@@ -14,6 +14,8 @@ import ru.raydroid.plugin.api.host.service.NotificationService
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.ui.Column
 import ru.raydroid.plugin.api.ui.Icon
+import ru.raydroid.plugin.api.ui.RayScope
+import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.Text
 
 class CalculatorCommand : CommandService() {
@@ -61,6 +63,13 @@ class CalculatorCommand : CommandService() {
             Column {
                 Text(UiText.Plain(result))
             }
+        }
+    }
+
+    override fun RayScope.fullscreen() {
+        Column(spacing = Spacing.Medium) {
+            Text(UiText.Resource("app.main"))
+            Text(UiText.Plain(result))
         }
     }
 

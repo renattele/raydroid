@@ -11,9 +11,17 @@ import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.presentation.CommandPresentationMap
 import ru.raydroid.plugin.api.ui.Ray
+import ru.raydroid.plugin.api.ui.RayNodeData
+import ru.raydroid.plugin.api.ui.RayScope
 
 @Serializable
 sealed class CommandAction {
+    @Serializable
+    class OpenCommand : CommandAction()
+
+    @Serializable
+    class CloseCommand : CommandAction()
+
     @Serializable
     data class Enter(val hoveredId: CommandItemId) : CommandAction()
 
@@ -36,7 +44,13 @@ interface CommandServiceBridge : ZiplineService {
 
     fun content(): CommandPresentationMap
 
-    fun initialize(request: RenderRequest, invalidateCacheRequest: InvalidateCacheRequest)
+    fun fullscreen(): List<RayNodeData>
+
+    fun initialize(
+        request: RenderRequest,
+        fullscreenRenderRequest: FullscreenRenderRequest,
+        invalidateCacheRequest: InvalidateCacheRequest
+    )
 
     suspend fun update(query: String, action: CommandAction)
 
@@ -46,6 +60,10 @@ interface CommandServiceBridge : ZiplineService {
 
     interface InvalidateCacheRequest : ZiplineService {
         fun requestInvalidation(invalidatedIds: List<CommandItemId>? = null)
+    }
+
+    interface FullscreenRenderRequest : ZiplineService {
+        fun requestFullscreenRender()
     }
 }
 
@@ -59,12 +77,22 @@ abstract class CommandService {
     @Ray
     abstract fun CommandListScope.content()
 
+    @Ray
+    open fun RayScope.fullscreen() = Unit
+
     abstract suspend fun execute(action: CommandAction)
 
     fun render() {
         val onRenderRequest = onRenderRequest
         if (onRenderRequest != null) {
             onRenderRequest()
+        }
+    }
+
+    fun renderFullscreen() {
+        val onFullscreenRenderRequest = onFullscreenRenderRequest
+        if (onFullscreenRenderRequest != null) {
+            onFullscreenRenderRequest()
         }
     }
 
@@ -81,6 +109,8 @@ abstract class CommandService {
     }
 
     internal var onRenderRequest: (() -> Unit)? = null
+
+    internal var onFullscreenRenderRequest: (() -> Unit)? = null
 
     internal var onInvalidateCacheRequest: ((List<CommandItemId>?) -> Unit)? = null
 

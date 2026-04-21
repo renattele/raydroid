@@ -33,6 +33,8 @@ fun SearchField(
     onEvent: (event: SearchFieldEvent) -> Unit,
     modifier: Modifier = Modifier,
     decoratorModifier: Modifier = Modifier,
+    placeholder: PluginUiText? = null,
+    leadingContent: (@Composable () -> Unit)? = null,
     actionContent: (@Composable () -> Unit)? = null
 ) {
     val textStyle = TextStyle(
@@ -70,6 +72,13 @@ fun SearchField(
                             true
                         }
 
+                        Key.Backspace -> {
+                            if (state.fieldState.text.isEmpty()) {
+                                onEvent(SearchFieldEvent.BackspaceOnEmpty)
+                            }
+                            false
+                        }
+
                         else -> false
                     }
                 } else {
@@ -77,12 +86,21 @@ fun SearchField(
                 }
             },
             placeholder = {
+                val placeholderText = placeholder?.asText()
+                    ?: stringResource(Res.string.search_field_placeholder)
                 RText(
-                    stringResource(Res.string.search_field_placeholder),
+                    placeholderText,
                     style = textStyle,
                     color = PluginColor.OnSurface.toColor(),
                     modifier = Modifier.alpha(0.5f)
                 )
+            },
+            leadingContent = if (leadingContent != null) {
+                {
+                    leadingContent()
+                }
+            } else {
+                null
             },
             trailingContent = if (actionContent != null) {
                 {
@@ -105,6 +123,7 @@ sealed class SearchFieldEvent {
     data object Enter : SearchFieldEvent()
     data object MoveFocusUp : SearchFieldEvent()
     data object MoveFocusDown : SearchFieldEvent()
+    data object BackspaceOnEmpty : SearchFieldEvent()
 }
 
 @Preview

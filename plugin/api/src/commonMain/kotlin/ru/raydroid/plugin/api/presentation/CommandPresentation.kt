@@ -18,6 +18,7 @@ value class CommandItemId(val value: String) {
         fun random() = CommandItemId(Uuid.generateV4().toHexString())
 
         val Static = CommandItemId("")
+        val CommandRoot = CommandItemId("__command_root__")
     }
 }
 

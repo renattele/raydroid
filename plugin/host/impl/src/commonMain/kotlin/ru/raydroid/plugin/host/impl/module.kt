@@ -8,6 +8,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
+import ru.raydroid.plugin.host.api.application.usecase.GetCommandFullscreenUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
@@ -82,6 +83,7 @@ val pluginHostModule = module {
     singleOf(::SearchUseCase)
     singleOf(::OpenItemUseCase)
     singleOf(::GetPluginsUseCase)
+    singleOf(::GetCommandFullscreenUseCase)
 
     single<HostBridgeFactory> {
         HostBridgeFactoryImpl(

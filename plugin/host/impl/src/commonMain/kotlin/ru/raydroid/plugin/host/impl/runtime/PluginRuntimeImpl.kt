@@ -22,6 +22,7 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.impl.ui.toPluginRayNodeData
 
 internal class PluginRuntimeImpl(
     override val manifest: Manifest,
@@ -33,6 +34,8 @@ internal class PluginRuntimeImpl(
 ) : PluginRuntime {
     private val contentFlow =
         MutableStateFlow<List<PluginRuntime.ContentItem>>(emptyList())
+    private val fullscreenFlows =
+        mutableMapOf<String, MutableStateFlow<PluginRuntime.FullscreenContent?>>()
 
     private val invalidationChannel = MutableSharedFlow<InvalidationRequest>()
     override val pluginId: PluginId
@@ -61,6 +64,11 @@ internal class PluginRuntimeImpl(
                         }
                     }
                 }
+                val fullscreenRenderRequest = object : CommandServiceBridge.FullscreenRenderRequest {
+                    override fun requestFullscreenRender() {
+                        setFullscreenContent(commandName, command)
+                    }
+                }
                 val invalidationRequest = object : CommandServiceBridge.InvalidateCacheRequest {
                     override fun requestInvalidation(invalidatedIds: List<CommandItemId>?) {
                         coroutineScope.launch {
@@ -77,7 +85,7 @@ internal class PluginRuntimeImpl(
                     }
                 }
                 withContext(pluginRuntimeDispatcher) {
-                    command.initialize(renderRequest, invalidationRequest)
+                    command.initialize(renderRequest, fullscreenRenderRequest, invalidationRequest)
                 }
             }
         }
@@ -155,6 +163,9 @@ internal class PluginRuntimeImpl(
 
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = contentFlow
 
+    override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> =
+        fullscreenFlow(commandName)
+
     override suspend fun update(
         query: String, action: CommandAction
     ) {
@@ -167,8 +178,44 @@ internal class PluginRuntimeImpl(
         }
     }
 
+    override suspend fun update(
+        commandName: String,
+        query: String,
+        action: CommandAction
+    ) {
+        withContext(pluginRuntimeDispatcher) {
+            val command = commandServices.firstOrNull { command ->
+                command.getServiceName() == commandName
+            } ?: return@withContext
+            command.update(query, action)
+            when (action) {
+                is CommandAction.OpenCommand -> setFullscreenContent(commandName, command)
+                is CommandAction.CloseCommand -> fullscreenFlow(commandName).value = null
+                else -> Unit
+            }
+        }
+    }
+
     override suspend fun unload() {
         zipline.close()
+    }
+
+    private fun fullscreenFlow(commandName: String): MutableStateFlow<PluginRuntime.FullscreenContent?> {
+        return fullscreenFlows.getOrPut(commandName) {
+            MutableStateFlow(null)
+        }
+    }
+
+    private fun setFullscreenContent(
+        commandName: String,
+        command: CommandServiceBridge
+    ) {
+        fullscreenFlow(commandName).value = PluginRuntime.FullscreenContent(
+            commandName = commandName,
+            content = command.fullscreen().map { node ->
+                node.toPluginRayNodeData(pluginId)
+            }
+        )
     }
 
     private class InvalidationRequest(

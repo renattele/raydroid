@@ -114,6 +114,9 @@
         "description": {
           "$ref": "#/definitions/resourceKey"
         },
+        "placeholder": {
+          "$ref": "#/definitions/resourceKey"
+        },
         "mode": {
           "type": "string",
           "enum": [
@@ -127,6 +130,10 @@
             "string",
             "null"
           ]
+        },
+        "searchable": {
+          "type": "boolean",
+          "default": true
         },
         "arguments": {
           "type": "array",

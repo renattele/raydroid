@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.host.api.application.usecase
 
 import ru.raydroid.plugin.api.presentation.CommandActionId
+import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
@@ -14,9 +15,22 @@ class OpenItemUseCase(
         dispatch(
             query = query,
             resultId = resultId,
-            action = CommandAction.Enter(resultId.itemId)
+            action = if (resultId.itemId == CommandItemId.CommandRoot) {
+                CommandAction.OpenCommand()
+            } else {
+                CommandAction.Enter(resultId.itemId)
+            }
         )
         searchIndexRepository.updateUsage(resultId)
+    }
+
+    suspend fun closeCommand(query: String, resultId: SearchResultId) {
+        if (resultId.itemId != CommandItemId.CommandRoot) return
+        dispatch(
+            query = query,
+            resultId = resultId,
+            action = CommandAction.CloseCommand()
+        )
     }
 
     suspend operator fun invoke(
@@ -45,7 +59,7 @@ class OpenItemUseCase(
             .filter {
                 it.pluginId == resultId.pluginId
             }.forEach { runtime ->
-                runtime.update(query, action)
+                runtime.update(resultId.commandName, query, action)
             }
     }
 }

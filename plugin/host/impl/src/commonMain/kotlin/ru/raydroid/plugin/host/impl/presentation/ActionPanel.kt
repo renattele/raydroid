@@ -67,8 +67,7 @@ fun ActionPanel(
         Action(
             focusedItem = focusedItem,
             showActions = showActions,
-            onToggleActions = onToggleActions,
-            modifier = Modifier.weight(1f)
+            onToggleActions = onToggleActions
         )
     }
 }

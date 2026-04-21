@@ -8,6 +8,7 @@ import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.presentation.CommandPresentation
+import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 
 interface PluginRuntime {
     val pluginId: PluginId
@@ -19,12 +20,19 @@ interface PluginRuntime {
     ): Flow<List<SearchIndexMutation>>
 
     fun content(): StateFlow<List<ContentItem>>
+    fun fullscreen(commandName: String): StateFlow<FullscreenContent?>
 
     suspend fun update(query: String, action: CommandAction)
+    suspend fun update(commandName: String, query: String, action: CommandAction)
     suspend fun unload()
 
     data class ContentItem(
         val commandName: String,
         val presentation: CommandPresentation
+    )
+
+    data class FullscreenContent(
+        val commandName: String,
+        val content: List<PluginRayNodeData>
     )
 }

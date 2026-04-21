@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.host.impl.presentation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline as AutoMirroredHelpOutline
 import androidx.compose.material.icons.outlined.ArrowDropUp
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,7 +27,7 @@ class PluginResourceResolverTest {
 
         val icon = resolver.resolve("DoesNotExist")
 
-        assertSame(Icons.Outlined.HelpOutline, icon)
+        assertSame(Icons.AutoMirrored.Outlined.AutoMirroredHelpOutline, icon)
     }
 
     @Test

@@ -3,6 +3,7 @@ package ru.raydroid.core.designsystem.component
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
@@ -35,6 +36,7 @@ fun RTextField(
     contentModifier: Modifier = Modifier,
     onPreviewKeyEvent: ((KeyEvent) -> Boolean)? = null,
     placeholder: (@Composable BoxScope.() -> Unit)? = null,
+    leadingContent: (@Composable BoxScope.() -> Unit)? = null,
     trailingContent: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     BasicTextField(
@@ -54,11 +56,16 @@ fun RTextField(
         lineLimits = lineLimits,
         cursorBrush = SolidColor(cursorColor),
         decorator = { content ->
-            Box {
+            Row(Modifier.fillMaxWidth()) {
+                if (leadingContent != null) {
+                    Box(Modifier.align(Alignment.CenterVertically)) {
+                        leadingContent()
+                    }
+                }
                 Box(
                     contentModifier
                         .padding(contentPadding)
-                        .fillMaxWidth()
+                        .weight(1f)
                 ) {
                     content()
                     if (state.text.isEmpty() && placeholder != null) {
@@ -66,7 +73,7 @@ fun RTextField(
                     }
                 }
                 if (trailingContent != null) {
-                    Box(Modifier.align(Alignment.CenterEnd)) {
+                    Box(Modifier.align(Alignment.CenterVertically)) {
                         trailingContent()
                     }
                 }

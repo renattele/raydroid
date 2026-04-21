@@ -13,6 +13,7 @@
       "service": "CalculatorCommand",
       "title": "command.calculator.title",
       "description": "command.calculator.description",
+      "placeholder": "command.calculator.placeholder",
       "mode": "Inline",
       "match": "[0-9].*",
       "arguments": [],
@@ -27,7 +28,8 @@
       "app.author": "Raydroid",
       "app.label": "Your results lol:",
       "command.calculator.title": "Calculator",
-      "command.calculator.description": "Calculator extension"
+      "command.calculator.description": "Calculator extension",
+      "command.calculator.placeholder": "Calculate..."
     },
     "strings-ru": {
       "app.description": "Калькулятор"

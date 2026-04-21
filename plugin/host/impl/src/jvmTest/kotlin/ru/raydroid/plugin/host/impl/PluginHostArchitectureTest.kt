@@ -204,6 +204,57 @@ class PluginHostArchitectureTest {
     }
 
     @Test
+    fun `runtime coordinator exposes searchable command launcher entries`() = runTest {
+        val visibleRuntime = FakePluginRuntime(
+            manifest = testManifest(name = "ru.test.visible", searchable = true)
+        )
+        val hiddenRuntime = FakePluginRuntime(
+            manifest = testManifest(name = "ru.test.hidden", searchable = false)
+        )
+        val pluginRuntimes = MutableStateFlow(emptyList<PluginRuntime>())
+        val coordinator = PluginRuntimeCoordinatorImpl(
+            coroutineScope = backgroundScope,
+            pluginRuntimes = pluginRuntimes,
+        )
+        pluginRuntimes.value = listOf(visibleRuntime, hiddenRuntime)
+
+        advanceUntilIdle()
+
+        val command = coordinator.commands().first { commands -> commands.isNotEmpty() }.single()
+        assertEquals(CommandItemId.CommandRoot, command.resultId.itemId)
+        assertEquals("ru.test.visible", command.resultId.pluginId.id)
+        assertEquals("apps", command.resultId.commandName)
+        assertEquals("Apps", assertIs<PluginUiText.Plain>(command.listEntry.title).text)
+    }
+
+    @Test
+    fun `open item use case dispatches open command action for command root`() = runTest {
+        val runtime = FakePluginRuntime(manifest = testManifest())
+        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
+        val searchRepository = RecordingSearchIndexRepository()
+        val useCase = OpenItemUseCase(
+            pluginRuntimeRegistry = object : PluginRuntimeRegistry {
+                override suspend fun load(runtime: PluginRuntime) = Unit
+                override suspend fun unload(runtime: PluginRuntime) = Unit
+                override fun get(): PluginRuntimeCoordinator = coordinator
+            },
+            searchIndexRepository = searchRepository,
+        )
+        val resultId = SearchResultId(
+            pluginId = runtime.pluginId,
+            commandName = "apps",
+            itemId = CommandItemId.CommandRoot,
+        )
+
+        useCase(query = "app", resultId = resultId)
+
+        val update = runtime.updates.single()
+        assertEquals("app", update.first)
+        assertIs<CommandAction.OpenCommand>(update.second)
+        assertEquals(resultId, searchRepository.lastUpdatedUsage)
+    }
+
+    @Test
     fun `open item use case dispatches enter action and updates usage`() = runTest {
         val runtime = FakePluginRuntime(manifest = testManifest())
         val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
@@ -326,7 +377,7 @@ private fun passthroughResourceResolver(): SearchResourceResolver {
     }
 }
 
-private fun testManifest(name: String = "ru.test.plugin"): Manifest {
+private fun testManifest(name: String = "ru.test.plugin", searchable: Boolean = true): Manifest {
     return Manifest(
         name = name,
         title = UiText.Plain("Test"),
@@ -343,6 +394,7 @@ private fun testManifest(name: String = "ru.test.plugin"): Manifest {
                 description = UiText.Plain("Apps command"),
                 mode = Command.Mode.View,
                 match = null,
+                searchable = searchable,
                 arguments = emptyList(),
                 preferences = emptyList(),
             )
@@ -358,13 +410,20 @@ private class FakePluginRuntime(
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
     val updates = mutableListOf<Pair<String, CommandAction>>()
+    private val fullscreen = MutableStateFlow<PluginRuntime.FullscreenContent?>(null)
 
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()
 
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = contentItems
 
+    override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = fullscreen
+
     override suspend fun update(query: String, action: CommandAction) {
         updates += query to action
+    }
+
+    override suspend fun update(commandName: String, query: String, action: CommandAction) {
+        update(query, action)
     }
 
     override suspend fun unload() = Unit
@@ -378,6 +437,9 @@ private class FakePluginRuntimeCoordinator(
     override fun runtimes(): StateFlow<List<PluginRuntime>> = runtimes
 
     override fun content(): StateFlow<List<PluginRuntimeCoordinator.ContentItem>> =
+        MutableStateFlow(emptyList())
+
+    override fun commands(): StateFlow<List<PluginRuntimeCoordinator.CommandItem>> =
         MutableStateFlow(emptyList())
 
     override suspend fun update(query: String, action: CommandAction) = Unit

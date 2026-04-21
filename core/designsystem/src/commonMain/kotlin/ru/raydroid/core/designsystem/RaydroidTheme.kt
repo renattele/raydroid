@@ -327,8 +327,8 @@ data class RaydroidMotionScheme(
                 fast = RaydroidMotionSpec(
                     durationMillis = if (reduceMotion) 80 else 120,
                     scaleDelta = scaleDelta / 2f,
-                    usesExpressiveSpatialMotion = false,
-                    dampingRatio = if (reduceMotion) 1f else 0.9f,
+                    usesExpressiveSpatialMotion = !reduceMotion,
+                    dampingRatio = if (reduceMotion) 1f else Spring.DampingRatioMediumBouncy,
                     stiffness = if (reduceMotion) Spring.StiffnessMedium else Spring.StiffnessMediumLow,
                     effectsEasing = FastOutSlowInEasing,
                     enterEffectsEasing = LinearOutSlowInEasing,
@@ -337,8 +337,8 @@ data class RaydroidMotionScheme(
                 default = RaydroidMotionSpec(
                     durationMillis = if (reduceMotion) 120 else 180,
                     scaleDelta = scaleDelta * 0.75f,
-                    usesExpressiveSpatialMotion = false,
-                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    usesExpressiveSpatialMotion = !reduceMotion,
+                    dampingRatio = if (reduceMotion) 1f else Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessMediumLow,
                     effectsEasing = FastOutSlowInEasing,
                     enterEffectsEasing = LinearOutSlowInEasing,

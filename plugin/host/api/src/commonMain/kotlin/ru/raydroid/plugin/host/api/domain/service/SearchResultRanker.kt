@@ -11,7 +11,14 @@ interface SearchResultRanker {
         limit: Int
     ): List<RankedSearchResult>
 
+    fun rankCommands(
+        query: String,
+        commandsSnapshot: List<PluginRuntimeCoordinator.CommandItem>,
+        limit: Int
+    ): List<RankedSearchResult>
+
     fun merge(
+        commandResults: List<RankedSearchResult>,
         liveResults: List<RankedSearchResult>,
         cachedResults: List<RankedSearchResult>,
         limit: Int

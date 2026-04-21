@@ -20,15 +20,15 @@ annotation class PluginMarker
 
 interface PluginScope {
     @PluginMarker
-    fun register(command: CommandService)
+    fun command(commandService: CommandService)
 }
 
 @PluginMarker
 fun plugin(content: PluginScope.() -> Unit) {
     val scope = object : PluginScope {
-        override fun register(command: CommandService) {
-            val serviceName = command::class.simpleName!!
-            zipline.bind(serviceName, command.toBridge(serviceName))
+        override fun command(commandService: CommandService) {
+            val serviceName = commandService::class.simpleName!!
+            zipline.bind(serviceName, commandService.toBridge(serviceName))
         }
     }
     scope.content()
@@ -74,11 +74,19 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
             return presentations
         }
 
+        override fun fullscreen() = buildRayNodes fullscreenContent@{
+            with(this@toBridge) {
+                this@fullscreenContent.fullscreen()
+            }
+        }
+
         override fun initialize(
             request: CommandServiceBridge.RenderRequest,
+            fullscreenRenderRequest: CommandServiceBridge.FullscreenRenderRequest,
             invalidateCacheRequest: CommandServiceBridge.InvalidateCacheRequest
         ) {
             onRenderRequest = request::requestRender
+            onFullscreenRenderRequest = fullscreenRenderRequest::requestFullscreenRender
             onInvalidateCacheRequest = invalidateCacheRequest::requestInvalidation
         }
 

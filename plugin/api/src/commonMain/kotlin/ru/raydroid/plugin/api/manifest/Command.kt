@@ -11,8 +11,11 @@ data class Command(
     val title: UiText,
     @Serializable(with = ManifestUiTextSerializer::class)
     val description: UiText,
+    @Serializable(with = ManifestUiTextSerializer::class)
+    val placeholder: UiText? = null,
     val mode: Mode,
     val match: String?,
+    val searchable: Boolean = true,
     val arguments: List<Argument>,
     val preferences: List<Preference>,
 ) {

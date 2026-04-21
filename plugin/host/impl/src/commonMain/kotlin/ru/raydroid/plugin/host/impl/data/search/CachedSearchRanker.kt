@@ -173,13 +173,65 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
             .take(limit)
     }
 
+    override fun rankCommands(
+        query: String,
+        commandsSnapshot: List<PluginRuntimeCoordinator.CommandItem>,
+        limit: Int
+    ): List<RankedSearchResult> {
+        val normalizedQuery = SearchQueryNormalizer.from(query)
+        return commandsSnapshot
+            .mapIndexedNotNull { index, commandItem ->
+                val command = commandItem.runtime.manifest.commands
+                    .firstOrNull { command -> command.service == commandItem.resultId.commandName }
+                    ?: return@mapIndexedNotNull null
+                val resources = commandItem.runtime.manifest.resources
+                val fields = buildList {
+                    command.title.resolve(resources).forEach { add(SearchFieldInput(it, FieldWeight.CommandTitle)) }
+                    command.description.resolve(resources).forEach { add(SearchFieldInput(it, FieldWeight.CommandDescription)) }
+                    commandItem.runtime.manifest.title.resolve(resources).forEach { add(SearchFieldInput(it, FieldWeight.PluginTitle)) }
+                    add(SearchFieldInput(command.service, FieldWeight.CommandName))
+                    add(SearchFieldInput(commandItem.resultId.pluginId.id, FieldWeight.PluginId))
+                }
+                val score = if (normalizedQuery.isBlank) {
+                    SearchResultScore(
+                        textScore = COMMAND_EMPTY_QUERY_SCORE,
+                        usageBoost = COMMAND_SOURCE_BOOST,
+                        live = true,
+                        titleMatch = true,
+                        stableOrder = index.toLong()
+                    )
+                } else {
+                    val scored = scoreFields(
+                        query = normalizedQuery,
+                        fields = fields,
+                        usageBoost = COMMAND_SOURCE_BOOST,
+                        live = true,
+                        stableOrder = index.toLong()
+                    )
+                    if (!scored.matched) return@mapIndexedNotNull null
+                    scored.toSearchResultScore(live = true, stableOrder = index.toLong())
+                }
+
+                RankedSearchResult(
+                    result = SearchResultSet.CommandSearchResult(
+                        resultId = commandItem.resultId,
+                        listEntry = commandItem.listEntry
+                    ),
+                    score = score
+                )
+            }
+            .sortedWith(rankedComparator)
+            .take(limit)
+    }
+
     override fun merge(
+        commandResults: List<RankedSearchResult>,
         liveResults: List<RankedSearchResult>,
         cachedResults: List<RankedSearchResult>,
         limit: Int
     ): List<SearchResultSet.SearchResult> {
         val bestById = linkedMapOf<SearchResultId, RankedSearchResult>()
-        (liveResults + cachedResults).forEach { candidate ->
+        (commandResults + liveResults + cachedResults).forEach { candidate ->
             val previous = bestById[candidate.result.resultId]
             if (
                 previous == null ||
@@ -738,6 +790,8 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
         const val LIVE_SOURCE_BOOST = 0.2
         const val LIVE_REGEX_BOOST = 48.0
         const val LIVE_EMPTY_QUERY_SCORE = 4.0
+        const val COMMAND_SOURCE_BOOST = 0.3
+        const val COMMAND_EMPTY_QUERY_SCORE = 6.0
 
         const val DELETE: Byte = 1
         const val INSERT: Byte = 2

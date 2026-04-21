@@ -22,6 +22,7 @@ class SearchUseCase(
     @OptIn(ExperimentalCoroutinesApi::class)
     operator fun invoke(query: String, limit: Int = 50): Flow<SearchResultSet> {
         val runtimeCoordinator = pluginRuntimeRegistry.get()
+        val commandsFlow = runtimeCoordinator.commands()
         val contentFlow = runtimeCoordinator.content()
         val cachedResultsFlow = searchIndexRepository.search(query, limit)
 
@@ -32,7 +33,12 @@ class SearchUseCase(
                 }
             }
 
-            combine(contentFlow, cachedResultsFlow) { liveResults, cachedResults ->
+            combine(commandsFlow, contentFlow, cachedResultsFlow) { commandItems, liveResults, cachedResults ->
+                val rankedCommandResults = searchResultRanker.rankCommands(
+                    query = query,
+                    commandsSnapshot = commandItems,
+                    limit = limit
+                )
                 val rankedLiveResults = searchResultRanker.rankLive(
                     query = query,
                     contentSnapshot = liveResults,
@@ -40,6 +46,7 @@ class SearchUseCase(
                 )
                 SearchResultSet(
                     results = searchResultRanker.merge(
+                        commandResults = rankedCommandResults,
                         liveResults = rankedLiveResults,
                         cachedResults = cachedResults,
                         limit = limit

@@ -15,11 +15,19 @@ interface PluginRuntimeCoordinator {
 
     fun content(): StateFlow<List<ContentItem>>
 
+    fun commands(): StateFlow<List<CommandItem>>
+
     suspend fun update(query: String, action: CommandAction)
 
     data class ContentItem(
         val runtime: PluginRuntime,
         val presentation: PluginCommandPresentation,
+        val listEntry: PluginCommandListItem,
+        val resultId: SearchResultId
+    )
+
+    data class CommandItem(
+        val runtime: PluginRuntime,
         val listEntry: PluginCommandListItem,
         val resultId: SearchResultId
     )
