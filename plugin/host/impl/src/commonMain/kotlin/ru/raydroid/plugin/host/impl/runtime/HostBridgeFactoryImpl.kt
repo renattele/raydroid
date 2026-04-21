@@ -8,6 +8,7 @@ import ru.raydroid.plugin.api.host.transport.HostServiceBridge
 import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
 import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
+import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 import ru.raydroid.plugin.host.api.domain.service.HostBridgeFactory
@@ -20,6 +21,7 @@ class HostBridgeFactoryImpl(
     private val networkBridge: (PluginId) -> NetworkServiceBridge,
     private val notificationBridge: (PluginId) -> NotificationServiceBridge,
     private val preferencesBridge: (PluginId) -> PreferencesServiceBridge,
+    private val searchFieldBridge: (PluginId) -> SearchFieldServiceBridge,
     private val cacheBridge: (PluginId) -> CacheServiceBridge,
     private val storageBridge: (PluginId) -> StorageServiceBridge,
     private val clipboardBridge: (PluginId) -> ClipboardServiceBridge,
@@ -34,6 +36,7 @@ class HostBridgeFactoryImpl(
             networkBridge = networkBridge(pluginId),
             notificationBridge = notificationBridge(pluginId),
             preferencesBridge = preferencesBridge(pluginId),
+            searchFieldBridge = searchFieldBridge(pluginId),
             storageBridge = storageBridge(pluginId),
             systemBridge = systemBridge(pluginId)
         )

@@ -2,6 +2,7 @@ package ru.raydroid.plugin.host.impl.presentation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -18,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.stringResource
 import raydroid.plugin.host.impl.generated.resources.Res
 import raydroid.plugin.host.impl.generated.resources.search_field_placeholder
+import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.RDivider
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextField
@@ -33,6 +35,7 @@ fun SearchField(
     onEvent: (event: SearchFieldEvent) -> Unit,
     modifier: Modifier = Modifier,
     decoratorModifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(RaydroidTheme.spacing.large),
     placeholder: PluginUiText? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     actionContent: (@Composable () -> Unit)? = null
@@ -59,6 +62,7 @@ fun SearchField(
             lineLimits = TextFieldLineLimits.SingleLine,
             cursorColor = PluginColor.Primary.toColor(),
             contentModifier = decoratorModifier,
+            contentPadding = contentPadding,
             onPreviewKeyEvent = { event ->
                 if (event.type == KeyEventType.KeyDown) {
                     when (event.key) {

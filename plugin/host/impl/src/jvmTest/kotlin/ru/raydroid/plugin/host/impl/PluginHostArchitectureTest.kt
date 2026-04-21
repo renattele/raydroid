@@ -6,21 +6,31 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
+import ru.raydroid.plugin.api.host.exception.PermissionDenied
 import ru.raydroid.plugin.api.manifest.Command
+import ru.raydroid.plugin.api.manifest.Access
 import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.manifest.Platform
+import ru.raydroid.plugin.api.manifest.Permission
+import ru.raydroid.plugin.api.manifest.SearchFieldAccess
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
+import ru.raydroid.plugin.api.host.service.SearchFieldSelection
+import ru.raydroid.plugin.api.host.service.SearchFieldState
+import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
 import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.RankedSearchResult
@@ -50,10 +60,14 @@ import ru.raydroid.plugin.host.impl.runtime.PluginRuntimeCoordinatorImpl
 import ru.raydroid.plugin.host.api.domain.service.PluginLoader
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginUiText
+import ru.raydroid.plugin.host.impl.event.SearchFieldGatewayImpl
+import ru.raydroid.plugin.host.impl.permission.PermissionSearchFieldServiceBridge
+import ru.raydroid.plugin.host.impl.services.SearchFieldServiceBridgeImpl
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandPresentation
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 
@@ -319,6 +333,82 @@ class PluginHostArchitectureTest {
     }
 
     @Test
+    fun `search field service bridge emits plugin-scoped state request`() = runTest {
+        val gateway = SearchFieldGatewayImpl()
+        val pluginId = PluginId("ru.test.plugin")
+        val bridge = SearchFieldServiceBridgeImpl(pluginId, gateway)
+        val request = async(start = CoroutineStart.UNDISPATCHED) {
+            gateway.get().first()
+        }
+        val state = SearchFieldState(
+            text = "next",
+            selection = SearchFieldSelection.SelectAll
+        )
+
+        bridge.setState(state)
+
+        val emitted = request.await()
+        assertEquals(pluginId, emitted.pluginId)
+        assertEquals(state, emitted.state)
+    }
+
+    @Test
+    fun `search field permission bridge denies missing write access`() = runTest {
+        val delegate = RecordingSearchFieldServiceBridge()
+        val bridge = PermissionSearchFieldServiceBridge(delegate, testManifest())
+
+        assertFailsWith<PermissionDenied> {
+            bridge.setState(SearchFieldState("blocked"))
+        }
+        assertNull(delegate.lastState)
+    }
+
+    @Test
+    fun `search field permission bridge allows write access`() = runTest {
+        val delegate = RecordingSearchFieldServiceBridge()
+        val bridge = PermissionSearchFieldServiceBridge(
+            searchFieldServiceBridge = delegate,
+            manifest = testManifest().copy(
+                access = Access(
+                    searchField = SearchFieldAccess(
+                        permissions = listOf(Permission.Write)
+                    )
+                )
+            )
+        )
+        val state = SearchFieldState("allowed")
+
+        bridge.setState(state)
+
+        assertEquals(state, delegate.lastState)
+    }
+
+    @Test
+    fun `update command query use case dispatches type action without search usage`() = runTest {
+        val runtime = FakePluginRuntime(manifest = testManifest())
+        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
+        val useCase = UpdateCommandQueryUseCase(
+            pluginRuntimeRegistry = object : PluginRuntimeRegistry {
+                override suspend fun load(runtime: PluginRuntime) = Unit
+                override suspend fun unload(runtime: PluginRuntime) = Unit
+                override fun get(): PluginRuntimeCoordinator = coordinator
+            }
+        )
+        val resultId = SearchResultId(
+            pluginId = runtime.pluginId,
+            commandName = "apps",
+            itemId = CommandItemId.CommandRoot,
+        )
+
+        useCase(resultId = resultId, query = "42")
+
+        val update = runtime.commandUpdates.single()
+        assertEquals("apps", update.commandName)
+        assertEquals("42", update.query)
+        assertIs<CommandAction.Type>(update.action)
+    }
+
+    @Test
     fun `plugin repository returns plugin artifact from local data source`() = runTest {
         val pluginId = PluginId("ru.test.plugin")
         val localData = byteArrayOf(1, 2, 3)
@@ -410,6 +500,7 @@ private class FakePluginRuntime(
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
     val updates = mutableListOf<Pair<String, CommandAction>>()
+    val commandUpdates = mutableListOf<CommandUpdate>()
     private val fullscreen = MutableStateFlow<PluginRuntime.FullscreenContent?>(null)
 
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()
@@ -423,10 +514,17 @@ private class FakePluginRuntime(
     }
 
     override suspend fun update(commandName: String, query: String, action: CommandAction) {
+        commandUpdates += CommandUpdate(commandName, query, action)
         update(query, action)
     }
 
     override suspend fun unload() = Unit
+
+    data class CommandUpdate(
+        val commandName: String,
+        val query: String,
+        val action: CommandAction
+    )
 }
 
 private class FakePluginRuntimeCoordinator(
@@ -456,6 +554,14 @@ private class RecordingSearchIndexRepository : SearchIndexRepository {
 
     override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> =
         flowOf(emptyList())
+}
+
+private class RecordingSearchFieldServiceBridge : SearchFieldServiceBridge {
+    var lastState: SearchFieldState? = null
+
+    override suspend fun setState(state: SearchFieldState) {
+        lastState = state
+    }
 }
 
 private class FakeSearchIndexCacheDao(

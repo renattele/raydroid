@@ -7,6 +7,7 @@ import ru.raydroid.plugin.api.host.transport.HostServiceBridge
 import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
 import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
+import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 
@@ -17,6 +18,7 @@ internal class HostServiceBridgeImpl(
     override val networkBridge: NetworkServiceBridge,
     override val notificationBridge: NotificationServiceBridge,
     override val preferencesBridge: PreferencesServiceBridge,
+    override val searchFieldBridge: SearchFieldServiceBridge,
     override val storageBridge: StorageServiceBridge,
     override val systemBridge: SystemServiceBridge
 ) : HostServiceBridge

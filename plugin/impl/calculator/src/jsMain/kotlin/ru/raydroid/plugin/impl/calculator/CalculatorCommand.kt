@@ -11,6 +11,8 @@ import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.host.Host
 import ru.raydroid.plugin.api.host.service.NotificationService
+import ru.raydroid.plugin.api.host.service.SearchFieldSelection
+import ru.raydroid.plugin.api.host.service.SearchFieldState
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.ui.Column
 import ru.raydroid.plugin.api.ui.Icon
@@ -81,6 +83,10 @@ class CalculatorCommand : CommandService() {
         }
         result = "123"
         render()
+        renderFullscreen()
+        if (action is CommandAction.OpenCommand) {
+            Host.searchField.setState(SearchFieldState("Text", SearchFieldSelection.SelectAll))
+        }
         if (query.any { it.isDigit() }) {
             val toast = NotificationService.Toast(
                 message = UiText.Plain("Hello"),

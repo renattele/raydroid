@@ -8,6 +8,7 @@ import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
 import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
 import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
+import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 import ru.raydroid.plugin.host.api.event.NotificationEvent
 
@@ -20,6 +21,12 @@ internal val hostServiceModule = module {
     }
 
     factory<PreferencesServiceBridge> { PreferencesServiceBridgeImpl(get()) }
+    factory<SearchFieldServiceBridge> { params ->
+        SearchFieldServiceBridgeImpl(
+            pluginId = params.get(),
+            searchFieldGateway = get()
+        )
+    }
     factory<CacheServiceBridge> { RuntimeCacheServiceImpl() }
     factory<StorageServiceBridge> {
         StorageServiceBridgeImpl(

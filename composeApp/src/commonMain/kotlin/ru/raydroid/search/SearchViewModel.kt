@@ -1,10 +1,9 @@
 package ru.raydroid.search
 
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.setTextAndSelectAll
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +17,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -31,17 +32,21 @@ import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetCommandFullscreenUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
+import ru.raydroid.plugin.host.api.application.usecase.GetSearchFieldRequestsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenItemUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
+import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
 import ru.raydroid.plugin.host.api.event.NotificationEvent.*
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
-import ru.raydroid.plugin.host.impl.presentation.SearchFieldState
+import ru.raydroid.plugin.api.host.service.SearchFieldSelection
+import ru.raydroid.plugin.api.host.service.SearchFieldState as ApiSearchFieldState
+import ru.raydroid.plugin.host.impl.presentation.SearchFieldState as PresentationSearchFieldState
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class SearchViewModel(
@@ -52,7 +57,9 @@ class SearchViewModel(
     private val openItemUseCase: OpenItemUseCase,
     private val getCommandFullscreenUseCase: GetCommandFullscreenUseCase,
     private val getEventsUseCase: GetEventsUseCase,
-    private val emitEventUseCase: EmitEventUseCase
+    private val emitEventUseCase: EmitEventUseCase,
+    private val getSearchFieldRequestsUseCase: GetSearchFieldRequestsUseCase,
+    private val updateCommandQueryUseCase: UpdateCommandQueryUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         SearchScreenState(
@@ -117,14 +124,6 @@ class SearchViewModel(
                 .map { text -> text.toString() }
                 .distinctUntilChanged()
                 .onEach {
-                    if (it.isNotEmpty()) {
-                        _state.update { state ->
-                            val fullscreen = state.fullscreen ?: return@update state
-                            state.copy(
-                                fullscreen = fullscreen.copy(exitBackspaceCount = 0)
-                            )
-                        }
-                    }
                     _state.update { state ->
                         state.copy(
                             isSearching = state.searchResults == null,
@@ -159,6 +158,73 @@ class SearchViewModel(
                     }
                 }
         }
+        viewModelScope.launch {
+            _state
+                .map { state ->
+                    state.fullscreen?.let { fullscreen ->
+                        FullscreenSearchField(
+                            resultId = fullscreen.resultId,
+                            fieldState = fullscreen.searchFieldState.fieldState
+                        )
+                    }
+                }
+                .distinctUntilChanged()
+                .flatMapLatest { fullscreenSearchField ->
+                    if (fullscreenSearchField == null) {
+                        flowOf(null)
+                    } else {
+                        snapshotFlow {
+                            FullscreenQuery(
+                                resultId = fullscreenSearchField.resultId,
+                                query = fullscreenSearchField.fieldState.text.toString()
+                            )
+                        }
+                    }
+                }
+                .distinctUntilChanged()
+                .onEach { fullscreenQuery ->
+                    if (fullscreenQuery?.query?.isNotEmpty() == true) {
+                        _state.update { state ->
+                            val fullscreen = state.fullscreen ?: return@update state
+                            if (fullscreen.resultId != fullscreenQuery.resultId) {
+                                state
+                            } else {
+                                state.copy(
+                                    fullscreen = fullscreen.copy(exitBackspaceCount = 0)
+                                )
+                            }
+                        }
+                    }
+                }
+                .debounce(SEARCH_DEBOUNCE_MS)
+                .collectLatest { fullscreenQuery ->
+                    if (fullscreenQuery != null) {
+                        updateCommandQueryUseCase(
+                            resultId = fullscreenQuery.resultId,
+                            query = fullscreenQuery.query
+                        )
+                    }
+                }
+        }
+        viewModelScope.launch {
+            getSearchFieldRequestsUseCase().collectLatest { request ->
+                val fullscreen = _state.value.fullscreen ?: return@collectLatest
+                if (fullscreen.resultId.pluginId != request.pluginId) {
+                    return@collectLatest
+                }
+                fullscreen.searchFieldState.fieldState.apply(request.state)
+                _state.update { state ->
+                    val currentFullscreen = state.fullscreen ?: return@update state
+                    if (currentFullscreen.resultId.pluginId != request.pluginId) {
+                        state
+                    } else {
+                        state.copy(
+                            fullscreen = currentFullscreen.copy(exitBackspaceCount = 0)
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun onEvent(event: SearchScreenEvent) {
@@ -174,13 +240,13 @@ class SearchViewModel(
                     val openResult = state.searchResults
                         ?.results
                         ?.firstOrNull { result -> result.resultId == openResultId }
+                    if (openResult is SearchResultSet.CommandSearchResult) {
+                        collectFullscreen(openResult)
+                    }
                     openItemUseCase(
                         state.searchFieldState.fieldState.text.toString(),
                         openResultId
                     )
-                    if (openResult is SearchResultSet.CommandSearchResult) {
-                        collectFullscreen(openResult)
-                    }
                 }
 
                 SearchScreenEvent.MoveFocusNext -> {
@@ -242,8 +308,7 @@ class SearchViewModel(
                         )
                     }
                     if (exitBackspaceCount >= 2) {
-                        delay(FULLSCREEN_COLLAPSE_DELAY_MS)
-                        closeFullscreen(_state.value)
+                        collapseAndCloseFullscreen(fullscreen.resultId)
                     }
                 }
 
@@ -291,9 +356,28 @@ class SearchViewModel(
 
                 SearchScreenEvent.CloseFullscreen -> {
                     val state = _state.value
-                    closeFullscreen(state)
+                    val fullscreen = state.fullscreen ?: return@launch
+                    collapseAndCloseFullscreen(fullscreen.resultId)
                 }
             }
+        }
+    }
+
+    private suspend fun collapseAndCloseFullscreen(resultId: SearchResultId) {
+        _state.update { state ->
+            val fullscreen = state.fullscreen ?: return@update state
+            if (fullscreen.resultId != resultId) {
+                state
+            } else {
+                state.copy(
+                    fullscreen = fullscreen.copy(exitBackspaceCount = 2)
+                )
+            }
+        }
+        delay(FULLSCREEN_COLLAPSE_DELAY_MS)
+        val state = _state.value
+        if (state.fullscreen?.resultId == resultId) {
+            closeFullscreen(state)
         }
     }
 
@@ -302,18 +386,16 @@ class SearchViewModel(
         fullscreenJob?.cancel()
         fullscreenJob = null
         openItemUseCase.closeCommand(
-            query = state.searchFieldState.fieldState.text.toString(),
+            query = fullscreen.searchFieldState.fieldState.text.toString(),
             resultId = fullscreen.resultId
         )
         _state.update { currentState ->
             currentState.copy(fullscreen = null)
         }
-        _state.value.searchFieldState.fieldState.setTextAndSelectAll(fullscreen.previousQuery)
     }
 
     private fun collectFullscreen(result: SearchResultSet.CommandSearchResult) {
         fullscreenJob?.cancel()
-        val previousQuery = _state.value.searchFieldState.fieldState.text.toString()
         val runtime = _state.value.plugins[result.resultId.pluginId]
         val command = runtime
             ?.manifest
@@ -325,14 +407,15 @@ class SearchViewModel(
                     resultId = result.resultId,
                     title = result.listEntry.title,
                     placeholder = command?.placeholder?.toPluginUiText(result.resultId.pluginId),
-                    previousQuery = previousQuery,
+                    searchFieldState = PresentationSearchFieldState(
+                        fieldState = TextFieldState()
+                    ),
                     exitBackspaceCount = 0,
                     content = emptyList()
                 ),
                 showActions = false
             )
         }
-        _state.value.searchFieldState.fieldState.setTextAndPlaceCursorAtEnd("")
         fullscreenJob = viewModelScope.launch {
             getCommandFullscreenUseCase(result.resultId).collectLatest { content ->
                 _state.update { state ->
@@ -358,7 +441,7 @@ class SearchViewModel(
 }
 
 data class SearchScreenState(
-    val searchFieldState: SearchFieldState = SearchFieldState(
+    val searchFieldState: PresentationSearchFieldState = PresentationSearchFieldState(
         fieldState = TextFieldState()
     ),
     val searchResults: SearchResultSet? = null,
@@ -377,10 +460,31 @@ data class PluginFullscreenState(
     val resultId: SearchResultId,
     val title: PluginUiText?,
     val placeholder: PluginUiText?,
-    val previousQuery: String,
+    val searchFieldState: PresentationSearchFieldState,
     val exitBackspaceCount: Int,
     val content: List<PluginRayNodeData>
 )
+
+private data class FullscreenQuery(
+    val resultId: SearchResultId,
+    val query: String
+)
+
+private data class FullscreenSearchField(
+    val resultId: SearchResultId,
+    val fieldState: TextFieldState
+)
+
+private fun TextFieldState.apply(state: ApiSearchFieldState) {
+    edit {
+        replace(0, length, state.text)
+        selection = when (state.selection) {
+            SearchFieldSelection.CursorAtStart -> TextRange(0)
+            SearchFieldSelection.CursorAtEnd -> TextRange(state.text.length)
+            SearchFieldSelection.SelectAll -> TextRange(0, state.text.length)
+        }
+    }
+}
 
 private fun SearchScreenState.focusedResultId(): SearchResultId? =
     focusedItemIndex?.let { itemIndex ->

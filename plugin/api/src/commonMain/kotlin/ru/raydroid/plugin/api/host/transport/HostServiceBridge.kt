@@ -9,6 +9,7 @@ interface HostServiceBridge : ZiplineService {
    val networkBridge: NetworkServiceBridge
    val notificationBridge: NotificationServiceBridge
    val preferencesBridge: PreferencesServiceBridge
+   val searchFieldBridge: SearchFieldServiceBridge
    val storageBridge: StorageServiceBridge
    val systemBridge: SystemServiceBridge
 }

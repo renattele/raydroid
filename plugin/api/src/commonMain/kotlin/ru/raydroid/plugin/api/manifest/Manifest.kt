@@ -42,6 +42,8 @@ data class Access(
     val network: NetworkAccess? = null,
     val notification: NotificationAccess? = null,
     val preferences: SizedAccess? = null,
+    @SerialName("search_field")
+    val searchField: SearchFieldAccess? = null,
     val storage: SizedAccess? = null,
     val system: SystemAccess? = null,
     val runtime: RuntimeAccess? = null
@@ -76,6 +78,11 @@ data class NetworkAccess(
     val permissions: List<Permission>? = null,
     @SerialName("allowed_urls")
     val allowedUrls: List<String>? = null
+)
+
+@Serializable
+data class SearchFieldAccess(
+    val permissions: List<Permission>? = null
 )
 
 @Serializable

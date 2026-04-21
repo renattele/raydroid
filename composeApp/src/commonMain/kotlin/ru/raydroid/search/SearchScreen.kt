@@ -221,7 +221,8 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 }
             }
             SearchField(
-                state.searchFieldState.copy(canGoOnEnter = fullscreen == null && state.focusedItemIndex != null),
+                (fullscreen?.searchFieldState ?: state.searchFieldState)
+                    .copy(canGoOnEnter = fullscreen == null && state.focusedItemIndex != null),
                 onEvent = { event ->
                     when (event) {
                         SearchFieldEvent.Enter -> if (fullscreen == null) {
@@ -240,6 +241,11 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     }
                 },
                 Modifier.focusRequester(focus),
+                contentPadding = if (fullscreen != null) {
+                    PaddingValues(horizontal = spacing.small, vertical = spacing.large)
+                } else {
+                    PaddingValues(spacing.large)
+                },
                 placeholder = fullscreen?.placeholder,
                 leadingContent = if (fullscreen != null) {
                     {

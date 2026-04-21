@@ -55,6 +55,9 @@
       "permissions": ["manage"],
       "requested_size": "1mb"
     },
+    "search_field": {
+      "permissions": ["write"]
+    },
     "storage": {
       "permissions": ["manage"],
       "requested_size": "1mb"

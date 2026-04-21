@@ -8,6 +8,7 @@ import ru.raydroid.plugin.api.host.transport.HostServiceBridge
 import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
 import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
+import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 
@@ -27,6 +28,8 @@ internal class PermissionHostServiceBridge(
         PermissionNotificationServiceBridge(bridge.notificationBridge, manifest)
     override val preferencesBridge: PreferencesServiceBridge =
         PermissionPreferencesServiceBridge(bridge.preferencesBridge, manifest)
+    override val searchFieldBridge: SearchFieldServiceBridge =
+        PermissionSearchFieldServiceBridge(bridge.searchFieldBridge, manifest)
     override val storageBridge: StorageServiceBridge =
         PermissionStorageServiceBridge(bridge.storageBridge, manifest)
     override val systemBridge: SystemServiceBridge = PermissionSystemServiceBridge(

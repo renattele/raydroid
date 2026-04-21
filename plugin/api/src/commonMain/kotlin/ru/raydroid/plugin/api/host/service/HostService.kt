@@ -7,6 +7,7 @@ interface HostService {
     val network: NetworkService
     val notification: NotificationService
     val preferences: PreferencesService
+    val searchField: SearchFieldService
     val storage: StorageService
     val system: SystemService
 }
