@@ -6,7 +6,9 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandActionScope
+import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.presentation.CommandPresentationMap
@@ -46,6 +48,8 @@ interface CommandServiceBridge : ZiplineService {
 
     fun fullscreen(): List<RayNodeData>
 
+    fun actions(target: CommandActionTarget): List<CommandListAction>
+
     fun initialize(
         request: RenderRequest,
         fullscreenRenderRequest: FullscreenRenderRequest,
@@ -79,6 +83,9 @@ abstract class CommandService {
 
     @Ray
     open fun RayScope.fullscreen() = Unit
+
+    @Ray
+    open fun CommandActionScope.actions(target: CommandActionTarget) = Unit
 
     abstract suspend fun execute(action: CommandAction)
 

@@ -84,9 +84,9 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 focus.requestFocus()
             }
             val listState = rememberLazyListState()
-            val focusedItem = if (fullscreen == null) state.focusedItemIndex?.let { index ->
-                state.searchResults?.results?.getOrNull(index)?.listEntry
-            } else null
+            val focusedActions = state.focusedActions.map { focusedAction ->
+                focusedAction.action
+            }
             LaunchedEffect(state.focusedItemIndex) {
                 if (fullscreen == null && state.focusedItemIndex != null) {
                     listState.scrollToItem(state.focusedItemIndex)
@@ -211,10 +211,14 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                             )
                         )
                         ActionsPanelOverlay(
-                            focusedItem = focusedItem,
-                            visible = fullscreen == null && state.showActions,
+                            actions = focusedActions,
+                            visible = state.showActions,
                             onActionClick = { action ->
-                                state.eventSink(SearchScreenEvent.EnterAction(action))
+                                state.focusedActions
+                                    .firstOrNull { focusedAction -> focusedAction.action == action }
+                                    ?.let { focusedAction ->
+                                        state.eventSink(SearchScreenEvent.EnterAction(focusedAction))
+                                    }
                             }
                         )
                     }
@@ -257,15 +261,13 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     null
                 }
             ) {
-                if (fullscreen == null) {
-                    ActionPanel(
-                        focusedItem = focusedItem,
-                        showActions = state.showActions,
-                        onToggleActions = {
-                            state.eventSink(SearchScreenEvent.ToggleActions)
-                        }
-                    )
-                }
+                ActionPanel(
+                    actions = focusedActions,
+                    showActions = state.showActions,
+                    onToggleActions = {
+                        state.eventSink(SearchScreenEvent.ToggleActions)
+                    }
+                )
             }
         }
     }

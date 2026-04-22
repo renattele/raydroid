@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandService
+import ru.raydroid.plugin.api.presentation.CommandActionScope
+import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandListScope
@@ -42,28 +44,36 @@ class CalculatorCommand : CommandService() {
             emit(chunk)
         }
     }.onCompletion {
-     //   Host.notification.hideToast(toast)
+        //   Host.notification.hideToast(toast)
     }
 
     override fun CommandListScope.content() {
-        entry(CommandItemId.Static, actions = {
-            action("123", title = UiText.Resource("app.name"))
-            group(UiText.Plain("111")) {
-                action(
-                    "456",
-                    title = UiText.Resource("app.description"),
-                    style = CommandListAction.Style.Destructive,
-                    icon = Icon.Builtin("Clear")
-                )
-                action(
-                    "789",
-                    title = UiText.Resource("app.description"),
-                    style = CommandListAction.Style.Destructive
-                )
-            }
-        }) {
+        entry(CommandItemId.Static) {
             Column {
                 Text(UiText.Plain(result))
+            }
+        }
+    }
+
+    override fun CommandActionScope.actions(target: CommandActionTarget) {
+        when (target) {
+            CommandActionTarget.CommandRoot,
+            CommandActionTarget.Fullscreen,
+            is CommandActionTarget.Item -> {
+                action("123", title = UiText.Resource("app.label"))
+                group(UiText.Plain("111")) {
+                    action(
+                        "456",
+                        title = UiText.Resource("app.description"),
+                        style = CommandListAction.Style.Destructive,
+                        icon = Icon.Builtin("Clear")
+                    )
+                    action(
+                        "789",
+                        title = UiText.Resource("app.description"),
+                        style = CommandListAction.Style.Destructive
+                    )
+                }
             }
         }
     }

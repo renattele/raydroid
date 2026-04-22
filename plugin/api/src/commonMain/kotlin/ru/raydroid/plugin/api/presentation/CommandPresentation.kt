@@ -27,12 +27,23 @@ value class CommandItemId(val value: String) {
 value class CommandActionId(val value: String)
 
 @Serializable
+sealed interface CommandActionTarget {
+    @Serializable
+    data object CommandRoot : CommandActionTarget
+
+    @Serializable
+    data class Item(val itemId: CommandItemId) : CommandActionTarget
+
+    @Serializable
+    data object Fullscreen : CommandActionTarget
+}
+
+@Serializable
 data class CommandListItem(
     val id: CommandItemId,
     val icon: Icon?,
     val title: UiText?,
     val description: UiText?,
-    val actions: List<CommandListAction> = emptyList(),
 )
 
 @Serializable
@@ -58,7 +69,6 @@ interface CommandListScope {
         title: UiText? = null,
         description: UiText? = null,
         icon: Icon? = null,
-        actions: CommandActionScope.() -> Unit = {},
         content: RayScope.() -> Unit
     )
 }

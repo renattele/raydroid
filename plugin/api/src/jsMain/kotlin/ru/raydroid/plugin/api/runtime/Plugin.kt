@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandActionScope
+import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
@@ -53,16 +54,13 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
                     title: UiText?,
                     description: UiText?,
                     icon: Icon?,
-                    actions: CommandActionScope.() -> Unit,
                     content: RayScope.() -> Unit
                 ) {
-                    val actionList = buildActions(group = null, actions)
                     val listEntry = CommandListItem(
                         id = id,
                         title = title,
                         description = description,
                         icon = icon,
-                        actions = actionList,
                     )
                     presentations[id] = CommandPresentation(
                         listEntry = listEntry,
@@ -73,6 +71,11 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
             scope.content()
             return presentations
         }
+
+        override fun actions(target: CommandActionTarget): List<CommandListAction> =
+            buildActions(group = null) {
+                runActions(this, target)
+            }
 
         override fun fullscreen() = buildRayNodes fullscreenContent@{
             with(this@toBridge) {
@@ -128,5 +131,11 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
             }
             scope.content()
             return actions
+        }
+
+        private fun runActions(scope: CommandActionScope, target: CommandActionTarget) {
+            with(this@toBridge) {
+                scope.actions(target)
+            }
         }
     }

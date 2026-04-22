@@ -38,12 +38,10 @@ import ru.raydroid.core.designsystem.component.RKeyHint
 import ru.raydroid.core.designsystem.component.RLoadingIndicator
 import ru.raydroid.core.designsystem.component.RPopupSurface
 import ru.raydroid.core.designsystem.component.rInteractable
-import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.event.NotificationEvent
 import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
-import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
@@ -54,7 +52,7 @@ import kotlin.math.pow
 
 @Composable
 fun ActionPanel(
-    focusedItem: PluginCommandListItem?,
+    actions: List<PluginCommandListAction>,
     showActions: Boolean,
     onToggleActions: () -> Unit,
     modifier: Modifier = Modifier
@@ -65,7 +63,7 @@ fun ActionPanel(
             .padding(horizontal = spacing.medium)
     ) {
         Action(
-            focusedItem = focusedItem,
+            actions = actions,
             showActions = showActions,
             onToggleActions = onToggleActions
         )
@@ -104,7 +102,7 @@ fun ToastsOverlay(
 
 @Composable
 private fun Action(
-    focusedItem: PluginCommandListItem?,
+    actions: List<PluginCommandListAction>,
     showActions: Boolean,
     onToggleActions: () -> Unit,
     modifier: Modifier = Modifier
@@ -118,45 +116,43 @@ private fun Action(
             Alignment.End
         )
     ) {
-        if (focusedItem != null) {
-            val primaryAction = remember(focusedItem) {
-                focusedItem.actions.find { it.primary } ?: focusedItem.actions.firstOrNull()
-            }
-            if (primaryAction != null) {
-                TextRenderer(
-                    PluginTextData(
-                        text = primaryAction.title,
-                        color = PluginColor.OnSurfaceVariant,
-                        fontSize = PluginFontSize.ExtraSmall
-                    )
+        val primaryAction = remember(actions) {
+            actions.find { it.primary } ?: actions.firstOrNull()
+        }
+        if (primaryAction != null) {
+            TextRenderer(
+                PluginTextData(
+                    text = primaryAction.title,
+                    color = PluginColor.OnSurfaceVariant,
+                    fontSize = PluginFontSize.ExtraSmall
                 )
-                RKeyHint {
-                    RIcon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
-                        contentDescription = null,
-                        modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
-                        tint = PluginColor.OnPrimaryContainer.toColor()
-                    )
+            )
+            RKeyHint {
+                RIcon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
+                    contentDescription = null,
+                    modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
+                    tint = PluginColor.OnPrimaryContainer.toColor()
+                )
+            }
+            RKeyHint(
+                onClick = onToggleActions,
+                color = if (showActions) {
+                    PluginColor.Tertiary.toColor()
+                } else {
+                    PluginColor.TertiaryContainer.toColor()
                 }
-                RKeyHint(
-                    onClick = onToggleActions,
-                    color = if (showActions) {
-                        PluginColor.Tertiary.toColor()
+            ) {
+                RIcon(
+                    imageVector = Icons.Filled.KeyboardArrowUp,
+                    contentDescription = null,
+                    modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
+                    tint = if (showActions) {
+                        PluginColor.OnTertiary.toColor()
                     } else {
-                        PluginColor.TertiaryContainer.toColor()
+                        PluginColor.OnTertiaryContainer.toColor()
                     }
-                ) {
-                    RIcon(
-                        imageVector = Icons.Filled.KeyboardArrowUp,
-                        contentDescription = null,
-                        modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
-                        tint = if (showActions) {
-                            PluginColor.OnTertiary.toColor()
-                        } else {
-                            PluginColor.OnTertiaryContainer.toColor()
-                        }
-                    )
-                }
+                )
             }
         }
     }
@@ -164,12 +160,11 @@ private fun Action(
 
 @Composable
 fun ActionsPanelOverlay(
-    focusedItem: PluginCommandListItem?,
+    actions: List<PluginCommandListAction>,
     visible: Boolean,
     onActionClick: (PluginCommandListAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val actions = focusedItem?.actions.orEmpty()
     val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
     val groupedActions = remember(actions) {
         actions.groupBy { it.group }

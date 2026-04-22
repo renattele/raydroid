@@ -9,6 +9,8 @@ import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginIcon
+import ru.raydroid.plugin.host.api.ui.PluginUiText
+import ru.raydroid.plugin.host.impl.ui.toPluginCommandListAction
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,28 +18,37 @@ import kotlin.test.assertIs
 
 class PluginUiMapperTest {
     @Test
-    fun `command list item maps actions without custom shape or motion`() {
+    fun `command list item maps presentation fields`() {
         val pluginId = PluginId("ru.test.plugin")
         val item = CommandListItem(
             id = CommandItemId("item"),
             icon = null,
             title = UiText.Plain("Title"),
             description = UiText.Plain("Description"),
-            actions = listOf(
-                CommandListAction(
-                    id = CommandActionId("delete"),
-                    title = UiText.Plain("Delete"),
-                    description = null,
-                    icon = null,
-                    style = CommandListAction.Style.Destructive
-                )
-            )
         )
 
         val mapped = item.toPluginCommandListItem(pluginId)
 
-        assertEquals(CommandActionId("delete"), mapped.actions.single().id)
-        assertEquals(PluginCommandListAction.Style.Destructive, mapped.actions.single().style)
+        assertEquals(CommandItemId("item"), mapped.id)
+        assertEquals("Title", assertIs<PluginUiText.Plain>(mapped.title).text)
+        assertEquals("Description", assertIs<PluginUiText.Plain>(mapped.description).text)
+    }
+
+    @Test
+    fun `command list action maps style`() {
+        val pluginId = PluginId("ru.test.plugin")
+        val action = CommandListAction(
+            id = CommandActionId("delete"),
+            title = UiText.Plain("Delete"),
+            description = null,
+            icon = null,
+            style = CommandListAction.Style.Destructive
+        )
+
+        val mapped = action.toPluginCommandListAction(pluginId)
+
+        assertEquals(CommandActionId("delete"), mapped.id)
+        assertEquals(PluginCommandListAction.Style.Destructive, mapped.style)
     }
 
     @Test

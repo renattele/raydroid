@@ -193,7 +193,6 @@ internal fun CommandListItem.toPluginCommandListItem(pluginId: PluginId): Plugin
         icon = icon?.toPluginIcon(pluginId),
         title = title?.toPluginUiText(pluginId),
         description = description?.toPluginUiText(pluginId),
-        actions = actions.map { it.toPluginCommandListAction(pluginId) }
     )
 }
 

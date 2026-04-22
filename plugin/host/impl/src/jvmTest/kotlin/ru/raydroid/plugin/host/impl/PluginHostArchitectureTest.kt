@@ -22,6 +22,7 @@ import ru.raydroid.plugin.api.manifest.Permission
 import ru.raydroid.plugin.api.manifest.SearchFieldAccess
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandActionId
+import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
@@ -58,6 +59,8 @@ import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheSearchEnti
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheWithContent
 import ru.raydroid.plugin.host.impl.runtime.PluginRuntimeCoordinatorImpl
 import ru.raydroid.plugin.host.api.domain.service.PluginLoader
+import ru.raydroid.plugin.host.api.application.usecase.GetCommandActionsUseCase
+import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.event.SearchFieldGatewayImpl
@@ -333,6 +336,47 @@ class PluginHostArchitectureTest {
     }
 
     @Test
+    fun `get command actions use case dispatches focused targets to runtime`() = runTest {
+        val expectedAction = PluginCommandListAction(
+            id = CommandActionId("open"),
+            title = PluginUiText.Plain("Open"),
+            description = null,
+            icon = null,
+        )
+        val runtime = FakePluginRuntime(
+            manifest = testManifest(),
+            actionResults = listOf(expectedAction)
+        )
+        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
+        val useCase = GetCommandActionsUseCase(
+            pluginRuntimeRegistry = object : PluginRuntimeRegistry {
+                override suspend fun load(runtime: PluginRuntime) = Unit
+                override suspend fun unload(runtime: PluginRuntime) = Unit
+                override fun get(): PluginRuntimeCoordinator = coordinator
+            },
+        )
+        val resultId = SearchResultId(
+            pluginId = runtime.pluginId,
+            commandName = "apps",
+            itemId = CommandItemId.CommandRoot,
+        )
+        val targets = listOf(
+            CommandActionTarget.CommandRoot,
+            CommandActionTarget.Item(CommandItemId("item-1")),
+            CommandActionTarget.Fullscreen,
+        )
+
+        targets.forEach { target ->
+            assertEquals(listOf(expectedAction), useCase(resultId, target))
+        }
+
+        assertEquals(
+            targets.map { target -> "apps" to target },
+            runtime.actionRequests
+        )
+    }
+
+    @Test
     fun `search field service bridge emits plugin-scoped state request`() = runTest {
         val gateway = SearchFieldGatewayImpl()
         val pluginId = PluginId("ru.test.plugin")
@@ -496,11 +540,13 @@ private fun testManifest(name: String = "ru.test.plugin", searchable: Boolean = 
 private class FakePluginRuntime(
     override val manifest: Manifest,
     private val contentItems: MutableStateFlow<List<PluginRuntime.ContentItem>> = MutableStateFlow(emptyList()),
+    private val actionResults: List<PluginCommandListAction> = emptyList(),
 ) : PluginRuntime {
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
     val updates = mutableListOf<Pair<String, CommandAction>>()
     val commandUpdates = mutableListOf<CommandUpdate>()
+    val actionRequests = mutableListOf<Pair<String, CommandActionTarget>>()
     private val fullscreen = MutableStateFlow<PluginRuntime.FullscreenContent?>(null)
 
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()
@@ -508,6 +554,14 @@ private class FakePluginRuntime(
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = contentItems
 
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = fullscreen
+
+    override suspend fun actions(
+        commandName: String,
+        target: CommandActionTarget
+    ): List<PluginCommandListAction> {
+        actionRequests += commandName to target
+        return actionResults
+    }
 
     override suspend fun update(query: String, action: CommandAction) {
         updates += query to action
