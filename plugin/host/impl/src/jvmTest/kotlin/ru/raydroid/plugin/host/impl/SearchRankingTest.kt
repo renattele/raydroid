@@ -24,7 +24,7 @@ import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
-import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
@@ -310,9 +310,9 @@ private class FakeSearchRuntime(
         target: CommandActionTarget
     ): List<PluginCommandListAction> = emptyList()
 
-    override suspend fun update(query: String, action: CommandAction) = Unit
+    override suspend fun update(action: CommandActionBridge) = Unit
 
-    override suspend fun update(commandName: String, query: String, action: CommandAction) = Unit
+    override suspend fun update(commandName: String, action: CommandActionBridge) = Unit
 
     override suspend fun unload() = Unit
 }

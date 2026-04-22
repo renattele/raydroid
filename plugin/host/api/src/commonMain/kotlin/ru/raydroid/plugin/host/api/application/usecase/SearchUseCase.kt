@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
 import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
@@ -29,7 +30,9 @@ class SearchUseCase(
         return channelFlow {
             launch {
                 runCatching {
-                    runtimeCoordinator.update(query, CommandAction.Type())
+                    runtimeCoordinator.update(
+                        CommandActionBridge.Regular(CommandAction.Type(query))
+                    )
                 }
             }
 

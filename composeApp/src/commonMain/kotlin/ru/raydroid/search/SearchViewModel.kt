@@ -25,22 +25,26 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.host.api.domain.model.SearchResultId
-import ru.raydroid.plugin.host.api.event.NotificationEvent
-import ru.raydroid.plugin.host.api.domain.model.PluginId
-import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
-import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
+import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
+import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandActionUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetCommandActionsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetCommandFullscreenUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetSearchFieldRequestsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
-import ru.raydroid.plugin.host.api.application.usecase.OpenItemUseCase
+import ru.raydroid.plugin.host.api.application.usecase.OpenLiveEntryUseCase
+import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
 import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
+import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.SearchResultId
+import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
+import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.api.event.NotificationEvent
 import ru.raydroid.plugin.host.api.event.NotificationEvent.*
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
@@ -56,7 +60,11 @@ class SearchViewModel(
     private val loadRuntimesUseCase: LoadRuntimesUseCase,
     private val searchUseCase: SearchUseCase,
     private val getPluginsUseCase: GetPluginsUseCase,
-    private val openItemUseCase: OpenItemUseCase,
+    private val openCommandUseCase: OpenCommandUseCase,
+    private val enterItemUseCase: EnterItemUseCase,
+    private val closeCommandUseCase: CloseCommandUseCase,
+    private val executeCommandActionUseCase: ExecuteCommandActionUseCase,
+    private val openLiveEntryUseCase: OpenLiveEntryUseCase,
     private val getCommandActionsUseCase: GetCommandActionsUseCase,
     private val getCommandFullscreenUseCase: GetCommandFullscreenUseCase,
     private val getEventsUseCase: GetEventsUseCase,
@@ -284,13 +292,18 @@ class SearchViewModel(
                     val openResult = state.searchResults
                         ?.results
                         ?.firstOrNull { result -> result.resultId == openResultId }
-                    if (openResult is SearchResultSet.CommandSearchResult) {
-                        collectFullscreen(openResult)
+                    when (openResult) {
+                        is SearchResultSet.CommandSearchResult -> {
+                            collectFullscreen(openResult)
+                            openCommandUseCase(openResultId)
+                        }
+                        is SearchResultSet.LiveSearchResult -> {
+                            openLiveEntryUseCase(openResultId)
+                        }
+                        else -> {
+                            enterItemUseCase(openResultId)
+                        }
                     }
-                    openItemUseCase(
-                        state.searchFieldState.fieldState.text.toString(),
-                        openResultId
-                    )
                 }
 
                 SearchScreenEvent.MoveFocusNext -> {
@@ -391,15 +404,7 @@ class SearchViewModel(
                 }
 
                 is SearchScreenEvent.EnterAction -> {
-                    val state = _state.value
-                    val query = state.fullscreen
-                        ?.searchFieldState
-                        ?.fieldState
-                        ?.text
-                        ?.toString()
-                        ?: state.searchFieldState.fieldState.text.toString()
-                    openItemUseCase(
-                        query,
+                    executeCommandActionUseCase(
                         event.action.resultId,
                         event.action.action.id
                     )
@@ -436,10 +441,7 @@ class SearchViewModel(
         val fullscreen = state.fullscreen ?: return
         fullscreenJob?.cancel()
         fullscreenJob = null
-        openItemUseCase.closeCommand(
-            query = fullscreen.searchFieldState.fieldState.text.toString(),
-            resultId = fullscreen.resultId
-        )
+        closeCommandUseCase(fullscreen.resultId)
         _state.update { currentState ->
             currentState.copy(fullscreen = null)
         }

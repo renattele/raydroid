@@ -27,6 +27,10 @@ value class CommandItemId(val value: String) {
 value class CommandActionId(val value: String)
 
 @Serializable
+@JvmInline
+value class CommandInternalActionId(val value: String)
+
+@Serializable
 sealed interface CommandActionTarget {
     @Serializable
     data object CommandRoot : CommandActionTarget
@@ -65,11 +69,11 @@ data class CommandListAction(
 interface CommandListScope {
     @Ray
     fun entry(
-        id: CommandItemId,
         title: UiText? = null,
         description: UiText? = null,
         icon: Icon? = null,
-        content: RayScope.() -> Unit
+        onClick: suspend () -> Unit = {},
+        content: RayScope.() -> Unit = {}
     )
 }
 
@@ -79,31 +83,12 @@ interface CommandActionScope {
 
     @Ray
     fun action(
-        id: String,
         title: UiText,
         icon: Icon? = null,
         description: UiText? = null,
         style: CommandListAction.Style = CommandListAction.Style.Default,
-        primary: Boolean = false
-    ) {
-        action(
-            id = CommandActionId(id),
-            title = title,
-            icon = icon,
-            description = description,
-            style = style,
-            primary = primary
-        )
-    }
-
-    @Ray
-    fun action(
-        id: CommandActionId,
-        title: UiText,
-        icon: Icon? = null,
-        description: UiText? = null,
-        style: CommandListAction.Style = CommandListAction.Style.Default,
-        primary: Boolean = false
+        primary: Boolean = false,
+        onClick: suspend () -> Unit
     )
 }
 

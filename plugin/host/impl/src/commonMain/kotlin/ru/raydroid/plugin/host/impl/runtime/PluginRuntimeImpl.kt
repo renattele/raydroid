@@ -15,6 +15,7 @@ import kotlinx.coroutines.withContext
 import okio.FileSystem
 import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.api.runtime.CommandServiceBridge
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
@@ -184,12 +185,12 @@ internal class PluginRuntimeImpl(
     }
 
     override suspend fun update(
-        query: String, action: CommandAction
+        action: CommandActionBridge
     ) {
         withContext(pluginRuntimeDispatcher) {
             commandServices.forEach { command ->
                 launch {
-                    command.update(query, action)
+                    command.update(action)
                 }
             }
         }
@@ -197,18 +198,19 @@ internal class PluginRuntimeImpl(
 
     override suspend fun update(
         commandName: String,
-        query: String,
-        action: CommandAction
+        action: CommandActionBridge
     ) {
         withContext(pluginRuntimeDispatcher) {
             val command = commandServices.firstOrNull { command ->
                 command.getServiceName() == commandName
             } ?: return@withContext
-            command.update(query, action)
-            when (action) {
-                is CommandAction.OpenCommand -> setFullscreenContent(commandName, command)
-                is CommandAction.CloseCommand -> fullscreenFlow(commandName).value = null
-                else -> Unit
+            command.update(action)
+            if (action is CommandActionBridge.Regular) {
+                when (action.action) {
+                    is CommandAction.OpenCommand -> setFullscreenContent(commandName, command)
+                    is CommandAction.CloseCommand -> fullscreenFlow(commandName).value = null
+                    else -> Unit
+                }
             }
         }
     }

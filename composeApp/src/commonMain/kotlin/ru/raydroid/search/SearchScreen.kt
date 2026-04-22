@@ -173,7 +173,10 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                         pluginName = remember(state.plugins) {
                                             searchResult.rayDecoratorPluginName(state.plugins)
                                         },
-                                        focused = index == state.focusedItemIndex
+                                        focused = index == state.focusedItemIndex,
+                                        onClick = {
+                                            state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
+                                        }
                                     ) {
                                         ComposeRayRenderer(
                                             searchResult.presentation.content

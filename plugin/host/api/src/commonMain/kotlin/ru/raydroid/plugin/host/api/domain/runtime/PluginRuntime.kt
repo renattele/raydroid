@@ -6,7 +6,7 @@ import okio.FileSystem
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.api.presentation.CommandActionTarget
-import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.presentation.CommandPresentation
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
@@ -25,8 +25,8 @@ interface PluginRuntime {
     fun fullscreen(commandName: String): StateFlow<FullscreenContent?>
     suspend fun actions(commandName: String, target: CommandActionTarget): List<PluginCommandListAction>
 
-    suspend fun update(query: String, action: CommandAction)
-    suspend fun update(commandName: String, query: String, action: CommandAction)
+    suspend fun update(action: CommandActionBridge)
+    suspend fun update(commandName: String, action: CommandActionBridge)
     suspend fun unload()
 
     data class ContentItem(

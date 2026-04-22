@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
@@ -111,13 +111,12 @@ internal class PluginRuntimeCoordinatorImpl(
     override fun commands(): StateFlow<List<PluginRuntimeCoordinator.CommandItem>> = commandFlow
 
     override suspend fun update(
-        query: String,
-        action: CommandAction
+        action: CommandActionBridge
     ) = supervisorScope {
         pluginRuntimes.value.map { runtime ->
             async {
                 runCatching {
-                    runtime.update(query, action)
+                    runtime.update(action)
                 }
             }
         }.awaitAll()

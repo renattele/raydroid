@@ -23,6 +23,7 @@ import ru.raydroid.plugin.api.manifest.SearchFieldAccess
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandActionTarget
+import ru.raydroid.plugin.api.presentation.CommandInternalActionId
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
@@ -31,6 +32,14 @@ import ru.raydroid.plugin.api.host.service.SearchFieldState
 import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
+import ru.raydroid.plugin.api.runtime.InternalCommandActionBridge
+import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
+import ru.raydroid.plugin.host.api.application.usecase.CommandActionDispatcher
+import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
+import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandActionUseCase
+import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
+import ru.raydroid.plugin.host.api.application.usecase.OpenLiveEntryUseCase
 import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
 import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
 import ru.raydroid.plugin.host.api.domain.model.PluginId
@@ -42,7 +51,6 @@ import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
-import ru.raydroid.plugin.host.api.application.usecase.OpenItemUseCase
 import ru.raydroid.plugin.host.impl.data.plugin.LocalPluginDataSource
 import ru.raydroid.plugin.host.impl.data.plugin.PluginRepositoryImpl
 import ru.raydroid.plugin.host.impl.data.plugin.RemotePlugin
@@ -245,16 +253,12 @@ class PluginHostArchitectureTest {
     }
 
     @Test
-    fun `open item use case dispatches open command action for command root`() = runTest {
+    fun `open command use case dispatches open command action for command root`() = runTest {
         val runtime = FakePluginRuntime(manifest = testManifest())
         val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
         val searchRepository = RecordingSearchIndexRepository()
-        val useCase = OpenItemUseCase(
-            pluginRuntimeRegistry = object : PluginRuntimeRegistry {
-                override suspend fun load(runtime: PluginRuntime) = Unit
-                override suspend fun unload(runtime: PluginRuntime) = Unit
-                override fun get(): PluginRuntimeCoordinator = coordinator
-            },
+        val useCase = OpenCommandUseCase(
+            commandActionDispatcher = commandActionDispatcher(coordinator),
             searchIndexRepository = searchRepository,
         )
         val resultId = SearchResultId(
@@ -263,25 +267,43 @@ class PluginHostArchitectureTest {
             itemId = CommandItemId.CommandRoot,
         )
 
-        useCase(query = "app", resultId = resultId)
+        useCase(resultId)
 
         val update = runtime.updates.single()
-        assertEquals("app", update.first)
-        assertIs<CommandAction.OpenCommand>(update.second)
+        assertIs<CommandActionBridge.Regular>(update)
+        assertIs<CommandAction.OpenCommand>(update.action)
         assertEquals(resultId, searchRepository.lastUpdatedUsage)
     }
 
     @Test
-    fun `open item use case dispatches enter action and updates usage`() = runTest {
+    fun `open item use case dispatches close command action for command root`() = runTest {
         val runtime = FakePluginRuntime(manifest = testManifest())
         val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
         val searchRepository = RecordingSearchIndexRepository()
-        val useCase = OpenItemUseCase(
-            pluginRuntimeRegistry = object : PluginRuntimeRegistry {
-                override suspend fun load(runtime: PluginRuntime) = Unit
-                override suspend fun unload(runtime: PluginRuntime) = Unit
-                override fun get(): PluginRuntimeCoordinator = coordinator
-            },
+        val useCase = CloseCommandUseCase(
+            commandActionDispatcher = commandActionDispatcher(coordinator)
+        )
+        val resultId = SearchResultId(
+            pluginId = runtime.pluginId,
+            commandName = "apps",
+            itemId = CommandItemId.CommandRoot,
+        )
+
+        useCase(resultId)
+
+        val update = runtime.updates.single()
+        assertIs<CommandActionBridge.Regular>(update)
+        assertIs<CommandAction.CloseCommand>(update.action)
+        assertNull(searchRepository.lastUpdatedUsage)
+    }
+
+    @Test
+    fun `enter item use case dispatches enter action and updates usage`() = runTest {
+        val runtime = FakePluginRuntime(manifest = testManifest())
+        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
+        val searchRepository = RecordingSearchIndexRepository()
+        val useCase = EnterItemUseCase(
+            commandActionDispatcher = commandActionDispatcher(coordinator),
             searchIndexRepository = searchRepository,
         )
         val resultId = SearchResultId(
@@ -290,11 +312,13 @@ class PluginHostArchitectureTest {
             itemId = CommandItemId("item-1"),
         )
 
-        useCase(query = "calc", resultId = resultId)
+        useCase(resultId)
 
         val update = runtime.updates.single()
-        assertEquals("calc", update.first)
-        assertEquals(CommandAction.Enter(CommandItemId("item-1")), update.second)
+        assertEquals(
+            CommandActionBridge.Regular(CommandAction.Enter(CommandItemId("item-1"))),
+            update
+        )
         assertEquals(resultId, searchRepository.lastUpdatedUsage)
     }
 
@@ -303,12 +327,8 @@ class PluginHostArchitectureTest {
         val runtime = FakePluginRuntime(manifest = testManifest())
         val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
         val searchRepository = RecordingSearchIndexRepository()
-        val useCase = OpenItemUseCase(
-            pluginRuntimeRegistry = object : PluginRuntimeRegistry {
-                override suspend fun load(runtime: PluginRuntime) = Unit
-                override suspend fun unload(runtime: PluginRuntime) = Unit
-                override fun get(): PluginRuntimeCoordinator = coordinator
-            },
+        val useCase = ExecuteCommandActionUseCase(
+            commandActionDispatcher = commandActionDispatcher(coordinator),
             searchIndexRepository = searchRepository,
         )
         val resultId = SearchResultId(
@@ -318,21 +338,43 @@ class PluginHostArchitectureTest {
         )
 
         useCase(
-            query = "calc",
             resultId = resultId,
             actionId = CommandActionId("delete")
         )
 
         val update = runtime.updates.single()
-        assertEquals("calc", update.first)
         assertEquals(
-            CommandAction.ExecuteAction(
-                itemId = CommandItemId("item-1"),
-                actionId = CommandActionId("delete")
+            CommandActionBridge.Internal(
+                InternalCommandActionBridge.Click(CommandInternalActionId("delete"))
             ),
-            update.second
+            update
         )
         assertEquals(resultId, searchRepository.lastUpdatedUsage)
+    }
+
+    @Test
+    fun `open item use case dispatches live entry click without search usage`() = runTest {
+        val runtime = FakePluginRuntime(manifest = testManifest())
+        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
+        val searchRepository = RecordingSearchIndexRepository()
+        val useCase = OpenLiveEntryUseCase(
+            commandActionDispatcher = commandActionDispatcher(coordinator)
+        )
+        val resultId = SearchResultId(
+            pluginId = runtime.pluginId,
+            commandName = "apps",
+            itemId = CommandItemId("live-1"),
+        )
+
+        useCase(resultId)
+
+        assertEquals(
+            CommandActionBridge.Internal(
+                InternalCommandActionBridge.Click(CommandInternalActionId("live-1"))
+            ),
+            runtime.updates.single()
+        )
+        assertNull(searchRepository.lastUpdatedUsage)
     }
 
     @Test
@@ -448,8 +490,10 @@ class PluginHostArchitectureTest {
 
         val update = runtime.commandUpdates.single()
         assertEquals("apps", update.commandName)
-        assertEquals("42", update.query)
-        assertIs<CommandAction.Type>(update.action)
+        assertEquals(
+            CommandActionBridge.Regular(CommandAction.Type("42")),
+            update.action
+        )
     }
 
     @Test
@@ -544,7 +588,7 @@ private class FakePluginRuntime(
 ) : PluginRuntime {
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
-    val updates = mutableListOf<Pair<String, CommandAction>>()
+    val updates = mutableListOf<CommandActionBridge>()
     val commandUpdates = mutableListOf<CommandUpdate>()
     val actionRequests = mutableListOf<Pair<String, CommandActionTarget>>()
     private val fullscreen = MutableStateFlow<PluginRuntime.FullscreenContent?>(null)
@@ -563,21 +607,20 @@ private class FakePluginRuntime(
         return actionResults
     }
 
-    override suspend fun update(query: String, action: CommandAction) {
-        updates += query to action
+    override suspend fun update(action: CommandActionBridge) {
+        updates += action
     }
 
-    override suspend fun update(commandName: String, query: String, action: CommandAction) {
-        commandUpdates += CommandUpdate(commandName, query, action)
-        update(query, action)
+    override suspend fun update(commandName: String, action: CommandActionBridge) {
+        commandUpdates += CommandUpdate(commandName, action)
+        update(action)
     }
 
     override suspend fun unload() = Unit
 
     data class CommandUpdate(
         val commandName: String,
-        val query: String,
-        val action: CommandAction
+        val action: CommandActionBridge
     )
 }
 
@@ -594,8 +637,18 @@ private class FakePluginRuntimeCoordinator(
     override fun commands(): StateFlow<List<PluginRuntimeCoordinator.CommandItem>> =
         MutableStateFlow(emptyList())
 
-    override suspend fun update(query: String, action: CommandAction) = Unit
+    override suspend fun update(action: CommandActionBridge) = Unit
 }
+
+private fun commandActionDispatcher(
+    coordinator: PluginRuntimeCoordinator
+) = CommandActionDispatcher(
+    pluginRuntimeRegistry = object : PluginRuntimeRegistry {
+        override suspend fun load(runtime: PluginRuntime) = Unit
+        override suspend fun unload(runtime: PluginRuntime) = Unit
+        override fun get(): PluginRuntimeCoordinator = coordinator
+    }
+)
 
 private class RecordingSearchIndexRepository : SearchIndexRepository {
     var lastUpdatedUsage: SearchResultId? = null

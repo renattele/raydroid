@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.presentation.CommandActionId
 import ru.raydroid.plugin.api.presentation.CommandActionScope
 import ru.raydroid.plugin.api.presentation.CommandActionTarget
+import ru.raydroid.plugin.api.presentation.CommandInternalActionId
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
@@ -34,7 +35,22 @@ sealed class CommandAction {
     ) : CommandAction()
 
     @Serializable
-    class Type : CommandAction()
+    data class Type(val query: String) : CommandAction()
+}
+
+@Serializable
+sealed interface CommandActionBridge {
+    @Serializable
+    data class Regular(val action: CommandAction) : CommandActionBridge
+
+    @Serializable
+    data class Internal(val action: InternalCommandActionBridge) : CommandActionBridge
+}
+
+@Serializable
+sealed interface InternalCommandActionBridge {
+    @Serializable
+    data class Click(val id: CommandInternalActionId) : InternalCommandActionBridge
 }
 
 interface CommandServiceBridge : ZiplineService {
@@ -56,7 +72,7 @@ interface CommandServiceBridge : ZiplineService {
         invalidateCacheRequest: InvalidateCacheRequest
     )
 
-    suspend fun update(query: String, action: CommandAction)
+    suspend fun update(action: CommandActionBridge)
 
     interface RenderRequest : ZiplineService {
         fun requestRender()
@@ -110,9 +126,20 @@ abstract class CommandService {
     val query: String
         get() = _query
 
-    suspend fun update(query: String, action: CommandAction) {
-        _query = query
-        execute(action)
+    suspend fun update(action: CommandActionBridge) {
+        when (action) {
+            is CommandActionBridge.Regular -> {
+                if (action.action is CommandAction.Type) {
+                    _query = action.action.query
+                }
+                execute(action.action)
+            }
+            is CommandActionBridge.Internal -> when (val internalAction = action.action) {
+                is InternalCommandActionBridge.Click -> {
+                    clickActions[internalAction.id]?.invoke()
+                }
+            }
+        }
     }
 
     internal var onRenderRequest: (() -> Unit)? = null
@@ -120,6 +147,8 @@ abstract class CommandService {
     internal var onFullscreenRenderRequest: (() -> Unit)? = null
 
     internal var onInvalidateCacheRequest: ((List<CommandItemId>?) -> Unit)? = null
+
+    internal val clickActions = mutableMapOf<CommandInternalActionId, suspend () -> Unit>()
 
     private var _query: String = ""
 }

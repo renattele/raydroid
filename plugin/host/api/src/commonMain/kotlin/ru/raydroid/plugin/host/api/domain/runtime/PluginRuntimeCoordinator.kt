@@ -2,7 +2,7 @@ package ru.raydroid.plugin.host.api.domain.runtime
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
@@ -17,7 +17,7 @@ interface PluginRuntimeCoordinator {
 
     fun commands(): StateFlow<List<CommandItem>>
 
-    suspend fun update(query: String, action: CommandAction)
+    suspend fun update(action: CommandActionBridge)
 
     data class ContentItem(
         val runtime: PluginRuntime,

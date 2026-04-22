@@ -32,11 +32,12 @@ fun RayDecorator(
     focused: Boolean,
     modifier: Modifier = Modifier,
     title: PluginUiText? = listItem.title,
+    onClick: () -> Unit = {},
     content: @Composable () -> Unit
 ) {
     Column(
         modifier
-            .rInteractable(enabled = false, focused = focused) {}
+            .rInteractable(focused = focused, onClick = onClick)
             .clip(RaydroidTheme.shapes.medium)
             .background(RaydroidTheme.colorScheme.primaryContainer)
             .padding(RaydroidTheme.spacing.small)

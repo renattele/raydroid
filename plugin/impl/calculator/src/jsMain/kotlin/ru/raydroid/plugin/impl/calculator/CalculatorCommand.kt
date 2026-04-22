@@ -26,8 +26,7 @@ class CalculatorCommand : CommandService() {
     private var result: String = ""
 
     private val toast = NotificationService.Toast(
-        message = UiText.Plain("Loading..."),
-        style = NotificationService.Toast.Style.Animated
+        message = UiText.Plain("Loading..."), style = NotificationService.Toast.Style.Animated
     )
 
     override suspend fun cachedItems(requestedItems: List<CommandItemId>?, chunkSize: Int) = flow {
@@ -48,7 +47,10 @@ class CalculatorCommand : CommandService() {
     }
 
     override fun CommandListScope.content() {
-        entry(CommandItemId.Static) {
+        entry(onClick = {
+            result = "entry"
+            render()
+        }) {
             Column {
                 Text(UiText.Plain(result))
             }
@@ -57,22 +59,27 @@ class CalculatorCommand : CommandService() {
 
     override fun CommandActionScope.actions(target: CommandActionTarget) {
         when (target) {
-            CommandActionTarget.CommandRoot,
-            CommandActionTarget.Fullscreen,
-            is CommandActionTarget.Item -> {
-                action("123", title = UiText.Resource("app.label"))
+            CommandActionTarget.CommandRoot, CommandActionTarget.Fullscreen, is CommandActionTarget.Item -> {
+                action(title = UiText.Resource("app.label")) {
+                    result = "123"
+                    render()
+                }
                 group(UiText.Plain("111")) {
                     action(
-                        "456",
                         title = UiText.Resource("app.description"),
                         style = CommandListAction.Style.Destructive,
                         icon = Icon.Builtin("Clear")
-                    )
+                    ) {
+                        result = ""
+                        render()
+                    }
                     action(
-                        "789",
                         title = UiText.Resource("app.description"),
                         style = CommandListAction.Style.Destructive
-                    )
+                    ) {
+                        result = "789"
+                        render()
+                    }
                 }
             }
         }
@@ -91,6 +98,10 @@ class CalculatorCommand : CommandService() {
             // Host.system.openApp(action.hoveredId.value)
             render()
         }
+        if (action is CommandAction.Type) {
+            result = action.query
+            render()
+        }
         result = "123"
         render()
         renderFullscreen()
@@ -99,8 +110,7 @@ class CalculatorCommand : CommandService() {
         }
         if (query.any { it.isDigit() }) {
             val toast = NotificationService.Toast(
-                message = UiText.Plain("Hello"),
-                style = NotificationService.Toast.Style.Animated
+                message = UiText.Plain("Hello"), style = NotificationService.Toast.Style.Animated
             )
             Host.notification.showToast(toast)
             delay(1000)
