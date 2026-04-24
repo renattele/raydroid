@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.intl.Locale
@@ -23,6 +26,8 @@ import ru.raydroid.plugin.host.api.ui.PluginAlignment
 import ru.raydroid.plugin.host.api.ui.PluginArrangement
 import ru.raydroid.plugin.host.api.ui.PluginBoxAlignment
 import ru.raydroid.plugin.host.api.ui.PluginBoxData
+import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
+import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
 import ru.raydroid.plugin.host.api.ui.PluginImage
@@ -30,6 +35,7 @@ import ru.raydroid.plugin.host.api.ui.PluginImageData
 import ru.raydroid.plugin.host.api.ui.PluginOrientation
 import ru.raydroid.plugin.host.api.ui.PluginOrientedBoxData
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
+import ru.raydroid.plugin.host.api.ui.PluginRayModifier
 import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginTextData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
@@ -86,9 +92,11 @@ fun ResourceResolverProvider(
 @Composable
 fun ComposeRayRenderer(
     data: List<PluginRayNodeData>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (PluginCommandCallback) -> Unit = {},
+    onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
-    ComposeRayItemRenderer(data, modifier)
+    ComposeRayItemRenderer(data, modifier, onClick, onActions)
 }
 
 internal class PluginResourceResolver(
@@ -126,15 +134,18 @@ internal class PluginResourceResolver(
 @Composable
 fun ComposeRayItemRenderer(
     data: List<PluginRayNodeData>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (PluginCommandCallback) -> Unit = {},
+    onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
     data.forEach { node ->
+        val nodeModifier = modifier.interactive(node.modifier, onClick, onActions)
         when (node) {
-            is PluginBoxData -> BoxRenderer(node, modifier)
-            is PluginOrientedBoxData -> OrientedBoxRenderer(node, modifier)
-            is PluginTextData -> TextRenderer(node, modifier)
-            is PluginIconData -> IconRenderer(node, modifier)
-            is PluginImageData -> ImageRenderer(node, modifier)
+            is PluginBoxData -> BoxRenderer(node, nodeModifier, onClick, onActions)
+            is PluginOrientedBoxData -> OrientedBoxRenderer(node, nodeModifier, onClick, onActions)
+            is PluginTextData -> TextRenderer(node, nodeModifier)
+            is PluginIconData -> IconRenderer(node, nodeModifier)
+            is PluginImageData -> ImageRenderer(node, nodeModifier)
         }
     }
 }
@@ -176,9 +187,17 @@ internal fun IconRenderer(data: PluginIconData, modifier: Modifier = Modifier) {
 }
 
 @Composable
-internal fun BoxRenderer(data: PluginBoxData, modifier: Modifier = Modifier) {
-    Box(modifier.clip(data.shape.toShape()), contentAlignment = data.alignment.toComposeAlignment()) {
-        ComposeRayItemRenderer(data.children)
+internal fun BoxRenderer(
+    data: PluginBoxData,
+    modifier: Modifier = Modifier,
+    onClick: (PluginCommandCallback) -> Unit = {},
+    onActions: (List<PluginCommandListAction>) -> Unit = {}
+) {
+    Box(
+        modifier.clip(data.shape.toShape()),
+        contentAlignment = data.alignment.toComposeAlignment()
+    ) {
+        ComposeRayItemRenderer(data.children, onClick = onClick, onActions = onActions)
     }
 }
 
@@ -195,10 +214,16 @@ private fun PluginBoxAlignment.toComposeAlignment() = when (this) {
 }
 
 @Composable
-private fun OrientedBoxRenderer(data: PluginOrientedBoxData, modifier: Modifier = Modifier) {
+private fun OrientedBoxRenderer(
+    data: PluginOrientedBoxData,
+    modifier: Modifier = Modifier,
+    onClick: (PluginCommandCallback) -> Unit = {},
+    onActions: (List<PluginCommandListAction>) -> Unit = {}
+) {
+    val containerModifier = modifier.clip(data.shape.toShape())
     if (data.orientation == PluginOrientation.Vertical) {
         Column(
-            modifier.clip(data.shape.toShape()),
+            containerModifier,
             horizontalAlignment = data.alignment.toComposeHorizontalAlignment(),
             verticalArrangement = if (data.spacing != PluginSpacing.Zero) {
                 Arrangement.spacedBy(data.spacing.toDp())
@@ -206,11 +231,11 @@ private fun OrientedBoxRenderer(data: PluginOrientedBoxData, modifier: Modifier 
                 data.arrangement.toComposeVerticalArrangement()
             },
         ) {
-            ComposeRayItemRenderer(data.children)
+            ComposeRayItemRenderer(data.children, onClick = onClick, onActions = onActions)
         }
     } else {
         Row(
-            modifier.clip(data.shape.toShape()),
+            containerModifier,
             horizontalArrangement = if (data.spacing != PluginSpacing.Zero) {
                 Arrangement.spacedBy(data.spacing.toDp())
             } else {
@@ -218,7 +243,7 @@ private fun OrientedBoxRenderer(data: PluginOrientedBoxData, modifier: Modifier 
             },
             verticalAlignment = data.alignment.toComposeVerticalAlignment()
         ) {
-            ComposeRayItemRenderer(data.children)
+            ComposeRayItemRenderer(data.children, onClick = onClick, onActions = onActions)
         }
     }
 }
@@ -265,3 +290,32 @@ internal fun TextRenderer(data: PluginTextData, modifier: Modifier = Modifier) {
 
 @Composable
 fun PluginUiText.asText(): String = LocalResourceResolver.current.resolveText(this)
+
+private fun Modifier.interactive(
+    modifier: PluginRayModifier?,
+    onClick: (PluginCommandCallback) -> Unit,
+    onActions: (List<PluginCommandListAction>) -> Unit
+): Modifier {
+    if (modifier == null || modifier.actions.isEmpty()) {
+        return this
+    }
+    return composed {
+        val interactionSource = remember { MutableInteractionSource() }
+        val primaryAction = remember(modifier.actions) {
+            modifier.actions.find { it.primary } ?: modifier.actions.first()
+        }
+        combinedClickable(
+            interactionSource = interactionSource,
+            indication = null,
+            enabled = modifier.enabled,
+            onLongClick = {
+                if (modifier.actions.isNotEmpty()) {
+                    onActions(modifier.actions)
+                }
+            },
+            onClick = {
+                onClick(primaryAction.callback)
+            }
+        )
+    }
+}

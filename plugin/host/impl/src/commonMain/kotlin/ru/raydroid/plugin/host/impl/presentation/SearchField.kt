@@ -23,8 +23,10 @@ import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.RDivider
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextField
-import ru.raydroid.plugin.api.presentation.CommandActionId
+import ru.raydroid.plugin.api.presentation.CommandCallbackId
+import ru.raydroid.plugin.api.presentation.CommandCallbackRef
 import ru.raydroid.plugin.host.api.ui.PluginColor
+import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginUiText
@@ -143,7 +145,10 @@ private fun SearchFieldPreview() {
             ActionPanel(
                 actions = listOf(
                     PluginCommandListAction(
-                        id = CommandActionId("copy"),
+                        callback = PluginCommandCallback(
+                            ref = CommandCallbackRef(CommandCallbackId("copy"), generation = 0),
+                            dispatch = {}
+                        ),
                         title = PluginUiText.Plain("Copy"),
                         description = PluginUiText.Plain("Description"),
                         icon = null,

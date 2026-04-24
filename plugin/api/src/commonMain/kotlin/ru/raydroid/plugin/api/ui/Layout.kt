@@ -61,12 +61,13 @@ data class BoxData(
 
 @Ray
 fun RayScope.Box(
+    modifier: Modifier = Modifier,
     alignment: BoxAlignment = BoxAlignment.TopStart,
     shape: ShapeToken = ShapeToken.None,
     content: RayScope.() -> Unit
 ) {
     val children = fork(content)
-    add(BoxData(alignment, shape, children))
+    add(BoxData(alignment, shape, children).withModifier(modifier(modifier)))
 }
 
 @Serializable
@@ -81,6 +82,7 @@ data class OrientedBoxData(
 
 @Ray
 fun RayScope.Row(
+    modifier: Modifier = Modifier,
     spacing: Spacing = Spacing.Zero,
     alignment: Alignment = Alignment.Start,
     arrangement: Arrangement = Arrangement.Start,
@@ -88,11 +90,12 @@ fun RayScope.Row(
     content: RayScope.() -> Unit
 ) {
     val children = fork(content)
-    add(OrientedBoxData(Orientation.Horizontal, alignment, arrangement, spacing, shape, children))
+    add(OrientedBoxData(Orientation.Horizontal, alignment, arrangement, spacing, shape, children).withModifier(modifier(modifier)))
 }
 
 @Ray
 fun RayScope.Column(
+    modifier: Modifier = Modifier,
     spacing: Spacing = Spacing.Zero,
     alignment: Alignment = Alignment.Start,
     arrangement: Arrangement = Arrangement.Start,
@@ -100,5 +103,5 @@ fun RayScope.Column(
     content: RayScope.() -> Unit
 ) {
     val children = fork(content)
-    add(OrientedBoxData(Orientation.Vertical, alignment, arrangement, spacing, shape, children))
+    add(OrientedBoxData(Orientation.Vertical, alignment, arrangement, spacing, shape, children).withModifier(modifier(modifier)))
 }

@@ -1,15 +1,14 @@
 package ru.raydroid.plugin.api.runtime
 
 import app.cash.zipline.ZiplineService
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import ru.raydroid.plugin.api.presentation.CommandActionId
-import ru.raydroid.plugin.api.presentation.CommandActionScope
-import ru.raydroid.plugin.api.presentation.CommandActionTarget
-import ru.raydroid.plugin.api.presentation.CommandInternalActionId
+import ru.raydroid.plugin.api.presentation.CommandCallbackId
+import ru.raydroid.plugin.api.presentation.CommandCallbackRef
 import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.presentation.CommandPresentationMap
@@ -29,12 +28,6 @@ sealed class CommandAction {
     data class Enter(val hoveredId: CommandItemId) : CommandAction()
 
     @Serializable
-    data class ExecuteAction(
-        val itemId: CommandItemId,
-        val actionId: CommandActionId
-    ) : CommandAction()
-
-    @Serializable
     data class Type(val query: String) : CommandAction()
 }
 
@@ -50,7 +43,7 @@ sealed interface CommandActionBridge {
 @Serializable
 sealed interface InternalCommandActionBridge {
     @Serializable
-    data class Click(val id: CommandInternalActionId) : InternalCommandActionBridge
+    data class Click(val callback: CommandCallbackRef) : InternalCommandActionBridge
 }
 
 interface CommandServiceBridge : ZiplineService {
@@ -63,8 +56,6 @@ interface CommandServiceBridge : ZiplineService {
     fun content(): CommandPresentationMap
 
     fun fullscreen(): List<RayNodeData>
-
-    fun actions(target: CommandActionTarget): List<CommandListAction>
 
     fun initialize(
         request: RenderRequest,
@@ -100,9 +91,6 @@ abstract class CommandService {
     @Ray
     open fun RayScope.fullscreen() = Unit
 
-    @Ray
-    open fun CommandActionScope.actions(target: CommandActionTarget) = Unit
-
     abstract suspend fun execute(action: CommandAction)
 
     fun render() {
@@ -136,7 +124,8 @@ abstract class CommandService {
             }
             is CommandActionBridge.Internal -> when (val internalAction = action.action) {
                 is InternalCommandActionBridge.Click -> {
-                    clickActions[internalAction.id]?.invoke()
+                    contentCallbacks.invoke(internalAction.callback) ||
+                        fullscreenCallbacks.invoke(internalAction.callback)
                 }
             }
         }
@@ -148,7 +137,48 @@ abstract class CommandService {
 
     internal var onInvalidateCacheRequest: ((List<CommandItemId>?) -> Unit)? = null
 
-    internal val clickActions = mutableMapOf<CommandInternalActionId, suspend () -> Unit>()
+    internal val contentCallbacks = CallbackRegistry()
+
+    internal val fullscreenCallbacks = CallbackRegistry()
 
     private var _query: String = ""
+}
+
+internal class CallbackRegistry {
+    private var nextGeneration = 0L
+    private val callbacksByGeneration = linkedMapOf<Long, MutableMap<CommandCallbackId, suspend () -> Unit>>()
+
+    fun beginFrame(): CallbackFrame {
+        val generation = ++nextGeneration
+        callbacksByGeneration[generation] = mutableMapOf()
+        while (callbacksByGeneration.size > RETAINED_GENERATIONS) {
+            val oldestGeneration = callbacksByGeneration.keys.first()
+            callbacksByGeneration.remove(oldestGeneration)
+        }
+        return CallbackFrame(generation)
+    }
+
+    suspend fun invoke(callback: CommandCallbackRef): Boolean {
+        val callbacks = callbacksByGeneration[callback.generation] ?: return false
+        val action = callbacks[callback.id] ?: return false
+        val pluginContext = currentCoroutineContext()
+        withContext(pluginContext) {
+            action()
+        }
+        return true
+    }
+
+    inner class CallbackFrame internal constructor(
+        val generation: Long
+    ) {
+        fun register(path: String, callback: suspend () -> Unit): CommandCallbackRef {
+            val id = CommandCallbackId("__ray_callback:$generation:$path")
+            callbacksByGeneration.getValue(generation)[id] = callback
+            return CommandCallbackRef(id = id, generation = generation)
+        }
+    }
+
+    private companion object {
+        const val RETAINED_GENERATIONS = 2
+    }
 }

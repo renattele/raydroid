@@ -18,8 +18,6 @@ import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
-import ru.raydroid.plugin.host.impl.ui.toPluginCommandPresentation
-import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
 import ru.raydroid.plugin.host.impl.ui.toPluginUiText
 
 internal class PluginRuntimeCoordinatorImpl(
@@ -70,18 +68,14 @@ internal class PluginRuntimeCoordinatorImpl(
                                     val content = currentRuntime.content().value
                                     content.map { contentItem ->
                                         PluginRuntimeCoordinator.ContentItem(
-                                            listEntry = contentItem.presentation.listEntry.toPluginCommandListItem(
-                                                currentRuntime.pluginId
-                                            ),
+                                            listEntry = contentItem.presentation.listEntry,
                                             resultId = SearchResultId(
                                                 pluginId = currentRuntime.pluginId,
                                                 commandName = contentItem.commandName,
                                                 itemId = contentItem.presentation.listEntry.id
                                             ),
                                             runtime = currentRuntime,
-                                            presentation = contentItem.presentation.toPluginCommandPresentation(
-                                                currentRuntime.pluginId
-                                            ),
+                                            presentation = contentItem.presentation,
                                         )
                                     }
                                 }

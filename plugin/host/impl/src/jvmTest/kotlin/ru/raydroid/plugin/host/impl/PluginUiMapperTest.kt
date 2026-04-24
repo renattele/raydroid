@@ -1,7 +1,8 @@
 package ru.raydroid.plugin.host.impl
 
 import ru.raydroid.plugin.api.model.UiText
-import ru.raydroid.plugin.api.presentation.CommandActionId
+import ru.raydroid.plugin.api.presentation.CommandCallbackId
+import ru.raydroid.plugin.api.presentation.CommandCallbackRef
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
@@ -37,8 +38,9 @@ class PluginUiMapperTest {
     @Test
     fun `command list action maps style`() {
         val pluginId = PluginId("ru.test.plugin")
+        val callback = CommandCallbackRef(CommandCallbackId("delete"), generation = 1)
         val action = CommandListAction(
-            id = CommandActionId("delete"),
+            callback = callback,
             title = UiText.Plain("Delete"),
             description = null,
             icon = null,
@@ -47,7 +49,7 @@ class PluginUiMapperTest {
 
         val mapped = action.toPluginCommandListAction(pluginId)
 
-        assertEquals(CommandActionId("delete"), mapped.id)
+        assertEquals(callback, mapped.callback.ref)
         assertEquals(PluginCommandListAction.Style.Destructive, mapped.style)
     }
 

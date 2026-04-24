@@ -23,19 +23,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import ru.raydroid.plugin.api.presentation.CommandActionTarget
-import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
-import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandActionUseCase
-import ru.raydroid.plugin.host.api.application.usecase.GetCommandActionsUseCase
+import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandCallbackUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetCommandFullscreenUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetSearchFieldRequestsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
-import ru.raydroid.plugin.host.api.application.usecase.OpenLiveEntryUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
@@ -46,6 +42,7 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.event.NotificationEvent
 import ru.raydroid.plugin.host.api.event.NotificationEvent.*
+import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
@@ -63,9 +60,7 @@ class SearchViewModel(
     private val openCommandUseCase: OpenCommandUseCase,
     private val enterItemUseCase: EnterItemUseCase,
     private val closeCommandUseCase: CloseCommandUseCase,
-    private val executeCommandActionUseCase: ExecuteCommandActionUseCase,
-    private val openLiveEntryUseCase: OpenLiveEntryUseCase,
-    private val getCommandActionsUseCase: GetCommandActionsUseCase,
+    private val executeCommandCallbackUseCase: ExecuteCommandCallbackUseCase,
     private val getCommandFullscreenUseCase: GetCommandFullscreenUseCase,
     private val getEventsUseCase: GetEventsUseCase,
     private val emitEventUseCase: EmitEventUseCase,
@@ -143,7 +138,9 @@ class SearchViewModel(
                                 ?.takeIf { results -> results.isNotEmpty() }
                                 ?.let { 0 },
                             focusedActions = emptyList(),
-                            showActions = false
+                            showActions = false,
+                            contextActions = emptyList(),
+                            showContextActions = false
                         )
                     }
                 }
@@ -160,16 +157,15 @@ class SearchViewModel(
                                 }
                             }
                             focusInitialized = true
+                            val focusedActions = searchResults.actionsForFocused(focusedIndex)
                             state.copy(
                                 searchResults = searchResults,
                                 focusedItemIndex = focusedIndex,
                                 isSearching = false,
-                                focusedActions = if (focusedIndex == state.focusedItemIndex) {
-                                    state.focusedActions
-                                } else {
-                                    emptyList()
-                                },
-                                showActions = false
+                                focusedActions = focusedActions,
+                                showActions = state.showActions && focusedActions.isNotEmpty(),
+                                contextActions = emptyList(),
+                                showContextActions = false
                             )
                         }
                     }
@@ -242,41 +238,6 @@ class SearchViewModel(
                 }
             }
         }
-        viewModelScope.launch {
-            _state
-                .map { state -> state.focusedActionRequest() }
-                .distinctUntilChanged()
-                .collectLatest { request ->
-                    if (request == null) {
-                        _state.update { state ->
-                            state.copy(
-                                focusedActions = emptyList(),
-                                showActions = false
-                            )
-                        }
-                        return@collectLatest
-                    }
-                    val actions = getCommandActionsUseCase(
-                        resultId = request.resultId,
-                        target = request.target
-                    ).map { action ->
-                        FocusedCommandAction(
-                            resultId = request.resultId,
-                            action = action
-                        )
-                    }
-                    _state.update { state ->
-                        if (state.focusedActionRequest() != request) {
-                            state
-                        } else {
-                            state.copy(
-                                focusedActions = actions,
-                                showActions = state.showActions && actions.isNotEmpty()
-                            )
-                        }
-                    }
-                }
-        }
     }
 
     private fun onEvent(event: SearchScreenEvent) {
@@ -298,7 +259,14 @@ class SearchViewModel(
                             openCommandUseCase(openResultId)
                         }
                         is SearchResultSet.LiveSearchResult -> {
-                            openLiveEntryUseCase(openResultId)
+                            val primaryCallback = openResult.presentation.primaryCallback
+                            if (primaryCallback != null) {
+                                executeCommandCallbackUseCase(
+                                    resultId = openResultId,
+                                    callback = primaryCallback,
+                                    updateUsage = false
+                                )
+                            }
                         }
                         else -> {
                             enterItemUseCase(openResultId)
@@ -314,8 +282,16 @@ class SearchViewModel(
                                     (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
                                 }
                             },
-                            focusedActions = emptyList(),
-                            showActions = false
+                            focusedActions = state.searchResults.actionsForFocused(
+                                state.searchResults?.let { searchResults ->
+                                    state.focusedItemIndex?.let { itemIndex ->
+                                        (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
+                                    }
+                                }
+                            ),
+                            showActions = false,
+                            contextActions = emptyList(),
+                            showContextActions = false
                         )
                     }
                 }
@@ -328,8 +304,16 @@ class SearchViewModel(
                                     (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
                                 }
                             },
-                            focusedActions = emptyList(),
-                            showActions = false
+                            focusedActions = state.searchResults.actionsForFocused(
+                                state.searchResults?.let { searchResults ->
+                                    state.focusedItemIndex?.let { itemIndex ->
+                                        (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
+                                    }
+                                }
+                            ),
+                            showActions = false,
+                            contextActions = emptyList(),
+                            showContextActions = false
                         )
                     }
                 }
@@ -337,7 +321,8 @@ class SearchViewModel(
                 SearchScreenEvent.ToggleActions -> {
                     _state.update { state ->
                         state.copy(
-                            showActions = !state.showActions
+                            showActions = !state.showActions,
+                            showContextActions = false
                         )
                     }
                 }
@@ -345,7 +330,8 @@ class SearchViewModel(
                 SearchScreenEvent.HideActions -> {
                     _state.update { state ->
                         state.copy(
-                            showActions = false
+                            showActions = false,
+                            showContextActions = false
                         )
                     }
                 }
@@ -404,10 +390,35 @@ class SearchViewModel(
                 }
 
                 is SearchScreenEvent.EnterAction -> {
-                    executeCommandActionUseCase(
-                        event.action.resultId,
-                        event.action.action.id
+                    executeCommandCallbackUseCase(
+                        resultId = event.action.resultId,
+                        callback = event.action.action.callback,
+                        updateUsage = event.action.updateUsage
                     )
+                }
+
+                is SearchScreenEvent.EnterCallback -> {
+                    executeCommandCallbackUseCase(
+                        resultId = event.resultId,
+                        callback = event.callback,
+                        updateUsage = event.updateUsage
+                    )
+                }
+
+                is SearchScreenEvent.ShowContextActions -> {
+                    _state.update { state ->
+                        state.copy(
+                            contextActions = event.actions.map { action ->
+                                FocusedCommandAction(
+                                    resultId = event.resultId,
+                                    action = action,
+                                    updateUsage = false
+                                )
+                            },
+                            showContextActions = event.actions.isNotEmpty(),
+                            showActions = false
+                        )
+                    }
                 }
 
                 SearchScreenEvent.CloseFullscreen -> {
@@ -467,7 +478,9 @@ class SearchViewModel(
                     content = emptyList()
                 ),
                 focusedActions = emptyList(),
-                showActions = false
+                showActions = false,
+                contextActions = emptyList(),
+                showContextActions = false
             )
         }
         fullscreenJob = viewModelScope.launch {
@@ -501,9 +514,11 @@ data class SearchScreenState(
     val searchResults: SearchResultSet? = null,
     val plugins: Map<PluginId, PluginRuntime> = emptyMap(),
     val focusedActions: List<FocusedCommandAction> = emptyList(),
+    val contextActions: List<FocusedCommandAction> = emptyList(),
     val focusedItemIndex: Int? = null,
     val isSearching: Boolean = false,
     val showActions: Boolean = false,
+    val showContextActions: Boolean = false,
     val fullscreen: PluginFullscreenState? = null,
     val alerts: List<NotificationEvent.Alert> = emptyList(),
     val toasts: List<NotificationEvent.ShowToast> = emptyList(),
@@ -521,14 +536,8 @@ data class PluginFullscreenState(
 
 data class FocusedCommandAction(
     val resultId: SearchResultId,
-    val action: PluginCommandListAction
-)
-
-private data class CommandActionRequest(
-    val resultId: SearchResultId,
-    val target: CommandActionTarget,
-    val query: String,
-    val contentKey: Int
+    val action: PluginCommandListAction,
+    val updateUsage: Boolean = true
 )
 
 private data class FullscreenQuery(
@@ -557,27 +566,19 @@ private fun SearchScreenState.focusedResultId(): SearchResultId? =
         searchResults?.results?.getOrNull(itemIndex)?.resultId
     }
 
-private fun SearchScreenState.focusedActionRequest(): CommandActionRequest? {
-    val fullscreen = fullscreen
-    if (fullscreen != null) {
-        return CommandActionRequest(
-            resultId = fullscreen.resultId,
-            target = CommandActionTarget.Fullscreen,
-            query = fullscreen.searchFieldState.fieldState.text.toString(),
-            contentKey = fullscreen.content.hashCode()
+private fun SearchResultSet?.actionsForFocused(index: Int?): List<FocusedCommandAction> {
+    val result = index?.let { itemIndex -> this?.results?.getOrNull(itemIndex) } ?: return emptyList()
+    val actions = when (result) {
+        is SearchResultSet.LiveSearchResult -> result.presentation.actions
+        is SearchResultSet.CachedSearchResult,
+        is SearchResultSet.CommandSearchResult -> emptyList()
+    }
+    return actions.map { action ->
+        FocusedCommandAction(
+            resultId = result.resultId,
+            action = action
         )
     }
-    val resultId = focusedResultId() ?: return null
-    return CommandActionRequest(
-        resultId = resultId,
-        target = if (resultId.itemId == CommandItemId.CommandRoot) {
-            CommandActionTarget.CommandRoot
-        } else {
-            CommandActionTarget.Item(resultId.itemId)
-        },
-        query = searchFieldState.fieldState.text.toString(),
-        contentKey = searchResults.hashCode()
-    )
 }
 
 @Immutable
@@ -585,6 +586,15 @@ sealed interface SearchScreenEvent {
     data class QueryChanged(val query: String) : SearchScreenEvent
     data class Enter(val resultId: SearchResultId? = null) : SearchScreenEvent
     data class EnterAction(val action: FocusedCommandAction) : SearchScreenEvent
+    data class EnterCallback(
+        val resultId: SearchResultId,
+        val callback: PluginCommandCallback,
+        val updateUsage: Boolean = false
+    ) : SearchScreenEvent
+    data class ShowContextActions(
+        val resultId: SearchResultId,
+        val actions: List<PluginCommandListAction>
+    ) : SearchScreenEvent
     data object MoveFocusPrevious : SearchScreenEvent
     data object MoveFocusNext : SearchScreenEvent
     data object ToggleActions : SearchScreenEvent

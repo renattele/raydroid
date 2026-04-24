@@ -87,6 +87,19 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             val focusedActions = state.focusedActions.map { focusedAction ->
                 focusedAction.action
             }
+            val contextActions = state.contextActions.map { contextAction ->
+                contextAction.action
+            }
+            val overlayActions = if (state.showContextActions) {
+                contextActions
+            } else {
+                focusedActions
+            }
+            val overlayFocusedActions = if (state.showContextActions) {
+                state.contextActions
+            } else {
+                state.focusedActions
+            }
             LaunchedEffect(state.focusedItemIndex) {
                 if (fullscreen == null && state.focusedItemIndex != null) {
                     listState.scrollToItem(state.focusedItemIndex)
@@ -135,7 +148,26 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                             .fillMaxSize()
                             .padding(horizontal = spacing.medium, vertical = spacing.small)
                     ) {
-                        ComposeRayRenderer(fullscreen.content)
+                        ComposeRayRenderer(
+                            data = fullscreen.content,
+                            onClick = { callback ->
+                                state.eventSink(
+                                    SearchScreenEvent.EnterCallback(
+                                        resultId = fullscreen.resultId,
+                                        callback = callback,
+                                        updateUsage = false
+                                    )
+                                )
+                            },
+                            onActions = { actions ->
+                                state.eventSink(
+                                    SearchScreenEvent.ShowContextActions(
+                                        resultId = fullscreen.resultId,
+                                        actions = actions
+                                    )
+                                )
+                            }
+                        )
                     }
                 } else {
                     LazyColumn(
@@ -179,7 +211,24 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                         }
                                     ) {
                                         ComposeRayRenderer(
-                                            searchResult.presentation.content
+                                            data = searchResult.presentation.content,
+                                            onClick = { callback ->
+                                                state.eventSink(
+                                                    SearchScreenEvent.EnterCallback(
+                                                        resultId = searchResult.resultId,
+                                                        callback = callback,
+                                                        updateUsage = false
+                                                    )
+                                                )
+                                            },
+                                            onActions = { actions ->
+                                                state.eventSink(
+                                                    SearchScreenEvent.ShowContextActions(
+                                                        resultId = searchResult.resultId,
+                                                        actions = actions
+                                                    )
+                                                )
+                                            }
                                         )
                                     }
                                 }
@@ -214,10 +263,10 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                             )
                         )
                         ActionsPanelOverlay(
-                            actions = focusedActions,
-                            visible = state.showActions,
+                            actions = overlayActions,
+                            visible = state.showActions || state.showContextActions,
                             onActionClick = { action ->
-                                state.focusedActions
+                                overlayFocusedActions
                                     .firstOrNull { focusedAction -> focusedAction.action == action }
                                     ?.let { focusedAction ->
                                         state.eventSink(SearchScreenEvent.EnterAction(focusedAction))

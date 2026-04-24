@@ -19,7 +19,11 @@ data class TextData(
 ): RayNodeData()
 
 @Ray
-fun RayScope.Text(text: UiText, fontSize: FontSize = FontSize.Medium, color: Color = Color.OnSurface) {
-    add(TextData(text, fontSize, color))
+fun RayScope.Text(
+    text: UiText,
+    modifier: Modifier = Modifier,
+    fontSize: FontSize = FontSize.Medium,
+    color: Color = Color.OnSurface
+) {
+    add(TextData(text, fontSize, color).withModifier(modifier(modifier)))
 }
-

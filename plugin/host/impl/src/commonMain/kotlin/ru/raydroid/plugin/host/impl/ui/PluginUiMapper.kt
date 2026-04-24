@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.host.impl.ui
 
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.presentation.CommandCallbackRef
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
@@ -19,6 +20,7 @@ import ru.raydroid.plugin.api.ui.MotionToken
 import ru.raydroid.plugin.api.ui.Orientation
 import ru.raydroid.plugin.api.ui.OrientedBoxData
 import ru.raydroid.plugin.api.ui.RayNodeData
+import ru.raydroid.plugin.api.ui.RayModifier
 import ru.raydroid.plugin.api.ui.ShapeToken
 import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
@@ -28,6 +30,7 @@ import ru.raydroid.plugin.host.api.ui.PluginArrangement
 import ru.raydroid.plugin.host.api.ui.PluginBoxAlignment
 import ru.raydroid.plugin.host.api.ui.PluginBoxData
 import ru.raydroid.plugin.host.api.ui.PluginColor
+import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
@@ -41,6 +44,7 @@ import ru.raydroid.plugin.host.api.ui.PluginMotionToken
 import ru.raydroid.plugin.host.api.ui.PluginOrientation
 import ru.raydroid.plugin.host.api.ui.PluginOrientedBoxData
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
+import ru.raydroid.plugin.host.api.ui.PluginRayModifier
 import ru.raydroid.plugin.host.api.ui.PluginShapeToken
 import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginTextData
@@ -193,62 +197,102 @@ internal fun CommandListItem.toPluginCommandListItem(pluginId: PluginId): Plugin
         icon = icon?.toPluginIcon(pluginId),
         title = title?.toPluginUiText(pluginId),
         description = description?.toPluginUiText(pluginId),
+        enabled = enabled,
     )
 }
 
-internal fun CommandListAction.toPluginCommandListAction(pluginId: PluginId): PluginCommandListAction {
+internal fun CommandListAction.toPluginCommandListAction(
+    pluginId: PluginId,
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit = {}
+): PluginCommandListAction {
     return PluginCommandListAction(
-        id = id,
+        callback = callback.toPluginCommandCallback(dispatchCallback),
         title = title.toPluginUiText(pluginId),
         description = description?.toPluginUiText(pluginId),
         icon = icon?.toPluginIcon(pluginId),
         group = group?.toPluginUiText(pluginId),
         style = style.toPluginStyle(),
-        primary = primary
+        primary = primary,
+        enabled = enabled,
     )
 }
 
-internal fun CommandPresentation.toPluginCommandPresentation(pluginId: PluginId): PluginCommandPresentation {
+internal fun CommandPresentation.toPluginCommandPresentation(
+    pluginId: PluginId,
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit = {}
+): PluginCommandPresentation {
     return PluginCommandPresentation(
         listEntry = listEntry.toPluginCommandListItem(pluginId),
-        content = content.map { it.toPluginRayNodeData(pluginId) }
+        primaryCallback = primaryCallback?.toPluginCommandCallback(dispatchCallback),
+        actions = actions.map { action -> action.toPluginCommandListAction(pluginId, dispatchCallback) },
+        content = content.map { it.toPluginRayNodeData(pluginId, dispatchCallback) }
     )
 }
 
-internal fun RayNodeData.toPluginRayNodeData(pluginId: PluginId): PluginRayNodeData = when (this) {
+internal fun RayNodeData.toPluginRayNodeData(
+    pluginId: PluginId,
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit = {}
+): PluginRayNodeData = when (this) {
     is BoxData -> PluginBoxData(
         alignment = alignment.toPluginBoxAlignment(),
         shape = shape.toPluginShapeToken(),
-        children = children.map { it.toPluginRayNodeData(pluginId) }
-    )
+        children = children.map { it.toPluginRayNodeData(pluginId, dispatchCallback) }
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is OrientedBoxData -> PluginOrientedBoxData(
         orientation = orientation.toPluginOrientation(),
         alignment = alignment.toPluginAlignment(),
         arrangement = arrangement.toPluginArrangement(),
         spacing = spacing.toPluginSpacing(),
         shape = shape.toPluginShapeToken(),
-        children = children.map { it.toPluginRayNodeData(pluginId) }
-    )
+        children = children.map { it.toPluginRayNodeData(pluginId, dispatchCallback) }
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is TextData -> PluginTextData(
         text = text.toPluginUiText(pluginId),
         fontSize = fontSize.toPluginFontSize(),
         color = color.toPluginColor()
-    )
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is IconData -> PluginIconData(
         icon = icon.toPluginIcon(pluginId),
         contentDescription = contentDescription,
         size = size.toPluginIconSize()
-    )
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is ImageData -> PluginImageData(
         image = image.toPluginImage(pluginId),
         contentDescription = contentDescription,
         width = width,
         height = height,
         shape = shape.toPluginShapeToken()
-    )
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
 }
 
 private fun CommandListAction.Style.toPluginStyle(): PluginCommandListAction.Style = when (this) {
     CommandListAction.Style.Default -> PluginCommandListAction.Style.Default
     CommandListAction.Style.Destructive -> PluginCommandListAction.Style.Destructive
+}
+
+private fun RayModifier?.toPluginRayModifier(
+    pluginId: PluginId,
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit
+): PluginRayModifier? {
+    if (this == null) {
+        return null
+    }
+    return PluginRayModifier(
+        enabled = enabled,
+        actions = actions.map { action -> action.toPluginCommandListAction(pluginId, dispatchCallback) }
+    )
+}
+
+private fun CommandCallbackRef.toPluginCommandCallback(
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit
+): PluginCommandCallback {
+    return PluginCommandCallback(
+        ref = this,
+        dispatch = dispatchCallback
+    )
+}
+
+private fun <T : PluginRayNodeData> T.withModifier(modifier: PluginRayModifier?): T {
+    this.modifier = modifier
+    return this
 }

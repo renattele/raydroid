@@ -219,7 +219,7 @@ private fun ActionsPopupAction(
     Row(
         modifier
             .fillMaxWidth()
-            .rInteractable {
+            .rInteractable(enabled = action.enabled) {
                 onClick()
             }
             .background(PluginColor.Surface.toColor())

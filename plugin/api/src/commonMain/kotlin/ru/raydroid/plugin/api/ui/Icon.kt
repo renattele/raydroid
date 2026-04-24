@@ -37,6 +37,11 @@ data class IconData(
 ): RayNodeData()
 
 @Ray
-fun RayScope.Icon(icon: Icon, contentDescription: String?, size: IconSize = IconSize.Medium) {
-    add(IconData(icon, contentDescription, size))
+fun RayScope.Icon(
+    icon: Icon,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    size: IconSize = IconSize.Medium,
+) {
+    add(IconData(icon, contentDescription, size).withModifier(modifier(modifier)))
 }

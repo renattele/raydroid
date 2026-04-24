@@ -11,14 +11,12 @@ import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.CommandActionDispatcher
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
-import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandActionUseCase
-import ru.raydroid.plugin.host.api.application.usecase.GetCommandActionsUseCase
+import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandCallbackUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetCommandFullscreenUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetSearchFieldRequestsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
-import ru.raydroid.plugin.host.api.application.usecase.OpenLiveEntryUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
@@ -97,10 +95,8 @@ val pluginHostModule = module {
     singleOf(::OpenCommandUseCase)
     singleOf(::EnterItemUseCase)
     singleOf(::CloseCommandUseCase)
-    singleOf(::ExecuteCommandActionUseCase)
-    singleOf(::OpenLiveEntryUseCase)
+    singleOf(::ExecuteCommandCallbackUseCase)
     singleOf(::GetPluginsUseCase)
-    singleOf(::GetCommandActionsUseCase)
     singleOf(::GetCommandFullscreenUseCase)
     singleOf(::UpdateCommandQueryUseCase)
 

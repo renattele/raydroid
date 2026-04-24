@@ -3,13 +3,11 @@ package ru.raydroid.plugin.host.api.domain.runtime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import okio.FileSystem
+import ru.raydroid.plugin.api.manifest.Manifest
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
-import ru.raydroid.plugin.api.presentation.CommandActionTarget
-import ru.raydroid.plugin.api.runtime.CommandActionBridge
-import ru.raydroid.plugin.api.manifest.Manifest
-import ru.raydroid.plugin.api.presentation.CommandPresentation
-import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
+import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 
 interface PluginRuntime {
@@ -23,7 +21,6 @@ interface PluginRuntime {
 
     fun content(): StateFlow<List<ContentItem>>
     fun fullscreen(commandName: String): StateFlow<FullscreenContent?>
-    suspend fun actions(commandName: String, target: CommandActionTarget): List<PluginCommandListAction>
 
     suspend fun update(action: CommandActionBridge)
     suspend fun update(commandName: String, action: CommandActionBridge)
@@ -31,7 +28,7 @@ interface PluginRuntime {
 
     data class ContentItem(
         val commandName: String,
-        val presentation: CommandPresentation
+        val presentation: PluginCommandPresentation
     )
 
     data class FullscreenContent(

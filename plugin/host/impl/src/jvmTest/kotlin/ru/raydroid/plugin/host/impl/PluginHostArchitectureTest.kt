@@ -21,9 +21,8 @@ import ru.raydroid.plugin.api.manifest.Platform
 import ru.raydroid.plugin.api.manifest.Permission
 import ru.raydroid.plugin.api.manifest.SearchFieldAccess
 import ru.raydroid.plugin.api.model.UiText
-import ru.raydroid.plugin.api.presentation.CommandActionId
-import ru.raydroid.plugin.api.presentation.CommandActionTarget
-import ru.raydroid.plugin.api.presentation.CommandInternalActionId
+import ru.raydroid.plugin.api.presentation.CommandCallbackId
+import ru.raydroid.plugin.api.presentation.CommandCallbackRef
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
@@ -33,13 +32,11 @@ import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
-import ru.raydroid.plugin.api.runtime.InternalCommandActionBridge
 import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.CommandActionDispatcher
 import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
-import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandActionUseCase
+import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandCallbackUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
-import ru.raydroid.plugin.host.api.application.usecase.OpenLiveEntryUseCase
 import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
 import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
 import ru.raydroid.plugin.host.api.domain.model.PluginId
@@ -67,8 +64,7 @@ import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheSearchEnti
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheWithContent
 import ru.raydroid.plugin.host.impl.runtime.PluginRuntimeCoordinatorImpl
 import ru.raydroid.plugin.host.api.domain.service.PluginLoader
-import ru.raydroid.plugin.host.api.application.usecase.GetCommandActionsUseCase
-import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
+import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.event.SearchFieldGatewayImpl
@@ -198,7 +194,7 @@ class PluginHostArchitectureTest {
         val presentation = CommandPresentation(
             listEntry = listEntry,
             content = emptyList(),
-        )
+        ).toPluginCommandPresentation(PluginId("ru.test.plugin"))
         val runtime = FakePluginRuntime(
             manifest = testManifest(),
             contentItems = MutableStateFlow(
@@ -225,7 +221,7 @@ class PluginHostArchitectureTest {
         assertEquals("apps", content.resultId.commandName)
         assertEquals("item-1", content.resultId.itemId.value)
         assertEquals(listEntry.toPluginCommandListItem(runtime.pluginId), content.listEntry)
-        assertEquals(presentation.toPluginCommandPresentation(runtime.pluginId), content.presentation)
+        assertEquals(presentation, content.presentation)
     }
 
     @Test
@@ -323,99 +319,48 @@ class PluginHostArchitectureTest {
     }
 
     @Test
-    fun `open item use case dispatches command list action and updates usage`() = runTest {
-        val runtime = FakePluginRuntime(manifest = testManifest())
-        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
+    fun `execute callback use case dispatches callback click and updates usage`() = runTest {
         val searchRepository = RecordingSearchIndexRepository()
-        val useCase = ExecuteCommandActionUseCase(
-            commandActionDispatcher = commandActionDispatcher(coordinator),
+        val useCase = ExecuteCommandCallbackUseCase(
             searchIndexRepository = searchRepository,
         )
+        var dispatchedCallback: CommandCallbackRef? = null
         val resultId = SearchResultId(
-            pluginId = runtime.pluginId,
+            pluginId = PluginId("ru.test.plugin"),
             commandName = "apps",
             itemId = CommandItemId("item-1"),
         )
+        val callback = CommandCallbackRef(CommandCallbackId("delete"), generation = 1)
+        val pluginCallback = PluginCommandCallback(callback) { dispatchedCallback = it }
 
         useCase(
             resultId = resultId,
-            actionId = CommandActionId("delete")
+            callback = pluginCallback
         )
 
-        val update = runtime.updates.single()
-        assertEquals(
-            CommandActionBridge.Internal(
-                InternalCommandActionBridge.Click(CommandInternalActionId("delete"))
-            ),
-            update
-        )
+        assertEquals(callback, dispatchedCallback)
         assertEquals(resultId, searchRepository.lastUpdatedUsage)
     }
 
     @Test
-    fun `open item use case dispatches live entry click without search usage`() = runTest {
-        val runtime = FakePluginRuntime(manifest = testManifest())
-        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
+    fun `execute callback use case can skip search usage updates`() = runTest {
         val searchRepository = RecordingSearchIndexRepository()
-        val useCase = OpenLiveEntryUseCase(
-            commandActionDispatcher = commandActionDispatcher(coordinator)
+        val useCase = ExecuteCommandCallbackUseCase(
+            searchIndexRepository = searchRepository,
         )
+        var dispatchedCallback: CommandCallbackRef? = null
         val resultId = SearchResultId(
-            pluginId = runtime.pluginId,
+            pluginId = PluginId("ru.test.plugin"),
             commandName = "apps",
             itemId = CommandItemId("live-1"),
         )
+        val callback = CommandCallbackRef(CommandCallbackId("live-1"), generation = 1)
+        val pluginCallback = PluginCommandCallback(callback) { dispatchedCallback = it }
 
-        useCase(resultId)
+        useCase(resultId, pluginCallback, updateUsage = false)
 
-        assertEquals(
-            CommandActionBridge.Internal(
-                InternalCommandActionBridge.Click(CommandInternalActionId("live-1"))
-            ),
-            runtime.updates.single()
-        )
+        assertEquals(callback, dispatchedCallback)
         assertNull(searchRepository.lastUpdatedUsage)
-    }
-
-    @Test
-    fun `get command actions use case dispatches focused targets to runtime`() = runTest {
-        val expectedAction = PluginCommandListAction(
-            id = CommandActionId("open"),
-            title = PluginUiText.Plain("Open"),
-            description = null,
-            icon = null,
-        )
-        val runtime = FakePluginRuntime(
-            manifest = testManifest(),
-            actionResults = listOf(expectedAction)
-        )
-        val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
-        val useCase = GetCommandActionsUseCase(
-            pluginRuntimeRegistry = object : PluginRuntimeRegistry {
-                override suspend fun load(runtime: PluginRuntime) = Unit
-                override suspend fun unload(runtime: PluginRuntime) = Unit
-                override fun get(): PluginRuntimeCoordinator = coordinator
-            },
-        )
-        val resultId = SearchResultId(
-            pluginId = runtime.pluginId,
-            commandName = "apps",
-            itemId = CommandItemId.CommandRoot,
-        )
-        val targets = listOf(
-            CommandActionTarget.CommandRoot,
-            CommandActionTarget.Item(CommandItemId("item-1")),
-            CommandActionTarget.Fullscreen,
-        )
-
-        targets.forEach { target ->
-            assertEquals(listOf(expectedAction), useCase(resultId, target))
-        }
-
-        assertEquals(
-            targets.map { target -> "apps" to target },
-            runtime.actionRequests
-        )
     }
 
     @Test
@@ -584,13 +529,11 @@ private fun testManifest(name: String = "ru.test.plugin", searchable: Boolean = 
 private class FakePluginRuntime(
     override val manifest: Manifest,
     private val contentItems: MutableStateFlow<List<PluginRuntime.ContentItem>> = MutableStateFlow(emptyList()),
-    private val actionResults: List<PluginCommandListAction> = emptyList(),
 ) : PluginRuntime {
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
     val updates = mutableListOf<CommandActionBridge>()
     val commandUpdates = mutableListOf<CommandUpdate>()
-    val actionRequests = mutableListOf<Pair<String, CommandActionTarget>>()
     private val fullscreen = MutableStateFlow<PluginRuntime.FullscreenContent?>(null)
 
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()
@@ -598,14 +541,6 @@ private class FakePluginRuntime(
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = contentItems
 
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = fullscreen
-
-    override suspend fun actions(
-        commandName: String,
-        target: CommandActionTarget
-    ): List<PluginCommandListAction> {
-        actionRequests += commandName to target
-        return actionResults
-    }
 
     override suspend fun update(action: CommandActionBridge) {
         updates += action

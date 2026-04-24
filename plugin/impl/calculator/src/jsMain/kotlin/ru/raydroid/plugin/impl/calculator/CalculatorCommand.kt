@@ -5,22 +5,23 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandService
-import ru.raydroid.plugin.api.presentation.CommandActionScope
-import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.host.Host
+import ru.raydroid.plugin.api.host.service.ClipboardService
 import ru.raydroid.plugin.api.host.service.NotificationService
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.api.host.service.SearchFieldState
-import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.ui.Column
 import ru.raydroid.plugin.api.ui.Icon
+import ru.raydroid.plugin.api.ui.Modifier
 import ru.raydroid.plugin.api.ui.RayScope
 import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.Text
+import ru.raydroid.plugin.api.ui.actions
 
 class CalculatorCommand : CommandService() {
     private var result: String = ""
@@ -47,40 +48,37 @@ class CalculatorCommand : CommandService() {
     }
 
     override fun CommandListScope.content() {
-        entry(onClick = {
-            result = "entry"
-            render()
-        }) {
+        entry(
+            modifier = Modifier
+                .actions {
+                    action(
+                        title = UiText.Resource("app.label"),
+                        primary = true
+                    ) {
+                        result = "entry"
+                        render()
+                    }
+                    group(UiText.Plain("111")) {
+                        action(
+                            title = UiText.Resource("app.description"),
+                            style = CommandListAction.Style.Destructive,
+                            icon = Icon.Builtin("Clear")
+                        ) {
+                            result = ""
+                            render()
+                        }
+                        action(
+                            title = UiText.Resource("app.description"),
+                            style = CommandListAction.Style.Destructive
+                        ) {
+                            result = "789"
+                            render()
+                        }
+                    }
+                }
+        ) {
             Column {
                 Text(UiText.Plain(result))
-            }
-        }
-    }
-
-    override fun CommandActionScope.actions(target: CommandActionTarget) {
-        when (target) {
-            CommandActionTarget.CommandRoot, CommandActionTarget.Fullscreen, is CommandActionTarget.Item -> {
-                action(title = UiText.Resource("app.label")) {
-                    result = "123"
-                    render()
-                }
-                group(UiText.Plain("111")) {
-                    action(
-                        title = UiText.Resource("app.description"),
-                        style = CommandListAction.Style.Destructive,
-                        icon = Icon.Builtin("Clear")
-                    ) {
-                        result = ""
-                        render()
-                    }
-                    action(
-                        title = UiText.Resource("app.description"),
-                        style = CommandListAction.Style.Destructive
-                    ) {
-                        result = "789"
-                        render()
-                    }
-                }
             }
         }
     }
@@ -88,7 +86,26 @@ class CalculatorCommand : CommandService() {
     override fun RayScope.fullscreen() {
         Column(spacing = Spacing.Medium) {
             Text(UiText.Resource("app.main"))
-            Text(UiText.Plain(result))
+            Text(
+                text = UiText.Plain(result),
+                modifier = Modifier
+                    .actions {
+                        action(
+                            title = UiText.Plain("Copy"),
+                            primary = true
+                        ) {
+                            Host.clipboard.copy(ClipboardService.ClipboardContent(text = result))
+                        }
+                        action(
+                            title = UiText.Plain("Clear"),
+                            icon = Icon.Builtin("Clear"),
+                            style = CommandListAction.Style.Destructive
+                        ) {
+                            result = ""
+                            renderFullscreen()
+                        }
+                    }
+            )
         }
     }
 

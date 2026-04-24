@@ -20,7 +20,6 @@ import ru.raydroid.plugin.api.manifest.Command
 import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.manifest.Platform
 import ru.raydroid.plugin.api.model.UiText
-import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
@@ -31,7 +30,6 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
-import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.data.search.CachedSearchRanker
@@ -228,7 +226,7 @@ class SearchRankingTest {
             presentation = CommandPresentation(
                 listEntry = listEntry,
                 content = emptyList()
-            )
+            ).toPluginCommandPresentation(PluginId("ru.test.plugin"))
         )
     }
 
@@ -236,8 +234,8 @@ class SearchRankingTest {
         return runtime.content().value.map { contentItem ->
             PluginRuntimeCoordinator.ContentItem(
                 runtime = runtime,
-                presentation = contentItem.presentation.toPluginCommandPresentation(runtime.pluginId),
-                listEntry = contentItem.presentation.listEntry.toPluginCommandListItem(runtime.pluginId),
+                presentation = contentItem.presentation,
+                listEntry = contentItem.presentation.listEntry,
                 resultId = SearchResultId(
                     pluginId = runtime.pluginId,
                     commandName = contentItem.commandName,
@@ -304,11 +302,6 @@ private class FakeSearchRuntime(
     override fun content() = content
 
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = MutableStateFlow(null)
-
-    override suspend fun actions(
-        commandName: String,
-        target: CommandActionTarget
-    ): List<PluginCommandListAction> = emptyList()
 
     override suspend fun update(action: CommandActionBridge) = Unit
 

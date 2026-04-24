@@ -1,6 +1,13 @@
 package ru.raydroid.plugin.host.api.ui
 
-sealed class PluginRayNodeData
+sealed class PluginRayNodeData {
+    var modifier: PluginRayModifier? = null
+}
+
+data class PluginRayModifier(
+    val enabled: Boolean = true,
+    val actions: List<PluginCommandListAction> = emptyList()
+)
 
 data class PluginTextData(
     val text: PluginUiText,
