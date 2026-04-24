@@ -298,23 +298,29 @@ private fun ActionPanelPreview() {
             toasts = listOf(
                 NotificationEvent.ShowToast(
                     PluginId.Invalid,
+                    toastId = "toast-1",
                     toast = NotificationEvent.Toast(
                         message = PluginUiText.Plain("Message"),
-                        style = NotificationEvent.Toast.Style.Animated
+                        style = NotificationEvent.Toast.Style.Animated,
+                        autoDismissMillis = null
                     )
                 ),
                 NotificationEvent.ShowToast(
                     PluginId.Invalid,
+                    toastId = "toast-2",
                     toast = NotificationEvent.Toast(
                         message = PluginUiText.Plain("Message2"),
-                        style = NotificationEvent.Toast.Style.Success
+                        style = NotificationEvent.Toast.Style.Success,
+                        autoDismissMillis = 5_000L
                     )
                 ),
                 NotificationEvent.ShowToast(
                     PluginId.Invalid,
+                    toastId = "toast-3",
                     toast = NotificationEvent.Toast(
                         message = PluginUiText.Plain("Message3"),
-                        style = NotificationEvent.Toast.Style.Success
+                        style = NotificationEvent.Toast.Style.Success,
+                        autoDismissMillis = 5_000L
                     )
                 )
             )

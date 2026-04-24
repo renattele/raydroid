@@ -21,15 +21,17 @@ internal class PermissionNotificationServiceBridge(
         throw PermissionDenied()
     }
 
-    override suspend fun showToast(toast: NotificationServiceBridge.Toast) {
-        if (manifest.access.notification?.showToasts == true) {
+    override suspend fun showToast(toast: NotificationServiceBridge.Toast): NotificationServiceBridge.ToastHandle {
+        return if (manifest.access.notification?.showToasts == true) {
             notificationServiceBridge.showToast(toast)
+        } else {
+            NotificationServiceBridge.ToastHandle("")
         }
     }
 
-    override suspend fun hideToast(toast: NotificationServiceBridge.Toast) {
+    override suspend fun hideToast(toastId: String) {
         if (manifest.access.notification?.showToasts == true) {
-            notificationServiceBridge.hideToast(toast)
+            notificationServiceBridge.hideToast(toastId)
         }
     }
 }

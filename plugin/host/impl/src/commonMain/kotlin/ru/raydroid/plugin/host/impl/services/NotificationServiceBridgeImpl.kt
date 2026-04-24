@@ -8,6 +8,8 @@ import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.event.EventGateway
 import ru.raydroid.plugin.host.api.event.NotificationEvent
 import ru.raydroid.plugin.host.impl.ui.toPluginUiText
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 class NotificationServiceBridgeImpl(
     private val eventGateway: EventGateway,
@@ -43,15 +45,17 @@ class NotificationServiceBridgeImpl(
         } ?: confirmAction
     }
 
-    override suspend fun showToast(toast: NotificationServiceBridge.Toast) {
+    override suspend fun showToast(toast: NotificationServiceBridge.Toast): NotificationServiceBridge.ToastHandle {
+        val toastId = generateToastId()
         eventGateway.emit(
             pluginId,
-            NotificationEvent.ShowToast(pluginId, toast.toNotificationToast())
+            NotificationEvent.ShowToast(pluginId, toastId, toast.toNotificationToast())
         )
+        return NotificationServiceBridge.ToastHandle(toastId)
     }
 
-    override suspend fun hideToast(toast: NotificationServiceBridge.Toast) {
-        eventGateway.emit(pluginId, NotificationEvent.HideToast(pluginId, toast.toNotificationToast()))
+    override suspend fun hideToast(toastId: String) {
+        eventGateway.emit(pluginId, NotificationEvent.HideToast(pluginId, toastId))
     }
 
     private fun NotificationServiceBridge.AlertAction.toNotificationAction() = NotificationEvent.AlertAction(
@@ -69,6 +73,12 @@ class NotificationServiceBridgeImpl(
             NotificationServiceBridge.Toast.Style.Animated -> NotificationEvent.Toast.Style.Animated
             NotificationServiceBridge.Toast.Style.Success -> NotificationEvent.Toast.Style.Success
             NotificationServiceBridge.Toast.Style.Failure -> NotificationEvent.Toast.Style.Failure
-        }
+        },
+        autoDismissMillis = autoDismissMillis
     )
+
+    @OptIn(ExperimentalUuidApi::class)
+    private fun generateToastId(): String {
+        return Uuid.generateV4().toString()
+    }
 }

@@ -12,8 +12,8 @@ interface NotificationServiceBridge: ZiplineService {
         dismissAction: AlertAction? = null,
     ): AlertAction?
 
-    suspend fun showToast(toast: Toast)
-    suspend fun hideToast(toast: Toast)
+    suspend fun showToast(toast: Toast): ToastHandle
+    suspend fun hideToast(toastId: String)
 
     @Serializable
     data class AlertAction(
@@ -31,12 +31,28 @@ interface NotificationServiceBridge: ZiplineService {
     @Serializable
     data class Toast(
         val message: UiText,
-        val style: Style
+        val style: Style,
+        val autoDismissMillis: Long? = defaultAutoDismissMillis(style)
     ) {
         enum class Style {
             Animated,
             Success,
             Failure
         }
+
+        companion object {
+            const val DEFAULT_AUTO_DISMISS_MILLIS = 5_000L
+
+            fun defaultAutoDismissMillis(style: Style): Long? = when (style) {
+                Style.Animated -> null
+                Style.Success,
+                Style.Failure -> DEFAULT_AUTO_DISMISS_MILLIS
+            }
+        }
     }
+
+    @Serializable
+    data class ToastHandle(
+        val id: String
+    )
 }

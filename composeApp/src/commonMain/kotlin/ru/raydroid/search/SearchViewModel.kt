@@ -74,6 +74,7 @@ class SearchViewModel(
     )
     val state = _state.asStateFlow()
     private var fullscreenJob: Job? = null
+    private val toastDismissJobs = mutableMapOf<String, Job>()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -105,22 +106,11 @@ class SearchViewModel(
                     }
 
                     is NotificationEvent.ShowToast -> {
-                        _state.update { state ->
-                            state.copy(
-                                toasts = state.toasts + data
-                            )
-                        }
+                        showToast(data)
                     }
 
                     is NotificationEvent.HideToast -> {
-                        _state.update { state ->
-                            state.copy(
-                                toasts = state.toasts - NotificationEvent.ShowToast(
-                                    pluginId = data.pluginId,
-                                    toast = data.toast
-                                )
-                            )
-                        }
+                        hideToast(data)
                     }
                 }
             }
@@ -382,11 +372,7 @@ class SearchViewModel(
                 }
 
                 is SearchScreenEvent.HideToast -> {
-                    _state.update { state ->
-                        state.copy(
-                            toasts = state.toasts - event.toast
-                        )
-                    }
+                    hideToast(event.toast.toastId)
                 }
 
                 is SearchScreenEvent.EnterAction -> {
@@ -455,6 +441,40 @@ class SearchViewModel(
         closeCommandUseCase(fullscreen.resultId)
         _state.update { currentState ->
             currentState.copy(fullscreen = null)
+        }
+    }
+
+    private fun showToast(toast: NotificationEvent.ShowToast) {
+        _state.update { state ->
+            state.copy(
+                toasts = state.toasts + toast
+            )
+        }
+        val autoDismissMillis = toast.toast.autoDismissMillis ?: return
+        toastDismissJobs.remove(toast.toastId)?.cancel()
+        toastDismissJobs[toast.toastId] = viewModelScope.launch {
+            delay(autoDismissMillis)
+            dismissToast(toast.toastId, cancelJob = false)
+        }
+    }
+
+    private fun hideToast(event: NotificationEvent.HideToast) {
+        hideToast(event.toastId)
+    }
+
+    private fun hideToast(toastId: String) {
+        dismissToast(toastId, cancelJob = true)
+    }
+
+    private fun dismissToast(toastId: String, cancelJob: Boolean) {
+        val job = toastDismissJobs.remove(toastId)
+        if (cancelJob) {
+            job?.cancel()
+        }
+        _state.update { state ->
+            state.copy(
+                toasts = state.toasts.filterNot { toast -> toast.toastId == toastId }
+            )
         }
     }
 

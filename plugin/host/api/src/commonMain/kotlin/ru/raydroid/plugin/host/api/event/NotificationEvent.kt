@@ -34,17 +34,19 @@ sealed interface NotificationEvent {
 
     data class ShowToast(
         val pluginId: PluginId,
+        val toastId: String,
         val toast: Toast
     ) : NotificationEvent
 
     data class HideToast(
         val pluginId: PluginId,
-        val toast: Toast
+        val toastId: String
     ) : NotificationEvent
 
     data class Toast(
         val message: PluginUiText,
-        val style: Style
+        val style: Style,
+        val autoDismissMillis: Long?
     ) {
         enum class Style {
             Animated,

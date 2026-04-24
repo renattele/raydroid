@@ -25,8 +25,13 @@ internal class NotificationServiceImpl(
         bridge.showToast(toast.toBridgeToast())
     }
 
-    override suspend fun hideToast(toast: NotificationService.Toast) {
-        bridge.hideToast(toast.toBridgeToast())
+    override suspend fun <T> showToast(toast: NotificationService.Toast, block: suspend () -> T): T {
+        val handle = bridge.showToast(toast.toBridgeToast())
+        return try {
+            block()
+        } finally {
+            bridge.hideToast(handle.id)
+        }
     }
 
     private fun NotificationServiceBridge.AlertAction.toServiceAction() = NotificationService.AlertAction(
@@ -53,12 +58,14 @@ internal class NotificationServiceImpl(
 
     private fun NotificationServiceBridge.Toast.toServiceToast() = NotificationService.Toast(
         message = message,
-        style = style.toServiceStyle()
+        style = style.toServiceStyle(),
+        autoDismissMillis = autoDismissMillis
     )
 
     private fun NotificationService.Toast.toBridgeToast() = NotificationServiceBridge.Toast(
         message = message,
-        style = style.toBridgeStyle()
+        style = style.toBridgeStyle(),
+        autoDismissMillis = autoDismissMillis
     )
 
     private fun NotificationServiceBridge.Toast.Style.toServiceStyle() = when (this) {
@@ -72,4 +79,5 @@ internal class NotificationServiceImpl(
         NotificationService.Toast.Style.Success -> NotificationServiceBridge.Toast.Style.Success
         NotificationService.Toast.Style.Failure -> NotificationServiceBridge.Toast.Style.Failure
     }
+
 }
