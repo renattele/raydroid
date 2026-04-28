@@ -85,11 +85,17 @@ class SearchViewModel(
         }
         viewModelScope.launch {
             getPluginsUseCase().collectLatest { plugins ->
+                val pluginMap = plugins.associateBy { it.pluginId }
+                val currentState = _state.value
+                val focusedActions = currentState.searchResults.actionsForFocused(
+                    currentState.focusedItemIndex,
+                    pluginMap
+                )
                 _state.update { state ->
                     state.copy(
-                        plugins = plugins.associateBy {
-                            it.pluginId
-                        }
+                        plugins = pluginMap,
+                        focusedActions = focusedActions,
+                        showActions = state.showActions && focusedActions.isNotEmpty()
                     )
                 }
             }
@@ -138,16 +144,20 @@ class SearchViewModel(
                 .collectLatest { query ->
                     var focusInitialized = false
                     searchUseCase(query).collectLatest { searchResults ->
-                        _state.update { state ->
-                            val focusedIndex = if (!focusInitialized) {
-                                searchResults.results.takeIf { it.isNotEmpty() }?.let { 0 }
-                            } else {
-                                searchResults.results.takeIf { it.isNotEmpty() }?.let { results ->
-                                    state.focusedItemIndex?.coerceIn(0, results.lastIndex)
-                                }
+                        val currentState = _state.value
+                        val focusedIndex = if (!focusInitialized) {
+                            searchResults.results.takeIf { it.isNotEmpty() }?.let { 0 }
+                        } else {
+                            searchResults.results.takeIf { it.isNotEmpty() }?.let { results ->
+                                currentState.focusedItemIndex?.coerceIn(0, results.lastIndex)
                             }
-                            focusInitialized = true
-                            val focusedActions = searchResults.actionsForFocused(focusedIndex)
+                        }
+                        focusInitialized = true
+                        val focusedActions = searchResults.actionsForFocused(
+                            focusedIndex,
+                            currentState.plugins
+                        )
+                        _state.update { state ->
                             state.copy(
                                 searchResults = searchResults,
                                 focusedItemIndex = focusedIndex,
@@ -265,20 +275,20 @@ class SearchViewModel(
                 }
 
                 SearchScreenEvent.MoveFocusNext -> {
+                    val state = _state.value
+                    val focusedIndex = state.searchResults?.let { searchResults ->
+                        state.focusedItemIndex?.let { itemIndex ->
+                            (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
+                        }
+                    }
+                    val focusedActions = state.searchResults.actionsForFocused(
+                        focusedIndex,
+                        state.plugins
+                    )
                     _state.update { state ->
                         state.copy(
-                            focusedItemIndex = state.searchResults?.let { searchResults ->
-                                state.focusedItemIndex?.let { itemIndex ->
-                                    (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
-                                }
-                            },
-                            focusedActions = state.searchResults.actionsForFocused(
-                                state.searchResults?.let { searchResults ->
-                                    state.focusedItemIndex?.let { itemIndex ->
-                                        (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
-                                    }
-                                }
-                            ),
+                            focusedItemIndex = focusedIndex,
+                            focusedActions = focusedActions,
                             showActions = false,
                             contextActions = emptyList(),
                             showContextActions = false
@@ -287,20 +297,20 @@ class SearchViewModel(
                 }
 
                 SearchScreenEvent.MoveFocusPrevious -> {
+                    val state = _state.value
+                    val focusedIndex = state.searchResults?.let { searchResults ->
+                        state.focusedItemIndex?.let { itemIndex ->
+                            (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
+                        }
+                    }
+                    val focusedActions = state.searchResults.actionsForFocused(
+                        focusedIndex,
+                        state.plugins
+                    )
                     _state.update { state ->
                         state.copy(
-                            focusedItemIndex = state.searchResults?.let { searchResults ->
-                                state.focusedItemIndex?.let { itemIndex ->
-                                    (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
-                                }
-                            },
-                            focusedActions = state.searchResults.actionsForFocused(
-                                state.searchResults?.let { searchResults ->
-                                    state.focusedItemIndex?.let { itemIndex ->
-                                        (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
-                                    }
-                                }
-                            ),
+                            focusedItemIndex = focusedIndex,
+                            focusedActions = focusedActions,
                             showActions = false,
                             contextActions = emptyList(),
                             showContextActions = false
@@ -503,6 +513,26 @@ class SearchViewModel(
                 showContextActions = false
             )
         }
+        viewModelScope.launch {
+            val focusedActions = result.actions(_state.value.plugins).map { action ->
+                FocusedCommandAction(
+                    resultId = result.resultId,
+                    action = action,
+                    updateUsage = false
+                )
+            }
+            _state.update { state ->
+                val fullscreen = state.fullscreen
+                if (fullscreen?.resultId == result.resultId) {
+                    state.copy(
+                        focusedActions = focusedActions,
+                        showActions = state.showActions && focusedActions.isNotEmpty()
+                    )
+                } else {
+                    state
+                }
+            }
+        }
         fullscreenJob = viewModelScope.launch {
             getCommandFullscreenUseCase(result.resultId).collectLatest { content ->
                 _state.update { state ->
@@ -586,18 +616,30 @@ private fun SearchScreenState.focusedResultId(): SearchResultId? =
         searchResults?.results?.getOrNull(itemIndex)?.resultId
     }
 
-private fun SearchResultSet?.actionsForFocused(index: Int?): List<FocusedCommandAction> {
+private suspend fun SearchResultSet?.actionsForFocused(
+    index: Int?,
+    plugins: Map<PluginId, PluginRuntime>
+): List<FocusedCommandAction> {
     val result = index?.let { itemIndex -> this?.results?.getOrNull(itemIndex) } ?: return emptyList()
-    val actions = when (result) {
-        is SearchResultSet.LiveSearchResult -> result.presentation.actions
-        is SearchResultSet.CachedSearchResult,
-        is SearchResultSet.CommandSearchResult -> emptyList()
-    }
+    val actions = result.actions(plugins)
     return actions.map { action ->
         FocusedCommandAction(
             resultId = result.resultId,
             action = action
         )
+    }
+}
+
+private suspend fun SearchResultSet.SearchResult.actions(
+    plugins: Map<PluginId, PluginRuntime>
+): List<PluginCommandListAction> {
+    return when (this) {
+        is SearchResultSet.LiveSearchResult -> presentation.actions
+        is SearchResultSet.CachedSearchResult,
+        is SearchResultSet.CommandSearchResult -> plugins[resultId.pluginId]?.actions(
+            commandName = resultId.commandName,
+            itemId = resultId.itemId
+        ).orEmpty()
     }
 }
 

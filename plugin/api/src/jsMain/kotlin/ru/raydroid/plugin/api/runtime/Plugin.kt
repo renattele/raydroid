@@ -2,16 +2,19 @@ package ru.raydroid.plugin.api.runtime
 
 import kotlinx.coroutines.flow.Flow
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.presentation.CommandPresentation
 import ru.raydroid.plugin.api.presentation.CommandPresentationMap
+import ru.raydroid.plugin.api.presentation.buildCommandActions
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.Modifier
 import ru.raydroid.plugin.api.ui.RayNodeData
 import ru.raydroid.plugin.api.ui.RayScope
 import ru.raydroid.plugin.api.ui.buildRayNodes
+import ru.raydroid.plugin.api.ui.hasActions
 import ru.raydroid.plugin.api.ui.toRayModifier
 import ru.raydroid.plugin.api.zipline
 
@@ -50,21 +53,31 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
         override fun content(): CommandPresentationMap {
             val presentations = mutableMapOf<CommandItemId, CommandPresentation>()
             val frame = contentCallbacks.beginFrame()
-            var entryIndex = 0
             val scope = object : CommandListScope {
                 override fun entry(
+                    id: CommandItemId,
                     title: UiText?,
                     description: UiText?,
                     icon: Icon?,
                     modifier: Modifier,
                     content: RayScope.() -> Unit
                 ) {
-                    val entryPath = "$entryIdPrefix${entryIndex++}"
+                    val entryPath = "$entryIdPrefix${id.value}"
                     val entryModifier = modifier.toRayModifier(entryPath, frame::register)
-                    val actions = entryModifier?.actions.orEmpty()
+                    val actions = if (modifier.hasActions()) {
+                        entryModifier?.actions.orEmpty()
+                    } else {
+                        buildCommandActions(
+                            path = "$entryPath:actions",
+                            registerCallback = frame::register,
+                        ) {
+                            with(this@toBridge) {
+                                actions(CommandActionTarget(id))
+                            }
+                        }
+                    }
                     val primaryCallback = actions.firstOrNull { it.primary }?.callback
                         ?: actions.firstOrNull()?.callback
-                    val id = CommandItemId(primaryCallback?.id?.value ?: entryPath)
                     val listEntry = CommandListItem(
                         id = id,
                         title = title,
@@ -86,6 +99,16 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
             scope.content()
             return presentations
         }
+
+        override fun actions(target: CommandActionTarget) =
+            buildCommandActions(
+                path = "$entryIdPrefix${target.itemId.value}:actions",
+                registerCallback = contentCallbacks.beginFrame()::register,
+            ) {
+                with(this@toBridge) {
+                    actions(target)
+                }
+            }
 
         override fun fullscreen(): List<RayNodeData> {
             val frame = fullscreenCallbacks.beginFrame()

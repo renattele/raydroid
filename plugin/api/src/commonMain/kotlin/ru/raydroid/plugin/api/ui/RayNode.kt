@@ -125,6 +125,10 @@ internal fun Modifier.elements(): List<Modifier.Element> = when (this) {
     else -> emptyList()
 }
 
+internal fun Modifier.hasActions(): Boolean {
+    return elements().any { element -> element is ActionsElement }
+}
+
 internal fun Modifier.toRayModifier(
     path: String,
     registerCallback: (String, suspend () -> Unit) -> CommandCallbackRef

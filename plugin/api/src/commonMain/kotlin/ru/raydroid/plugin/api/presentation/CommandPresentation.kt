@@ -28,6 +28,10 @@ value class CommandItemId(val value: String) {
 value class CommandCallbackId(val value: String)
 
 @Serializable
+@JvmInline
+value class CommandActionTarget(val itemId: CommandItemId)
+
+@Serializable
 data class CommandCallbackRef(
     val id: CommandCallbackId,
     val generation: Long
@@ -62,6 +66,7 @@ data class CommandListAction(
 interface CommandListScope {
     @Ray
     fun entry(
+        id: CommandItemId = CommandItemId.random(),
         title: UiText? = null,
         description: UiText? = null,
         icon: Icon? = null,

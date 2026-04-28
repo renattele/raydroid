@@ -65,6 +65,7 @@ import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheWithConten
 import ru.raydroid.plugin.host.impl.runtime.PluginRuntimeCoordinatorImpl
 import ru.raydroid.plugin.host.api.domain.service.PluginLoader
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
+import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.event.SearchFieldGatewayImpl
@@ -541,6 +542,8 @@ private class FakePluginRuntime(
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = contentItems
 
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = fullscreen
+
+    override suspend fun actions(commandName: String, itemId: CommandItemId) = emptyList<PluginCommandListAction>()
 
     override suspend fun update(action: CommandActionBridge) {
         updates += action

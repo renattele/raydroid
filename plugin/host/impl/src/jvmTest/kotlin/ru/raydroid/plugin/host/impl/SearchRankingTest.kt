@@ -30,6 +30,7 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
+import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.data.search.CachedSearchRanker
@@ -302,6 +303,8 @@ private class FakeSearchRuntime(
     override fun content() = content
 
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = MutableStateFlow(null)
+
+    override suspend fun actions(commandName: String, itemId: CommandItemId) = emptyList<PluginCommandListAction>()
 
     override suspend fun update(action: CommandActionBridge) = Unit
 

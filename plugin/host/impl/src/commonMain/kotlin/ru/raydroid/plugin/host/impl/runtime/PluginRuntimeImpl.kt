@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.FileSystem
 import ru.raydroid.plugin.api.presentation.CommandCallbackRef
+import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.api.runtime.CommandServiceBridge
@@ -25,6 +26,8 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
+import ru.raydroid.plugin.host.impl.ui.toPluginCommandListAction
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandPresentation
 import ru.raydroid.plugin.host.impl.ui.toPluginRayNodeData
 
@@ -164,6 +167,20 @@ internal class PluginRuntimeImpl(
 
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> =
         fullscreenFlow(commandName)
+
+    override suspend fun actions(
+        commandName: String,
+        itemId: CommandItemId
+    ): List<PluginCommandListAction> {
+        return withContext(pluginRuntimeDispatcher) {
+            val command = commandServices.firstOrNull { command ->
+                command.getServiceName() == commandName
+            } ?: return@withContext emptyList()
+            command.actions(CommandActionTarget(itemId)).map { action ->
+                action.toPluginCommandListAction(pluginId, dispatchCallback(command))
+            }
+        }
+    }
 
     override suspend fun update(
         action: CommandActionBridge

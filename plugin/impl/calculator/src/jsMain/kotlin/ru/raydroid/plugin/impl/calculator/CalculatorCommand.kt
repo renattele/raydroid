@@ -4,6 +4,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandService
+import ru.raydroid.plugin.api.presentation.CommandActionScope
+import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
@@ -43,36 +45,37 @@ class CalculatorCommand : CommandService() {
 
     override fun CommandListScope.content() {
         entry(
-            modifier = Modifier
-                .actions {
-                    action(
-                        title = UiText.Resource("app.label"),
-                        primary = true
-                    ) {
-                        result = "entry"
-                        render()
-                    }
-                    group(UiText.Plain("111")) {
-                        action(
-                            title = UiText.Resource("app.description"),
-                            style = CommandListAction.Style.Destructive,
-                            icon = Icon.Builtin("Clear")
-                        ) {
-                            result = ""
-                            render()
-                        }
-                        action(
-                            title = UiText.Resource("app.description"),
-                            style = CommandListAction.Style.Destructive
-                        ) {
-                            result = "789"
-                            render()
-                        }
-                    }
-                }
+            id = ResultItemId
         ) {
             Column {
                 Text(UiText.Plain(result))
+            }
+        }
+    }
+
+    override fun CommandActionScope.actions(target: CommandActionTarget) {
+        action(
+            title = UiText.Resource("app.label"),
+            primary = true
+        ) {
+            result = "entry"
+            render()
+        }
+        group(UiText.Plain("111")) {
+            action(
+                title = UiText.Resource("app.description"),
+                style = CommandListAction.Style.Destructive,
+                icon = Icon.Builtin("Clear")
+            ) {
+                result = ""
+                render()
+            }
+            action(
+                title = UiText.Resource("app.description"),
+                style = CommandListAction.Style.Destructive
+            ) {
+                result = "789"
+                render()
             }
         }
     }
@@ -126,8 +129,10 @@ class CalculatorCommand : CommandService() {
             ) {
                 delay(1000)
             }
-        } else {
-            result = ""
         }
+    }
+
+    private companion object {
+        val ResultItemId = CommandItemId("calculator.result")
     }
 }
