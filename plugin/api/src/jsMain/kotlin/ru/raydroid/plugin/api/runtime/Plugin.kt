@@ -91,6 +91,7 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
                         actions = actions,
                         content = buildRayNodes(
                             registerCallback = frame::register,
+                            registerFormCallback = frame::registerForm,
                             content = content
                         )
                     )
@@ -112,11 +113,15 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
 
         override fun fullscreen(): List<RayNodeData> {
             val frame = fullscreenCallbacks.beginFrame()
-            return buildRayNodes(registerCallback = frame::register, content = fullscreenContent@{
-                with(this@toBridge) {
-                    this@fullscreenContent.fullscreen()
+            return buildRayNodes(
+                registerCallback = frame::register,
+                registerFormCallback = frame::registerForm,
+                content = fullscreenContent@{
+                    with(this@toBridge) {
+                        this@fullscreenContent.fullscreen()
+                    }
                 }
-            })
+            )
         }
 
         override fun initialize(

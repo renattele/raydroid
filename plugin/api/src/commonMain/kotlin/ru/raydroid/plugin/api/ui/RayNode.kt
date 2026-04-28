@@ -5,6 +5,7 @@ import ru.raydroid.plugin.api.presentation.CommandActionScope
 import ru.raydroid.plugin.api.presentation.CommandCallbackRef
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.buildCommandActions
+import ru.raydroid.plugin.api.ui.FormValues
 
 @DslMarker
 @Target(AnnotationTarget.CLASS,
@@ -71,22 +72,28 @@ interface RayScope {
     fun add(data: RayNodeData)
     fun fork(content: RayScope.() -> Unit): List<RayNodeData>
     fun modifier(modifier: Modifier): RayModifier?
+    fun registerFormCallback(path: String, callback: suspend (FormValues) -> Unit): CommandCallbackRef
 }
 
 fun buildRayNodes(
     registerCallback: (String, suspend () -> Unit) -> CommandCallbackRef,
+    registerFormCallback: (String, suspend (FormValues) -> Unit) -> CommandCallbackRef = { path, callback ->
+        registerCallback(path) { callback(emptyMap()) }
+    },
     content: RayScope.() -> Unit
 ): List<RayNodeData> {
     return buildRayNodes(
-        path = "node",
+        nodePath = "node",
         registerCallback = registerCallback,
+        registerFormCallback = registerFormCallback,
         content = content
     )
 }
 
 private fun buildRayNodes(
-    path: String,
+    nodePath: String,
     registerCallback: (String, suspend () -> Unit) -> CommandCallbackRef,
+    registerFormCallback: (String, suspend (FormValues) -> Unit) -> CommandCallbackRef,
     content: RayScope.() -> Unit
 ): List<RayNodeData> {
     val nodes = mutableListOf<RayNodeData>()
@@ -98,15 +105,20 @@ private fun buildRayNodes(
 
         override fun fork(content: RayScope.() -> Unit): List<RayNodeData> {
             return buildRayNodes(
-                path = "$path:children:${nodeIndex++}",
+                nodePath = "$nodePath:children:${nodeIndex++}",
                 registerCallback = registerCallback,
+                registerFormCallback = registerFormCallback,
                 content = content
             )
         }
 
         override fun modifier(modifier: Modifier): RayModifier? {
-            val modifierPath = "$path:modifier:${nodeIndex++}"
+            val modifierPath = "$nodePath:modifier:${nodeIndex++}"
             return modifier.toRayModifier(modifierPath, registerCallback)
+        }
+
+        override fun registerFormCallback(path: String, callback: suspend (FormValues) -> Unit): CommandCallbackRef {
+            return registerFormCallback("$nodePath:form:$path", callback)
         }
     }
     scope.content()

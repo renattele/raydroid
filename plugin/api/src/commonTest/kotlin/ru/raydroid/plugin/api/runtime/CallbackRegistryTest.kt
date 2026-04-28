@@ -5,6 +5,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.ui.Column
 import ru.raydroid.plugin.api.ui.Modifier
 import ru.raydroid.plugin.api.ui.OrientedBoxData
@@ -12,6 +13,17 @@ import ru.raydroid.plugin.api.ui.Text
 import ru.raydroid.plugin.api.ui.TextData
 import ru.raydroid.plugin.api.ui.actions
 import ru.raydroid.plugin.api.ui.buildRayNodes
+import ru.raydroid.plugin.api.ui.Detail
+import ru.raydroid.plugin.api.ui.DetailData
+import ru.raydroid.plugin.api.ui.Form
+import ru.raydroid.plugin.api.ui.FormData
+import ru.raydroid.plugin.api.ui.FormValue
+import ru.raydroid.plugin.api.ui.Grid
+import ru.raydroid.plugin.api.ui.GridData
+import ru.raydroid.plugin.api.ui.LazyGrid
+import ru.raydroid.plugin.api.ui.LazyList
+import ru.raydroid.plugin.api.ui.List
+import ru.raydroid.plugin.api.ui.ListData
 import ru.raydroid.plugin.api.ui.enabled
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -133,5 +145,66 @@ class CallbackRegistryTest {
         val text = assertIs<TextData>(nodes.single())
 
         assertTrue(assertNotNull(text.modifier).enabled)
+    }
+
+    @Test
+    fun `component dsl builds detail form list and grid nodes`() = runTest {
+        val registry = CallbackRegistry()
+        val frame = registry.beginFrame()
+
+        val nodes = buildRayNodes(
+            registerCallback = frame::register,
+            registerFormCallback = frame::registerForm
+        ) {
+            Detail(markdown = "# Title")
+            Form {
+                textField(id = "name", title = UiText.Plain("Name"))
+                submit(UiText.Plain("Save")) {}
+            }
+            List {
+                item(id = CommandItemId("list.item"), title = UiText.Plain("List"))
+            }
+            LazyList {
+                item(id = CommandItemId("lazy.list.item"), title = UiText.Plain("Lazy List"))
+            }
+            Grid {
+                item(id = CommandItemId("grid.item"), title = UiText.Plain("Grid"))
+            }
+            LazyGrid {
+                item(id = CommandItemId("lazy.grid.item"), title = UiText.Plain("Lazy Grid"))
+            }
+        }
+
+        assertIs<DetailData>(nodes[0])
+        assertIs<FormData>(nodes[1])
+        assertIs<ListData>(nodes[2])
+        assertTrue(assertIs<ListData>(nodes[3]).lazy)
+        assertIs<GridData>(nodes[4])
+        assertTrue(assertIs<GridData>(nodes[5]).lazy)
+    }
+
+    @Test
+    fun `form submit callback receives current values`() = runTest {
+        val registry = CallbackRegistry()
+        val frame = registry.beginFrame()
+        var submitted: Map<String, FormValue>? = null
+
+        val nodes = buildRayNodes(
+            registerCallback = frame::register,
+            registerFormCallback = frame::registerForm
+        ) {
+            Form {
+                textField(id = "name", defaultValue = "Initial")
+                submit(UiText.Plain("Save")) { values ->
+                    submitted = values
+                }
+            }
+        }
+
+        val form = assertIs<FormData>(nodes.single())
+        val callback = assertNotNull(form.submit).callback
+        registry.invoke(callback, mapOf("name" to FormValue.Text("Updated")))
+
+        assertEquals(FormValue.Text("Updated"), submitted?.get("name"))
     }
 }

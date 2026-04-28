@@ -150,6 +150,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     ) {
                         ComposeRayRenderer(
                             data = fullscreen.content,
+                            query = fullscreen.searchFieldState.fieldState.text.toString(),
                             onClick = { callback ->
                                 state.eventSink(
                                     SearchScreenEvent.EnterCallback(

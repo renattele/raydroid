@@ -19,6 +19,7 @@ import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.api.runtime.CommandServiceBridge
 import ru.raydroid.plugin.api.runtime.InternalCommandActionBridge
+import ru.raydroid.plugin.api.ui.FormValues
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.manifest.Manifest
@@ -227,7 +228,7 @@ internal class PluginRuntimeImpl(
         val content = command.content().values.map {
             PluginRuntime.ContentItem(
                 commandName = commandName,
-                presentation = it.toPluginCommandPresentation(pluginId, dispatchCallback)
+                presentation = it.toPluginCommandPresentation(pluginId, dispatchCallback, dispatchFormCallback(command))
             )
         }
         contentFlow.update { data ->
@@ -250,7 +251,7 @@ internal class PluginRuntimeImpl(
         fullscreenFlow(commandName).value = PluginRuntime.FullscreenContent(
             commandName = commandName,
             content = command.fullscreen().map { node ->
-                node.toPluginRayNodeData(pluginId, dispatchCallback(command))
+                node.toPluginRayNodeData(pluginId, dispatchCallback(command), dispatchFormCallback(command))
             }
         )
     }
@@ -262,6 +263,18 @@ internal class PluginRuntimeImpl(
             command.update(
                 CommandActionBridge.Internal(
                     InternalCommandActionBridge.Click(callback)
+                )
+            )
+        }
+    }
+
+    private fun dispatchFormCallback(
+        command: CommandServiceBridge
+    ): suspend (CommandCallbackRef, FormValues) -> Unit = { callback, values ->
+        withContext(pluginRuntimeDispatcher) {
+            command.update(
+                CommandActionBridge.Internal(
+                    InternalCommandActionBridge.SubmitForm(callback, values)
                 )
             )
         }

@@ -28,10 +28,14 @@ import ru.raydroid.plugin.host.api.ui.PluginBoxAlignment
 import ru.raydroid.plugin.host.api.ui.PluginBoxData
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
+import ru.raydroid.plugin.host.api.ui.PluginDetailData
+import ru.raydroid.plugin.host.api.ui.PluginFormData
+import ru.raydroid.plugin.host.api.ui.PluginGridData
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
 import ru.raydroid.plugin.host.api.ui.PluginImage
 import ru.raydroid.plugin.host.api.ui.PluginImageData
+import ru.raydroid.plugin.host.api.ui.PluginListData
 import ru.raydroid.plugin.host.api.ui.PluginOrientation
 import ru.raydroid.plugin.host.api.ui.PluginOrientedBoxData
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
@@ -93,10 +97,11 @@ fun ResourceResolverProvider(
 fun ComposeRayRenderer(
     data: List<PluginRayNodeData>,
     modifier: Modifier = Modifier,
+    query: String = "",
     onClick: (PluginCommandCallback) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
-    ComposeRayItemRenderer(data, modifier, onClick, onActions)
+    ComposeRayItemRenderer(data, modifier, query, onClick, onActions)
 }
 
 internal class PluginResourceResolver(
@@ -135,17 +140,22 @@ internal class PluginResourceResolver(
 fun ComposeRayItemRenderer(
     data: List<PluginRayNodeData>,
     modifier: Modifier = Modifier,
+    query: String = "",
     onClick: (PluginCommandCallback) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
     data.forEach { node ->
         val nodeModifier = modifier.interactive(node.modifier, onClick, onActions)
         when (node) {
-            is PluginBoxData -> BoxRenderer(node, nodeModifier, onClick, onActions)
-            is PluginOrientedBoxData -> OrientedBoxRenderer(node, nodeModifier, onClick, onActions)
+            is PluginBoxData -> BoxRenderer(node, nodeModifier, query, onClick, onActions)
+            is PluginOrientedBoxData -> OrientedBoxRenderer(node, nodeModifier, query, onClick, onActions)
             is PluginTextData -> TextRenderer(node, nodeModifier)
             is PluginIconData -> IconRenderer(node, nodeModifier)
             is PluginImageData -> ImageRenderer(node, nodeModifier)
+            is PluginDetailData -> DetailRenderer(node, nodeModifier)
+            is PluginFormData -> FormRenderer(node, nodeModifier)
+            is PluginListData -> ListRenderer(node, query, nodeModifier, onClick, onActions)
+            is PluginGridData -> GridRenderer(node, query, nodeModifier, onClick, onActions)
         }
     }
 }
@@ -190,6 +200,7 @@ internal fun IconRenderer(data: PluginIconData, modifier: Modifier = Modifier) {
 internal fun BoxRenderer(
     data: PluginBoxData,
     modifier: Modifier = Modifier,
+    query: String = "",
     onClick: (PluginCommandCallback) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
@@ -197,7 +208,7 @@ internal fun BoxRenderer(
         modifier.clip(data.shape.toShape()),
         contentAlignment = data.alignment.toComposeAlignment()
     ) {
-        ComposeRayItemRenderer(data.children, onClick = onClick, onActions = onActions)
+        ComposeRayItemRenderer(data.children, query = query, onClick = onClick, onActions = onActions)
     }
 }
 
@@ -217,6 +228,7 @@ private fun PluginBoxAlignment.toComposeAlignment() = when (this) {
 private fun OrientedBoxRenderer(
     data: PluginOrientedBoxData,
     modifier: Modifier = Modifier,
+    query: String = "",
     onClick: (PluginCommandCallback) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
@@ -231,7 +243,7 @@ private fun OrientedBoxRenderer(
                 data.arrangement.toComposeVerticalArrangement()
             },
         ) {
-            ComposeRayItemRenderer(data.children, onClick = onClick, onActions = onActions)
+            ComposeRayItemRenderer(data.children, query = query, onClick = onClick, onActions = onActions)
         }
     } else {
         Row(
@@ -243,7 +255,7 @@ private fun OrientedBoxRenderer(
             },
             verticalAlignment = data.alignment.toComposeVerticalAlignment()
         ) {
-            ComposeRayItemRenderer(data.children, onClick = onClick, onActions = onActions)
+            ComposeRayItemRenderer(data.children, query = query, onClick = onClick, onActions = onActions)
         }
     }
 }

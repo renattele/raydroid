@@ -18,6 +18,7 @@ import ru.raydroid.plugin.api.presentation.CommandPresentationMap
 import ru.raydroid.plugin.api.ui.Ray
 import ru.raydroid.plugin.api.ui.RayNodeData
 import ru.raydroid.plugin.api.ui.RayScope
+import ru.raydroid.plugin.api.ui.FormValues
 
 @Serializable
 sealed class CommandAction {
@@ -47,6 +48,12 @@ sealed interface CommandActionBridge {
 sealed interface InternalCommandActionBridge {
     @Serializable
     data class Click(val callback: CommandCallbackRef) : InternalCommandActionBridge
+
+    @Serializable
+    data class SubmitForm(
+        val callback: CommandCallbackRef,
+        val values: FormValues
+    ) : InternalCommandActionBridge
 }
 
 interface CommandServiceBridge : ZiplineService {
@@ -135,6 +142,10 @@ abstract class CommandService {
                     contentCallbacks.invoke(internalAction.callback) ||
                         fullscreenCallbacks.invoke(internalAction.callback)
                 }
+                is InternalCommandActionBridge.SubmitForm -> {
+                    contentCallbacks.invoke(internalAction.callback, internalAction.values) ||
+                        fullscreenCallbacks.invoke(internalAction.callback, internalAction.values)
+                }
             }
         }
     }
@@ -154,7 +165,7 @@ abstract class CommandService {
 
 internal class CallbackRegistry {
     private var nextGeneration = 0L
-    private val callbacksByGeneration = linkedMapOf<Long, MutableMap<CommandCallbackId, suspend () -> Unit>>()
+    private val callbacksByGeneration = linkedMapOf<Long, MutableMap<CommandCallbackId, Callback>>()
 
     fun beginFrame(): CallbackFrame {
         val generation = ++nextGeneration
@@ -171,7 +182,17 @@ internal class CallbackRegistry {
         val action = callbacks[callback.id] ?: return false
         val pluginContext = currentCoroutineContext()
         withContext(pluginContext) {
-            action()
+            action.click()
+        }
+        return true
+    }
+
+    suspend fun invoke(callback: CommandCallbackRef, values: FormValues): Boolean {
+        val callbacks = callbacksByGeneration[callback.generation] ?: return false
+        val action = callbacks[callback.id] ?: return false
+        val pluginContext = currentCoroutineContext()
+        withContext(pluginContext) {
+            action.submit(values)
         }
         return true
     }
@@ -181,10 +202,21 @@ internal class CallbackRegistry {
     ) {
         fun register(path: String, callback: suspend () -> Unit): CommandCallbackRef {
             val id = CommandCallbackId("__ray_callback:$generation:$path")
-            callbacksByGeneration.getValue(generation)[id] = callback
+            callbacksByGeneration.getValue(generation)[id] = Callback(click = callback)
+            return CommandCallbackRef(id = id, generation = generation)
+        }
+
+        fun registerForm(path: String, callback: suspend (FormValues) -> Unit): CommandCallbackRef {
+            val id = CommandCallbackId("__ray_callback:$generation:$path")
+            callbacksByGeneration.getValue(generation)[id] = Callback(submit = callback)
             return CommandCallbackRef(id = id, generation = generation)
         }
     }
+
+    private class Callback(
+        val click: suspend () -> Unit = {},
+        val submit: suspend (FormValues) -> Unit = {}
+    )
 
     private companion object {
         const val RETAINED_GENERATIONS = 2

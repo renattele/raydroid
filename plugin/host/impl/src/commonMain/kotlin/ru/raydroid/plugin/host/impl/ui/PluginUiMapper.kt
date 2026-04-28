@@ -24,6 +24,20 @@ import ru.raydroid.plugin.api.ui.RayModifier
 import ru.raydroid.plugin.api.ui.ShapeToken
 import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.TextData
+import ru.raydroid.plugin.api.ui.DetailData
+import ru.raydroid.plugin.api.ui.DetailMetadataItemData
+import ru.raydroid.plugin.api.ui.EmptyViewData
+import ru.raydroid.plugin.api.ui.FormData
+import ru.raydroid.plugin.api.ui.FormFieldData
+import ru.raydroid.plugin.api.ui.FormValue
+import ru.raydroid.plugin.api.ui.FormValues
+import ru.raydroid.plugin.api.ui.GridAspectRatio
+import ru.raydroid.plugin.api.ui.GridData
+import ru.raydroid.plugin.api.ui.GridItemData
+import ru.raydroid.plugin.api.ui.GridSectionData
+import ru.raydroid.plugin.api.ui.ListData
+import ru.raydroid.plugin.api.ui.ListItemData
+import ru.raydroid.plugin.api.ui.ListSectionData
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.ui.PluginAlignment
 import ru.raydroid.plugin.host.api.ui.PluginArrangement
@@ -34,12 +48,28 @@ import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
+import ru.raydroid.plugin.host.api.ui.PluginDetailData
+import ru.raydroid.plugin.host.api.ui.PluginDetailMetadataItemData
+import ru.raydroid.plugin.host.api.ui.PluginEmptyViewData
+import ru.raydroid.plugin.host.api.ui.PluginFormData
+import ru.raydroid.plugin.host.api.ui.PluginFormFieldData
+import ru.raydroid.plugin.host.api.ui.PluginFormSubmitCallback
+import ru.raydroid.plugin.host.api.ui.PluginFormSubmitData
+import ru.raydroid.plugin.host.api.ui.PluginFormValue
+import ru.raydroid.plugin.host.api.ui.PluginFormValues
+import ru.raydroid.plugin.host.api.ui.PluginGridAspectRatio
+import ru.raydroid.plugin.host.api.ui.PluginGridData
+import ru.raydroid.plugin.host.api.ui.PluginGridItemData
+import ru.raydroid.plugin.host.api.ui.PluginGridSectionData
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
 import ru.raydroid.plugin.host.api.ui.PluginIconSize
 import ru.raydroid.plugin.host.api.ui.PluginImage
 import ru.raydroid.plugin.host.api.ui.PluginImageData
+import ru.raydroid.plugin.host.api.ui.PluginListData
+import ru.raydroid.plugin.host.api.ui.PluginListItemData
+import ru.raydroid.plugin.host.api.ui.PluginListSectionData
 import ru.raydroid.plugin.host.api.ui.PluginMotionToken
 import ru.raydroid.plugin.host.api.ui.PluginOrientation
 import ru.raydroid.plugin.host.api.ui.PluginOrientedBoxData
@@ -219,24 +249,26 @@ internal fun CommandListAction.toPluginCommandListAction(
 
 internal fun CommandPresentation.toPluginCommandPresentation(
     pluginId: PluginId,
-    dispatchCallback: suspend (CommandCallbackRef) -> Unit = {}
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit = {},
+    dispatchFormCallback: suspend (CommandCallbackRef, FormValues) -> Unit = { _, _ -> }
 ): PluginCommandPresentation {
     return PluginCommandPresentation(
         listEntry = listEntry.toPluginCommandListItem(pluginId),
         primaryCallback = primaryCallback?.toPluginCommandCallback(dispatchCallback),
         actions = actions.map { action -> action.toPluginCommandListAction(pluginId, dispatchCallback) },
-        content = content.map { it.toPluginRayNodeData(pluginId, dispatchCallback) }
+        content = content.map { it.toPluginRayNodeData(pluginId, dispatchCallback, dispatchFormCallback) }
     )
 }
 
 internal fun RayNodeData.toPluginRayNodeData(
     pluginId: PluginId,
-    dispatchCallback: suspend (CommandCallbackRef) -> Unit = {}
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit = {},
+    dispatchFormCallback: suspend (CommandCallbackRef, FormValues) -> Unit = { _, _ -> }
 ): PluginRayNodeData = when (this) {
     is BoxData -> PluginBoxData(
         alignment = alignment.toPluginBoxAlignment(),
         shape = shape.toPluginShapeToken(),
-        children = children.map { it.toPluginRayNodeData(pluginId, dispatchCallback) }
+        children = children.map { it.toPluginRayNodeData(pluginId, dispatchCallback, dispatchFormCallback) }
     ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is OrientedBoxData -> PluginOrientedBoxData(
         orientation = orientation.toPluginOrientation(),
@@ -244,7 +276,7 @@ internal fun RayNodeData.toPluginRayNodeData(
         arrangement = arrangement.toPluginArrangement(),
         spacing = spacing.toPluginSpacing(),
         shape = shape.toPluginShapeToken(),
-        children = children.map { it.toPluginRayNodeData(pluginId, dispatchCallback) }
+        children = children.map { it.toPluginRayNodeData(pluginId, dispatchCallback, dispatchFormCallback) }
     ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is TextData -> PluginTextData(
         text = text.toPluginUiText(pluginId),
@@ -263,6 +295,176 @@ internal fun RayNodeData.toPluginRayNodeData(
         height = height,
         shape = shape.toPluginShapeToken()
     ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
+    is DetailData -> toPluginDetailData(pluginId).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
+    is FormData -> PluginFormData(
+        isLoading = isLoading,
+        navigationTitle = navigationTitle?.toPluginUiText(pluginId),
+        fields = fields.map { it.toPluginFormFieldData(pluginId) },
+        submit = submit?.let { submit ->
+            PluginFormSubmitData(
+                title = submit.title.toPluginUiText(pluginId),
+                callback = PluginFormSubmitCallback { values ->
+                    dispatchFormCallback(submit.callback, values.toApiFormValues())
+                },
+                enabled = submit.enabled
+            )
+        }
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
+    is ListData -> PluginListData(
+        sections = sections.map { it.toPluginListSectionData(pluginId, dispatchCallback) },
+        emptyView = emptyView?.toPluginEmptyViewData(pluginId),
+        isLoading = isLoading,
+        filtering = filtering,
+        searchBarPlaceholder = searchBarPlaceholder?.toPluginUiText(pluginId),
+        lazy = lazy
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
+    is GridData -> PluginGridData(
+        sections = sections.map { it.toPluginGridSectionData(pluginId, dispatchCallback) },
+        emptyView = emptyView?.toPluginEmptyViewData(pluginId),
+        isLoading = isLoading,
+        filtering = filtering,
+        searchBarPlaceholder = searchBarPlaceholder?.toPluginUiText(pluginId),
+        columns = columns,
+        aspectRatio = aspectRatio.toPluginGridAspectRatio(),
+        lazy = lazy
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
+}
+
+private fun DetailData.toPluginDetailData(pluginId: PluginId): PluginDetailData = PluginDetailData(
+    markdown = markdown,
+    metadata = metadata.map { it.toPluginDetailMetadataItemData(pluginId) },
+    isLoading = isLoading,
+    navigationTitle = navigationTitle?.toPluginUiText(pluginId)
+)
+
+private fun DetailMetadataItemData.toPluginDetailMetadataItemData(pluginId: PluginId): PluginDetailMetadataItemData =
+    when (this) {
+        is DetailMetadataItemData.Label -> PluginDetailMetadataItemData.Label(
+            title = title.toPluginUiText(pluginId),
+            text = text?.toPluginUiText(pluginId),
+            icon = icon?.toPluginIcon(pluginId)
+        )
+        is DetailMetadataItemData.Link -> PluginDetailMetadataItemData.Link(
+            title = title.toPluginUiText(pluginId),
+            text = text.toPluginUiText(pluginId),
+            target = target
+        )
+        is DetailMetadataItemData.TagList -> PluginDetailMetadataItemData.TagList(
+            title = title.toPluginUiText(pluginId),
+            tags = tags.map { tag ->
+                PluginDetailMetadataItemData.TagList.Tag(
+                    text = tag.text?.toPluginUiText(pluginId),
+                    icon = tag.icon?.toPluginIcon(pluginId)
+                )
+            }
+        )
+        DetailMetadataItemData.Separator -> PluginDetailMetadataItemData.Separator
+    }
+
+private fun FormFieldData.toPluginFormFieldData(pluginId: PluginId): PluginFormFieldData = when (this) {
+    is FormFieldData.TextField -> PluginFormFieldData.TextField(
+        id = id,
+        title = title?.toPluginUiText(pluginId),
+        required = required,
+        placeholder = placeholder?.toPluginUiText(pluginId),
+        defaultValue = defaultValue,
+        password = password,
+        multiline = multiline
+    )
+    is FormFieldData.Checkbox -> PluginFormFieldData.Checkbox(
+        id = id,
+        title = title?.toPluginUiText(pluginId),
+        required = required,
+        defaultValue = defaultValue
+    )
+    is FormFieldData.Dropdown -> PluginFormFieldData.Dropdown(
+        id = id,
+        title = title?.toPluginUiText(pluginId),
+        required = required,
+        options = options.map { option ->
+            PluginFormFieldData.Dropdown.Option(
+                value = option.value,
+                title = option.title.toPluginUiText(pluginId),
+                icon = option.icon?.toPluginIcon(pluginId)
+            )
+        },
+        defaultValue = defaultValue
+    )
+    is FormFieldData.DatePicker -> PluginFormFieldData.DatePicker(
+        id = id,
+        title = title?.toPluginUiText(pluginId),
+        required = required,
+        defaultValue = defaultValue
+    )
+    is FormFieldData.Separator -> PluginFormFieldData.Separator(id)
+    is FormFieldData.Description -> PluginFormFieldData.Description(id, text.toPluginUiText(pluginId))
+}
+
+private fun ListSectionData.toPluginListSectionData(
+    pluginId: PluginId,
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit
+): PluginListSectionData = PluginListSectionData(
+    title = title?.toPluginUiText(pluginId),
+    items = items.map { it.toPluginListItemData(pluginId, dispatchCallback) }
+)
+
+private fun ListItemData.toPluginListItemData(
+    pluginId: PluginId,
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit
+): PluginListItemData = PluginListItemData(
+    id = id,
+    title = title.toPluginUiText(pluginId),
+    subtitle = subtitle?.toPluginUiText(pluginId),
+    icon = icon?.toPluginIcon(pluginId),
+    keywords = keywords,
+    detail = detail?.toPluginDetailData(pluginId),
+    itemModifier = modifier.toPluginRayModifier(pluginId, dispatchCallback)
+)
+
+private fun GridSectionData.toPluginGridSectionData(
+    pluginId: PluginId,
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit
+): PluginGridSectionData = PluginGridSectionData(
+    title = title?.toPluginUiText(pluginId),
+    items = items.map { it.toPluginGridItemData(pluginId, dispatchCallback) }
+)
+
+private fun GridItemData.toPluginGridItemData(
+    pluginId: PluginId,
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit
+): PluginGridItemData = PluginGridItemData(
+    id = id,
+    title = title.toPluginUiText(pluginId),
+    subtitle = subtitle?.toPluginUiText(pluginId),
+    content = content?.toPluginImage(pluginId),
+    icon = icon?.toPluginIcon(pluginId),
+    keywords = keywords,
+    itemModifier = modifier.toPluginRayModifier(pluginId, dispatchCallback)
+)
+
+private fun EmptyViewData.toPluginEmptyViewData(pluginId: PluginId): PluginEmptyViewData =
+    PluginEmptyViewData(
+        title = title.toPluginUiText(pluginId),
+        description = description?.toPluginUiText(pluginId),
+        icon = icon?.toPluginIcon(pluginId)
+    )
+
+private fun GridAspectRatio.toPluginGridAspectRatio(): PluginGridAspectRatio = when (this) {
+    GridAspectRatio.OneToOne -> PluginGridAspectRatio.OneToOne
+    GridAspectRatio.ThreeToTwo -> PluginGridAspectRatio.ThreeToTwo
+    GridAspectRatio.TwoToThree -> PluginGridAspectRatio.TwoToThree
+    GridAspectRatio.FourToThree -> PluginGridAspectRatio.FourToThree
+    GridAspectRatio.ThreeToFour -> PluginGridAspectRatio.ThreeToFour
+    GridAspectRatio.SixteenToNine -> PluginGridAspectRatio.SixteenToNine
+    GridAspectRatio.NineToSixteen -> PluginGridAspectRatio.NineToSixteen
+}
+
+private fun PluginFormValues.toApiFormValues(): FormValues = mapValues { (_, value) ->
+    when (value) {
+        is PluginFormValue.Text -> FormValue.Text(value.value)
+        is PluginFormValue.BooleanValue -> FormValue.BooleanValue(value.value)
+        is PluginFormValue.DateValue -> FormValue.DateValue(value.value)
+    }
 }
 
 private fun CommandListAction.Style.toPluginStyle(): PluginCommandListAction.Style = when (this) {

@@ -23,6 +23,14 @@ import ru.raydroid.plugin.api.ui.RayScope
 import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.Text
 import ru.raydroid.plugin.api.ui.actions
+import ru.raydroid.plugin.api.ui.Detail
+import ru.raydroid.plugin.api.ui.Form
+import ru.raydroid.plugin.api.ui.FormFieldData
+import ru.raydroid.plugin.api.ui.FormValue
+import ru.raydroid.plugin.api.ui.Grid
+import ru.raydroid.plugin.api.ui.LazyGrid
+import ru.raydroid.plugin.api.ui.LazyList
+import ru.raydroid.plugin.api.ui.List
 
 class CalculatorCommand : CommandService() {
     private var result: String = ""
@@ -82,27 +90,32 @@ class CalculatorCommand : CommandService() {
 
     override fun RayScope.fullscreen() {
         Column(spacing = Spacing.Medium) {
-            Text(UiText.Resource("app.main"))
-            Text(
-                text = UiText.Plain(result),
-                modifier = Modifier
-                    .actions {
-                        action(
-                            title = UiText.Plain("Copy"),
-                            primary = true
-                        ) {
-                            Host.clipboard.copy(ClipboardService.ClipboardContent(text = result))
-                        }
-                        action(
-                            title = UiText.Plain("Clear"),
-                            icon = Icon.Builtin("Clear"),
-                            style = CommandListAction.Style.Destructive
-                        ) {
-                            result = ""
+            List(searchBarPlaceholder = UiText.Plain("Filter list")) {
+                item(
+                    id = CommandItemId("calculator.list.one"),
+                    title = UiText.Plain("List item"),
+                    subtitle = UiText.Plain(result.ifBlank { "No result" }),
+                    icon = Icon.Builtin("Calculate"),
+                    keywords = listOf("calculator", "result"),
+                    modifier = Modifier.actions {
+                        action(UiText.Plain("Set list result"), primary = true) {
+                            result = "list"
                             renderFullscreen()
                         }
                     }
-            )
+                )
+                emptyView(UiText.Plain("No list results"))
+            }
+            LazyList {
+                section(UiText.Plain("Lazy list")) {
+                    repeat(3) { index ->
+                        item(
+                            id = CommandItemId("calculator.lazy.list.$index"),
+                            title = UiText.Plain("Lazy list item $index")
+                        )
+                    }
+                }
+            }
         }
     }
 
