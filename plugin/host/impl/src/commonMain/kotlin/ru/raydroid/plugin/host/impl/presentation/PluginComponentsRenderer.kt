@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -53,6 +54,7 @@ import ru.raydroid.core.designsystem.component.RDivider
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.core.designsystem.component.RTextField
+import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginDetailData
@@ -348,8 +350,11 @@ private fun DatePickerField(
 internal fun ListRenderer(
     data: PluginListData,
     query: String,
+    focusedItemId: CommandItemId?,
     modifier: Modifier = Modifier,
     onClick: (PluginCommandCallback) -> Unit,
+    onItemEnter: (CommandItemId) -> Unit,
+    onFocus: (CommandItemId) -> Unit,
     onActions: (List<PluginCommandListAction>) -> Unit
 ) {
     val sections = remember(data, query) { data.filtered(query) }
@@ -360,13 +365,30 @@ internal fun ListRenderer(
         if (sections.all { it.items.isEmpty() } && !data.isLoading) {
             EmptyViewRenderer(data.emptyView)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall)) {
+            val listState = rememberLazyListState()
+            LaunchedEffect(focusedItemId, sections) {
+                val index = sections.indexOfListItem(focusedItemId)
+                if (index != null) {
+                    listState.animateScrollToItem(index)
+                }
+            }
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall),
+                state = listState
+            ) {
                 sections.forEach { section ->
                     section.title?.let { title ->
                         item { RText(title.asText(), modifier = Modifier.padding(RaydroidTheme.spacing.small)) }
                     }
                     items(section.items, key = { it.id.value }) { item ->
-                        ComponentListItem(item, onClick, onActions)
+                        ComponentListItem(
+                            item = item,
+                            focused = item.id == focusedItemId,
+                            onClick = onClick,
+                            onItemEnter = onItemEnter,
+                            onFocus = onFocus,
+                            onActions = onActions
+                        )
                     }
                 }
             }
@@ -377,15 +399,24 @@ internal fun ListRenderer(
 @Composable
 private fun ComponentListItem(
     item: PluginListItemData,
+    focused: Boolean,
     onClick: (PluginCommandCallback) -> Unit,
+    onItemEnter: (CommandItemId) -> Unit,
+    onFocus: (CommandItemId) -> Unit,
     onActions: (List<PluginCommandListAction>) -> Unit
 ) {
     Row(
         Modifier
             .fillMaxWidth()
-            .componentInteractive(item.itemModifier, onClick, onActions)
+            .componentInteractive(item.id, item.itemModifier, onClick, onItemEnter, onFocus, onActions)
             .clip(RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium))
-            .background(RaydroidTheme.colorScheme.surfaceContainerLow)
+            .background(
+                if (focused) {
+                    RaydroidTheme.colorScheme.primary.copy(alpha = 0.1f)
+                } else {
+                    RaydroidTheme.colorScheme.surfaceContainerLow
+                }
+            )
             .padding(RaydroidTheme.spacing.small),
         horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small),
         verticalAlignment = Alignment.CenterVertically
@@ -402,8 +433,11 @@ private fun ComponentListItem(
 internal fun GridRenderer(
     data: PluginGridData,
     query: String,
+    focusedItemId: CommandItemId?,
     modifier: Modifier = Modifier,
     onClick: (PluginCommandCallback) -> Unit,
+    onItemEnter: (CommandItemId) -> Unit,
+    onFocus: (CommandItemId) -> Unit,
     onActions: (List<PluginCommandListAction>) -> Unit
 ) {
     val sections = remember(data, query) { data.filtered(query) }
@@ -422,7 +456,15 @@ internal fun GridRenderer(
             ) {
                 sections.forEach { section ->
                     items(section.items, key = { it.id.value }) { item ->
-                        ComponentGridItem(item, data.aspectRatio, onClick, onActions)
+                        ComponentGridItem(
+                            item = item,
+                            aspectRatio = data.aspectRatio,
+                            focused = item.id == focusedItemId,
+                            onClick = onClick,
+                            onItemEnter = onItemEnter,
+                            onFocus = onFocus,
+                            onActions = onActions
+                        )
                     }
                 }
             }
@@ -434,14 +476,23 @@ internal fun GridRenderer(
 private fun ComponentGridItem(
     item: PluginGridItemData,
     aspectRatio: PluginGridAspectRatio,
+    focused: Boolean,
     onClick: (PluginCommandCallback) -> Unit,
+    onItemEnter: (CommandItemId) -> Unit,
+    onFocus: (CommandItemId) -> Unit,
     onActions: (List<PluginCommandListAction>) -> Unit
 ) {
     Column(
         Modifier
-            .componentInteractive(item.itemModifier, onClick, onActions)
+            .componentInteractive(item.id, item.itemModifier, onClick, onItemEnter, onFocus, onActions)
             .clip(RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium))
-            .background(RaydroidTheme.colorScheme.surfaceContainerLow)
+            .background(
+                if (focused) {
+                    RaydroidTheme.colorScheme.primary.copy(alpha = 0.1f)
+                } else {
+                    RaydroidTheme.colorScheme.surfaceContainerLow
+                }
+            )
             .padding(RaydroidTheme.spacing.small),
         verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall)
     ) {
@@ -509,24 +560,55 @@ private fun PluginUiText.searchText(): String = when (this) {
 }.lowercase()
 
 private fun Modifier.componentInteractive(
+    itemId: CommandItemId,
     modifier: PluginRayModifier?,
     onClick: (PluginCommandCallback) -> Unit,
+    onItemEnter: (CommandItemId) -> Unit,
+    onFocus: (CommandItemId) -> Unit,
     onActions: (List<PluginCommandListAction>) -> Unit
 ): Modifier {
-    if (modifier == null || modifier.actions.isEmpty()) return this
     return composed {
         val interactionSource = remember { MutableInteractionSource() }
-        val primaryAction = remember(modifier.actions) {
-            modifier.actions.find { it.primary } ?: modifier.actions.first()
+        val actions = modifier?.actions.orEmpty()
+        val primaryAction = remember(actions) {
+            modifier?.actions?.find { it.primary } ?: modifier?.actions?.firstOrNull()
         }
         combinedClickable(
             interactionSource = interactionSource,
             indication = null,
-            enabled = modifier.enabled,
-            onLongClick = { onActions(modifier.actions) },
-            onClick = { onClick(primaryAction.callback) }
+            enabled = modifier?.enabled ?: true,
+            onLongClick = {
+                if (actions.isNotEmpty()) {
+                    onActions(actions)
+                }
+            },
+            onClick = {
+                onFocus(itemId)
+                if (primaryAction != null) {
+                    onClick(primaryAction.callback)
+                } else {
+                    onItemEnter(itemId)
+                }
+            }
         )
     }
+}
+
+private fun List<PluginListSectionData>.indexOfListItem(itemId: CommandItemId?): Int? {
+    if (itemId == null) return null
+    var index = 0
+    forEach { section ->
+        if (section.title != null) {
+            index++
+        }
+        section.items.forEach { item ->
+            if (item.id == itemId) {
+                return index
+            }
+            index++
+        }
+    }
+    return null
 }
 
 private data class ParsedDate(

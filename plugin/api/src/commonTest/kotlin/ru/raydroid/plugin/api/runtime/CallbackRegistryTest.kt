@@ -6,9 +6,11 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.ui.Column
 import ru.raydroid.plugin.api.ui.Modifier
 import ru.raydroid.plugin.api.ui.OrientedBoxData
+import ru.raydroid.plugin.api.ui.RayScope
 import ru.raydroid.plugin.api.ui.Text
 import ru.raydroid.plugin.api.ui.TextData
 import ru.raydroid.plugin.api.ui.actions
@@ -33,6 +35,46 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class CallbackRegistryTest {
+    @Test
+    fun `focus action updates service focused item id`() = runTest {
+        val service = object : CommandService() {
+            override fun CommandListScope.content() = Unit
+
+            override suspend fun execute(action: CommandAction) = Unit
+        }
+        val itemId = CommandItemId("focused")
+
+        service.update(CommandActionBridge.Regular(CommandAction.Focus(itemId)))
+
+        assertEquals(itemId, service.focusedItemId)
+    }
+
+    @Test
+    fun `plugin render can read focused item id`() = runTest {
+        val itemId = CommandItemId("focused")
+        val service = object : CommandService() {
+            override fun CommandListScope.content() = Unit
+
+            override fun RayScope.fullscreen() {
+                Text(UiText.Plain(focusedItemId?.value ?: "none"))
+            }
+
+            override suspend fun execute(action: CommandAction) = Unit
+        }
+
+        service.update(CommandActionBridge.Regular(CommandAction.Focus(itemId)))
+        val frame = CallbackRegistry().beginFrame()
+        val node = assertIs<TextData>(
+            buildRayNodes(registerCallback = frame::register) {
+                with(service) {
+                    fullscreen()
+                }
+            }.single()
+        )
+
+        assertEquals("focused", node.text.text)
+    }
+
     @Test
     fun `callback registry invokes current callback`() = runTest {
         val registry = CallbackRegistry()

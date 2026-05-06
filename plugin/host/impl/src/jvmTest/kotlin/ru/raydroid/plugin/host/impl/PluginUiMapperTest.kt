@@ -28,6 +28,7 @@ import ru.raydroid.plugin.host.api.ui.PluginGridData
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginListData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
+import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.impl.ui.toPluginRayNodeData
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListAction
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
@@ -153,5 +154,43 @@ class PluginUiMapperTest {
         val mappedGrid = assertIs<PluginGridData>(grid)
         assertEquals(PluginGridAspectRatio.SixteenToNine, mappedGrid.aspectRatio)
         assertEquals("GridView", assertIs<PluginIcon.Builtin>(mappedGrid.sections.single().items.single().icon).name)
+    }
+
+    @Test
+    fun `plugin focus model extracts focused list item actions`() {
+        val pluginId = PluginId("ru.test.plugin")
+        val callback = CommandCallbackRef(CommandCallbackId("open"), generation = 1)
+        val list = ListData(
+            sections = listOf(
+                ListSectionData(
+                    items = listOf(
+                        ListItemData(
+                            id = CommandItemId("one"),
+                            title = UiText.Plain("One")
+                        ),
+                        ListItemData(
+                            id = CommandItemId("two"),
+                            title = UiText.Plain("Two"),
+                            modifier = ru.raydroid.plugin.api.ui.RayModifier(
+                                actions = listOf(
+                                    CommandListAction(
+                                        callback = callback,
+                                        title = UiText.Plain("Open"),
+                                        description = null,
+                                        icon = null,
+                                        primary = true
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        ).toPluginRayNodeData(pluginId)
+
+        val model = listOf(list).pluginFocusModel(CommandItemId("two"), query = "")
+
+        assertEquals(CommandItemId("two"), model.focusedItemId)
+        assertEquals(callback, model.focusedActions.single().callback.ref)
     }
 }

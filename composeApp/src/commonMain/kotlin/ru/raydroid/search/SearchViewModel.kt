@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.api.runtime.CommandAction
+import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
@@ -46,6 +49,7 @@ import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
+import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.api.host.service.SearchFieldState as ApiSearchFieldState
@@ -208,6 +212,7 @@ class SearchViewModel(
                             }
                         }
                     }
+                    focusFullscreenItem(_state.value.fullscreen?.focusedItemId)
                 }
                 .debounce(SEARCH_DEBOUNCE_MS)
                 .collectLatest { fullscreenQuery ->
@@ -245,6 +250,11 @@ class SearchViewModel(
             when (event) {
                 is SearchScreenEvent.Enter -> {
                     val state = _state.value
+                    val fullscreen = state.fullscreen
+                    if (fullscreen != null) {
+                        enterFocusedFullscreenItem(fullscreen)
+                        return@launch
+                    }
                     val openResultId =
                         event.resultId ?: state.focusedResultId()
                     if (openResultId == null) {
@@ -276,6 +286,10 @@ class SearchViewModel(
 
                 SearchScreenEvent.MoveFocusNext -> {
                     val state = _state.value
+                    if (state.fullscreen != null) {
+                        moveFullscreenFocus(1)
+                        return@launch
+                    }
                     val focusedIndex = state.searchResults?.let { searchResults ->
                         state.focusedItemIndex?.let { itemIndex ->
                             (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
@@ -298,6 +312,10 @@ class SearchViewModel(
 
                 SearchScreenEvent.MoveFocusPrevious -> {
                     val state = _state.value
+                    if (state.fullscreen != null) {
+                        moveFullscreenFocus(-1)
+                        return@launch
+                    }
                     val focusedIndex = state.searchResults?.let { searchResults ->
                         state.focusedItemIndex?.let { itemIndex ->
                             (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
@@ -417,6 +435,14 @@ class SearchViewModel(
                     }
                 }
 
+                is SearchScreenEvent.FocusPluginItem -> {
+                    focusFullscreenItem(event.itemId)
+                }
+
+                is SearchScreenEvent.EnterPluginItem -> {
+                    enterFullscreenItem(event.itemId)
+                }
+
                 SearchScreenEvent.CloseFullscreen -> {
                     val state = _state.value
                     val fullscreen = state.fullscreen ?: return@launch
@@ -488,6 +514,88 @@ class SearchViewModel(
         }
     }
 
+    private suspend fun moveFullscreenFocus(delta: Int) {
+        val fullscreen = _state.value.fullscreen ?: return
+        val query = fullscreen.searchFieldState.fieldState.text.toString()
+        val model = fullscreen.content.pluginFocusModel(fullscreen.focusedItemId, query)
+        val currentIndex = model.items.indexOfFirst { item -> item.id == model.focusedItemId }
+        if (currentIndex < 0) return
+        val nextIndex = (currentIndex + delta).coerceIn(0, model.items.lastIndex)
+        focusFullscreenItem(model.items[nextIndex].id)
+    }
+
+    private suspend fun focusFullscreenItem(
+        itemId: CommandItemId?,
+        notifyPlugin: Boolean = true
+    ) {
+        val state = _state.value
+        val fullscreen = state.fullscreen ?: return
+        val query = fullscreen.searchFieldState.fieldState.text.toString()
+        val model = fullscreen.content.pluginFocusModel(itemId, query)
+        val focusedItem = model.focusedItem
+        val focusedActions = focusedItem?.actions
+            ?.takeIf { actions -> actions.isNotEmpty() }
+            ?: fullscreen.resultId.let { resultId ->
+                focusedItem?.let { item ->
+                    state.plugins[resultId.pluginId]?.actions(resultId.commandName, item.id)
+                }
+            }.orEmpty()
+        _state.update { currentState ->
+            val currentFullscreen = currentState.fullscreen ?: return@update currentState
+            if (currentFullscreen.resultId != fullscreen.resultId) {
+                currentState
+            } else {
+                currentState.copy(
+                    fullscreen = currentFullscreen.copy(
+                        focusedItemId = model.focusedItemId
+                    ),
+                    focusedActions = focusedActions.map { action ->
+                        FocusedCommandAction(
+                            resultId = fullscreen.resultId,
+                            action = action,
+                            updateUsage = false
+                        )
+                    },
+                    showActions = currentState.showActions && focusedActions.isNotEmpty(),
+                    contextActions = emptyList(),
+                    showContextActions = false
+                )
+            }
+        }
+        if (notifyPlugin && fullscreen.focusedItemId != model.focusedItemId) {
+            state.plugins[fullscreen.resultId.pluginId]?.update(
+                fullscreen.resultId.commandName,
+                CommandActionBridge.Regular(CommandAction.Focus(model.focusedItemId))
+            )
+        }
+    }
+
+    private suspend fun enterFocusedFullscreenItem(fullscreen: PluginFullscreenState) {
+        val itemId = fullscreen.focusedItemId ?: return
+        enterFullscreenItem(itemId)
+    }
+
+    private suspend fun enterFullscreenItem(itemId: CommandItemId) {
+        val state = _state.value
+        val fullscreen = state.fullscreen ?: return
+        focusFullscreenItem(itemId)
+        val focusedAction = _state.value.focusedActions
+            .firstOrNull { action -> action.action.primary }
+            ?: _state.value.focusedActions.firstOrNull()
+        if (focusedAction != null) {
+            executeCommandCallbackUseCase(
+                resultId = focusedAction.resultId,
+                callback = focusedAction.action.callback,
+                updateUsage = false
+            )
+        } else {
+            state.plugins[fullscreen.resultId.pluginId]?.update(
+                fullscreen.resultId.commandName,
+                CommandActionBridge.Regular(CommandAction.Enter(itemId))
+            )
+        }
+    }
+
     private fun collectFullscreen(result: SearchResultSet.CommandSearchResult) {
         fullscreenJob?.cancel()
         val runtime = _state.value.plugins[result.resultId.pluginId]
@@ -505,7 +613,8 @@ class SearchViewModel(
                         fieldState = TextFieldState()
                     ),
                     exitBackspaceCount = 0,
-                    content = emptyList()
+                    content = emptyList(),
+                    focusedItemId = null
                 ),
                 focusedActions = emptyList(),
                 showActions = false,
@@ -535,6 +644,7 @@ class SearchViewModel(
         }
         fullscreenJob = viewModelScope.launch {
             getCommandFullscreenUseCase(result.resultId).collectLatest { content ->
+                val newContent = content?.content.orEmpty()
                 _state.update { state ->
                     val fullscreen = state.fullscreen
                     if (fullscreen?.resultId != result.resultId) {
@@ -542,11 +652,12 @@ class SearchViewModel(
                     } else {
                         state.copy(
                             fullscreen = fullscreen.copy(
-                                content = content?.content.orEmpty()
+                                content = newContent
                             )
                         )
                     }
                 }
+                focusFullscreenItem(_state.value.fullscreen?.focusedItemId)
             }
         }
     }
@@ -581,7 +692,8 @@ data class PluginFullscreenState(
     val placeholder: PluginUiText?,
     val searchFieldState: PresentationSearchFieldState,
     val exitBackspaceCount: Int,
-    val content: List<PluginRayNodeData>
+    val content: List<PluginRayNodeData>,
+    val focusedItemId: CommandItemId?
 )
 
 data class FocusedCommandAction(
@@ -657,6 +769,8 @@ sealed interface SearchScreenEvent {
         val resultId: SearchResultId,
         val actions: List<PluginCommandListAction>
     ) : SearchScreenEvent
+    data class FocusPluginItem(val itemId: CommandItemId) : SearchScreenEvent
+    data class EnterPluginItem(val itemId: CommandItemId) : SearchScreenEvent
     data object MoveFocusPrevious : SearchScreenEvent
     data object MoveFocusNext : SearchScreenEvent
     data object ToggleActions : SearchScreenEvent

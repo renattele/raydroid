@@ -33,6 +33,9 @@ sealed class CommandAction {
 
     @Serializable
     data class Type(val query: String) : CommandAction()
+
+    @Serializable
+    data class Focus(val focusedId: CommandItemId?) : CommandAction()
 }
 
 @Serializable
@@ -129,11 +132,17 @@ abstract class CommandService {
     val query: String
         get() = _query
 
+    val focusedItemId: CommandItemId?
+        get() = _focusedItemId
+
     suspend fun update(action: CommandActionBridge) {
         when (action) {
             is CommandActionBridge.Regular -> {
                 if (action.action is CommandAction.Type) {
                     _query = action.action.query
+                }
+                if (action.action is CommandAction.Focus) {
+                    _focusedItemId = action.action.focusedId
                 }
                 execute(action.action)
             }
@@ -161,6 +170,8 @@ abstract class CommandService {
     internal val fullscreenCallbacks = CallbackRegistry()
 
     private var _query: String = ""
+
+    private var _focusedItemId: CommandItemId? = null
 }
 
 internal class CallbackRegistry {

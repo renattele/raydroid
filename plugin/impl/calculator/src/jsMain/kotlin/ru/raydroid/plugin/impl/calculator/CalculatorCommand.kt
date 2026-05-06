@@ -31,6 +31,7 @@ import ru.raydroid.plugin.api.ui.Grid
 import ru.raydroid.plugin.api.ui.LazyGrid
 import ru.raydroid.plugin.api.ui.LazyList
 import ru.raydroid.plugin.api.ui.List
+import ru.raydroid.plugin.api.ui.Row
 
 class CalculatorCommand : CommandService() {
     private var result: String = ""
@@ -90,36 +91,55 @@ class CalculatorCommand : CommandService() {
 
     override fun RayScope.fullscreen() {
         Column(spacing = Spacing.Medium) {
-            List(searchBarPlaceholder = UiText.Plain("Filter list")) {
-                item(
-                    id = CommandItemId("calculator.list.one"),
-                    title = UiText.Plain("List item"),
-                    subtitle = UiText.Plain(result.ifBlank { "No result" }),
-                    icon = Icon.Builtin("Calculate"),
-                    keywords = listOf("calculator", "result"),
-                    modifier = Modifier.actions {
-                        action(UiText.Plain("Set list result"), primary = true) {
-                            result = "list"
-                            renderFullscreen()
+            Text(UiText.Plain("Focused: ${focusedItemId?.value ?: "none"}"))
+            Row(spacing = Spacing.Medium) {
+                List(searchBarPlaceholder = UiText.Plain("Filter list")) {
+                    item(
+                        id = CommandItemId("calculator.list.one"),
+                        title = UiText.Plain("List item"),
+                        subtitle = UiText.Plain(result.ifBlank { "No result" }),
+                        icon = Icon.Builtin("Calculate"),
+                        keywords = listOf("calculator", "result"),
+                        modifier = Modifier.actions {
+                            action(UiText.Plain("Set list result"), primary = true) {
+                                result = "list"
+                                renderFullscreen()
+                            }
                         }
-                    }
-                )
-                emptyView(UiText.Plain("No list results"))
-            }
-            LazyList {
-                section(UiText.Plain("Lazy list")) {
-                    repeat(3) { index ->
-                        item(
-                            id = CommandItemId("calculator.lazy.list.$index"),
-                            title = UiText.Plain("Lazy list item $index")
-                        )
-                    }
+                    )
+                    item(
+                        id = CommandItemId("calculator.list.two"),
+                        title = UiText.Plain("Second list item"),
+                        subtitle = UiText.Plain("Detail follows focus"),
+                        icon = Icon.Builtin("ArrowRight"),
+                        keywords = listOf("second", "focus"),
+                        modifier = Modifier.actions {
+                            action(UiText.Plain("Set second result"), primary = true) {
+                                result = "second"
+                                renderFullscreen()
+                            }
+                        }
+                    )
+                    emptyView(UiText.Plain("No list results"))
+                }
+                if (focusedItemId?.value?.startsWith("calculator.list") == true) {
+                    Detail(
+                        markdown = when (focusedItemId) {
+                            CommandItemId("calculator.list.one") -> "## List item\n\nFocus moves here with arrow keys."
+                            CommandItemId("calculator.list.two") -> "## Second item\n\nThis detail is rendered by custom Row layout."
+                            else -> "## No selection"
+                        }
+                    )
                 }
             }
         }
     }
 
     override suspend fun execute(action: CommandAction) {
+        if (action is CommandAction.Focus) {
+            renderFullscreen()
+            return
+        }
         if (action is CommandAction.Enter) {
             result = action.hoveredId.value
             // Host.system.openApp(action.hoveredId.value)

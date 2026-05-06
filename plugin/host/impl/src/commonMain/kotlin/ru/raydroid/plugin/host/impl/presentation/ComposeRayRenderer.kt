@@ -20,6 +20,7 @@ import androidx.compose.ui.text.intl.Locale
 import coil3.compose.AsyncImage
 import ru.raydroid.core.designsystem.component.RIcon
 import ru.raydroid.core.designsystem.component.RText
+import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginAlignment
@@ -98,10 +99,13 @@ fun ComposeRayRenderer(
     data: List<PluginRayNodeData>,
     modifier: Modifier = Modifier,
     query: String = "",
+    focusedItemId: CommandItemId? = null,
     onClick: (PluginCommandCallback) -> Unit = {},
+    onItemEnter: (CommandItemId) -> Unit = {},
+    onFocus: (CommandItemId) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
-    ComposeRayItemRenderer(data, modifier, query, onClick, onActions)
+    ComposeRayItemRenderer(data, modifier, query, focusedItemId, onClick, onItemEnter, onFocus, onActions)
 }
 
 internal class PluginResourceResolver(
@@ -141,21 +145,24 @@ fun ComposeRayItemRenderer(
     data: List<PluginRayNodeData>,
     modifier: Modifier = Modifier,
     query: String = "",
+    focusedItemId: CommandItemId? = null,
     onClick: (PluginCommandCallback) -> Unit = {},
+    onItemEnter: (CommandItemId) -> Unit = {},
+    onFocus: (CommandItemId) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
     data.forEach { node ->
         val nodeModifier = modifier.interactive(node.modifier, onClick, onActions)
         when (node) {
-            is PluginBoxData -> BoxRenderer(node, nodeModifier, query, onClick, onActions)
-            is PluginOrientedBoxData -> OrientedBoxRenderer(node, nodeModifier, query, onClick, onActions)
+            is PluginBoxData -> BoxRenderer(node, nodeModifier, query, focusedItemId, onClick, onItemEnter, onFocus, onActions)
+            is PluginOrientedBoxData -> OrientedBoxRenderer(node, nodeModifier, query, focusedItemId, onClick, onItemEnter, onFocus, onActions)
             is PluginTextData -> TextRenderer(node, nodeModifier)
             is PluginIconData -> IconRenderer(node, nodeModifier)
             is PluginImageData -> ImageRenderer(node, nodeModifier)
             is PluginDetailData -> DetailRenderer(node, nodeModifier)
             is PluginFormData -> FormRenderer(node, nodeModifier)
-            is PluginListData -> ListRenderer(node, query, nodeModifier, onClick, onActions)
-            is PluginGridData -> GridRenderer(node, query, nodeModifier, onClick, onActions)
+            is PluginListData -> ListRenderer(node, query, focusedItemId, nodeModifier, onClick, onItemEnter, onFocus, onActions)
+            is PluginGridData -> GridRenderer(node, query, focusedItemId, nodeModifier, onClick, onItemEnter, onFocus, onActions)
         }
     }
 }
@@ -201,14 +208,25 @@ internal fun BoxRenderer(
     data: PluginBoxData,
     modifier: Modifier = Modifier,
     query: String = "",
+    focusedItemId: CommandItemId? = null,
     onClick: (PluginCommandCallback) -> Unit = {},
+    onItemEnter: (CommandItemId) -> Unit = {},
+    onFocus: (CommandItemId) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
     Box(
         modifier.clip(data.shape.toShape()),
         contentAlignment = data.alignment.toComposeAlignment()
     ) {
-        ComposeRayItemRenderer(data.children, query = query, onClick = onClick, onActions = onActions)
+        ComposeRayItemRenderer(
+            data.children,
+            query = query,
+            focusedItemId = focusedItemId,
+            onClick = onClick,
+            onItemEnter = onItemEnter,
+            onFocus = onFocus,
+            onActions = onActions
+        )
     }
 }
 
@@ -229,7 +247,10 @@ private fun OrientedBoxRenderer(
     data: PluginOrientedBoxData,
     modifier: Modifier = Modifier,
     query: String = "",
+    focusedItemId: CommandItemId? = null,
     onClick: (PluginCommandCallback) -> Unit = {},
+    onItemEnter: (CommandItemId) -> Unit = {},
+    onFocus: (CommandItemId) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
     val containerModifier = modifier.clip(data.shape.toShape())
@@ -243,7 +264,15 @@ private fun OrientedBoxRenderer(
                 data.arrangement.toComposeVerticalArrangement()
             },
         ) {
-            ComposeRayItemRenderer(data.children, query = query, onClick = onClick, onActions = onActions)
+            ComposeRayItemRenderer(
+                data.children,
+                query = query,
+                focusedItemId = focusedItemId,
+                onClick = onClick,
+                onItemEnter = onItemEnter,
+                onFocus = onFocus,
+                onActions = onActions
+            )
         }
     } else {
         Row(
@@ -255,7 +284,18 @@ private fun OrientedBoxRenderer(
             },
             verticalAlignment = data.alignment.toComposeVerticalAlignment()
         ) {
-            ComposeRayItemRenderer(data.children, query = query, onClick = onClick, onActions = onActions)
+            data.children.forEach { child ->
+                ComposeRayItemRenderer(
+                    listOf(child),
+                    modifier = Modifier.weight(1f),
+                    query = query,
+                    focusedItemId = focusedItemId,
+                    onClick = onClick,
+                    onItemEnter = onItemEnter,
+                    onFocus = onFocus,
+                    onActions = onActions
+                )
+            }
         }
     }
 }

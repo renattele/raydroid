@@ -151,6 +151,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         ComposeRayRenderer(
                             data = fullscreen.content,
                             query = fullscreen.searchFieldState.fieldState.text.toString(),
+                            focusedItemId = fullscreen.focusedItemId,
                             onClick = { callback ->
                                 state.eventSink(
                                     SearchScreenEvent.EnterCallback(
@@ -159,6 +160,12 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                         updateUsage = false
                                     )
                                 )
+                            },
+                            onItemEnter = { itemId ->
+                                state.eventSink(SearchScreenEvent.EnterPluginItem(itemId))
+                            },
+                            onFocus = { itemId ->
+                                state.eventSink(SearchScreenEvent.FocusPluginItem(itemId))
                             },
                             onActions = { actions ->
                                 state.eventSink(
@@ -222,6 +229,9 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                                     )
                                                 )
                                             },
+                                            onItemEnter = {
+                                                state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
+                                            },
                                             onActions = { actions ->
                                                 state.eventSink(
                                                     SearchScreenEvent.ShowContextActions(
@@ -279,18 +289,28 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             }
             SearchField(
                 (fullscreen?.searchFieldState ?: state.searchFieldState)
-                    .copy(canGoOnEnter = fullscreen == null && state.focusedItemIndex != null),
+                    .copy(
+                        canGoOnEnter = if (fullscreen != null) {
+                            fullscreen.focusedItemId != null
+                        } else {
+                            state.focusedItemIndex != null
+                        }
+                    ),
                 onEvent = { event ->
                     when (event) {
-                        SearchFieldEvent.Enter -> if (fullscreen == null) {
+                        SearchFieldEvent.Enter -> {
                             state.eventSink(SearchScreenEvent.Enter())
                         }
 
-                        SearchFieldEvent.MoveFocusDown -> if (fullscreen == null) {
+                        SearchFieldEvent.MoveFocusDown -> if (fullscreen != null) {
+                            state.eventSink(SearchScreenEvent.MoveFocusNext)
+                        } else {
                             state.eventSink(SearchScreenEvent.MoveFocusPrevious)
                         }
 
-                        SearchFieldEvent.MoveFocusUp -> if (fullscreen == null) {
+                        SearchFieldEvent.MoveFocusUp -> if (fullscreen != null) {
+                            state.eventSink(SearchScreenEvent.MoveFocusPrevious)
+                        } else {
                             state.eventSink(SearchScreenEvent.MoveFocusNext)
                         }
 
