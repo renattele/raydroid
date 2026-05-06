@@ -182,6 +182,7 @@ data class PluginListItemData(
     val icon: PluginIcon? = null,
     val keywords: List<String> = emptyList(),
     val detail: PluginDetailData? = null,
+    val content: List<PluginRayNodeData> = emptyList(),
     val itemModifier: PluginRayModifier? = null
 )
 

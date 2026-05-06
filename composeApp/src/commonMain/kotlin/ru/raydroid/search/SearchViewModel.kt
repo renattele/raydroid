@@ -91,16 +91,23 @@ class SearchViewModel(
             getPluginsUseCase().collectLatest { plugins ->
                 val pluginMap = plugins.associateBy { it.pluginId }
                 val currentState = _state.value
-                val focusedActions = currentState.searchResults.actionsForFocused(
-                    currentState.focusedItemIndex,
-                    pluginMap
-                )
-                _state.update { state ->
-                    state.copy(
-                        plugins = pluginMap,
-                        focusedActions = focusedActions,
-                        showActions = state.showActions && focusedActions.isNotEmpty()
+                if (currentState.fullscreen != null) {
+                    _state.update { state ->
+                        state.copy(plugins = pluginMap)
+                    }
+                    focusFullscreenItem(currentState.fullscreen.focusedItemId)
+                } else {
+                    val focusedActions = currentState.searchResults.actionsForFocused(
+                        currentState.focusedItemIndex,
+                        pluginMap
                     )
+                    _state.update { state ->
+                        state.copy(
+                            plugins = pluginMap,
+                            focusedActions = focusedActions,
+                            showActions = state.showActions && focusedActions.isNotEmpty()
+                        )
+                    }
                 }
             }
         }
@@ -212,7 +219,6 @@ class SearchViewModel(
                             }
                         }
                     }
-                    focusFullscreenItem(_state.value.fullscreen?.focusedItemId)
                 }
                 .debounce(SEARCH_DEBOUNCE_MS)
                 .collectLatest { fullscreenQuery ->
@@ -221,6 +227,7 @@ class SearchViewModel(
                             resultId = fullscreenQuery.resultId,
                             query = fullscreenQuery.query
                         )
+                        focusFullscreenItem(_state.value.fullscreen?.focusedItemId)
                     }
                 }
         }
@@ -533,8 +540,16 @@ class SearchViewModel(
         val query = fullscreen.searchFieldState.fieldState.text.toString()
         val model = fullscreen.content.pluginFocusModel(itemId, query)
         val focusedItem = model.focusedItem
+        val currentFocusedActions = state.focusedActions
+            .takeIf {
+                fullscreen.focusedItemId == model.focusedItemId &&
+                    it.all { action -> action.resultId == fullscreen.resultId }
+            }
+            ?.map { action -> action.action }
+            .orEmpty()
         val focusedActions = focusedItem?.actions
             ?.takeIf { actions -> actions.isNotEmpty() }
+            ?: currentFocusedActions.takeIf { actions -> actions.isNotEmpty() }
             ?: fullscreen.resultId.let { resultId ->
                 focusedItem?.let { item ->
                     state.plugins[resultId.pluginId]?.actions(resultId.commandName, item.id)
@@ -633,10 +648,15 @@ class SearchViewModel(
             _state.update { state ->
                 val fullscreen = state.fullscreen
                 if (fullscreen?.resultId == result.resultId) {
-                    state.copy(
-                        focusedActions = focusedActions,
-                        showActions = state.showActions && focusedActions.isNotEmpty()
-                    )
+                    val query = fullscreen.searchFieldState.fieldState.text.toString()
+                    if (fullscreen.content.pluginFocusModel(fullscreen.focusedItemId, query).focusedItemId != null) {
+                        state
+                    } else {
+                        state.copy(
+                            focusedActions = focusedActions,
+                            showActions = state.showActions && focusedActions.isNotEmpty()
+                        )
+                    }
                 } else {
                     state
                 }

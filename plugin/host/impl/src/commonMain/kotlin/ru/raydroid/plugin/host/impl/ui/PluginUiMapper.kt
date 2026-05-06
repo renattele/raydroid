@@ -311,7 +311,7 @@ internal fun RayNodeData.toPluginRayNodeData(
         }
     ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is ListData -> PluginListData(
-        sections = sections.map { it.toPluginListSectionData(pluginId, dispatchCallback) },
+        sections = sections.map { it.toPluginListSectionData(pluginId, dispatchCallback, dispatchFormCallback) },
         emptyView = emptyView?.toPluginEmptyViewData(pluginId),
         isLoading = isLoading,
         filtering = filtering,
@@ -402,15 +402,17 @@ private fun FormFieldData.toPluginFormFieldData(pluginId: PluginId): PluginFormF
 
 private fun ListSectionData.toPluginListSectionData(
     pluginId: PluginId,
-    dispatchCallback: suspend (CommandCallbackRef) -> Unit
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit,
+    dispatchFormCallback: suspend (CommandCallbackRef, FormValues) -> Unit
 ): PluginListSectionData = PluginListSectionData(
     title = title?.toPluginUiText(pluginId),
-    items = items.map { it.toPluginListItemData(pluginId, dispatchCallback) }
+    items = items.map { it.toPluginListItemData(pluginId, dispatchCallback, dispatchFormCallback) }
 )
 
 private fun ListItemData.toPluginListItemData(
     pluginId: PluginId,
-    dispatchCallback: suspend (CommandCallbackRef) -> Unit
+    dispatchCallback: suspend (CommandCallbackRef) -> Unit,
+    dispatchFormCallback: suspend (CommandCallbackRef, FormValues) -> Unit
 ): PluginListItemData = PluginListItemData(
     id = id,
     title = title.toPluginUiText(pluginId),
@@ -418,6 +420,7 @@ private fun ListItemData.toPluginListItemData(
     icon = icon?.toPluginIcon(pluginId),
     keywords = keywords,
     detail = detail?.toPluginDetailData(pluginId),
+    content = content.map { it.toPluginRayNodeData(pluginId, dispatchCallback, dispatchFormCallback) },
     itemModifier = modifier.toPluginRayModifier(pluginId, dispatchCallback)
 )
 

@@ -319,6 +319,7 @@ data class ListItemData(
     val icon: Icon? = null,
     val keywords: List<String> = emptyList(),
     val detail: DetailData? = null,
+    val content: List<RayNodeData> = emptyList(),
     val modifier: RayModifier? = null
 )
 
@@ -389,9 +390,21 @@ class ListScope internal constructor(private val owner: RayScope) {
         keywords: List<String> = emptyList(),
         modifier: Modifier = Modifier,
         detail: (DetailMetadataScope.() -> Unit)? = null,
-        detailMarkdown: String? = null
+        detailMarkdown: String? = null,
+        content: (RayScope.() -> Unit)? = null
     ) {
-        defaultItems += listItem(owner, id, title, subtitle, icon, keywords, modifier, detailMarkdown, detail)
+        defaultItems += listItem(
+            owner = owner,
+            id = id,
+            title = title,
+            subtitle = subtitle,
+            icon = icon,
+            keywords = keywords,
+            modifier = modifier,
+            detailMarkdown = detailMarkdown,
+            detail = detail,
+            content = content
+        )
     }
 
     fun emptyView(title: UiText, description: UiText? = null, icon: Icon? = null) {
@@ -414,9 +427,21 @@ class ListSectionScope internal constructor(private val owner: RayScope) {
         keywords: List<String> = emptyList(),
         modifier: Modifier = Modifier,
         detail: (DetailMetadataScope.() -> Unit)? = null,
-        detailMarkdown: String? = null
+        detailMarkdown: String? = null,
+        content: (RayScope.() -> Unit)? = null
     ) {
-        items += listItem(owner, id, title, subtitle, icon, keywords, modifier, detailMarkdown, detail)
+        items += listItem(
+            owner = owner,
+            id = id,
+            title = title,
+            subtitle = subtitle,
+            icon = icon,
+            keywords = keywords,
+            modifier = modifier,
+            detailMarkdown = detailMarkdown,
+            detail = detail,
+            content = content
+        )
     }
 }
 
@@ -429,7 +454,8 @@ private fun listItem(
     keywords: List<String>,
     modifier: Modifier,
     detailMarkdown: String?,
-    detail: (DetailMetadataScope.() -> Unit)?
+    detail: (DetailMetadataScope.() -> Unit)?,
+    content: (RayScope.() -> Unit)?
 ): ListItemData {
     val metadataScope = DetailMetadataScope()
     if (detail != null) {
@@ -442,6 +468,7 @@ private fun listItem(
         icon = icon,
         keywords = keywords,
         detail = detailMarkdown?.let { DetailData(markdown = it, metadata = metadataScope.items) },
+        content = content?.let(owner::fork).orEmpty(),
         modifier = owner.modifier(modifier)
     )
 }

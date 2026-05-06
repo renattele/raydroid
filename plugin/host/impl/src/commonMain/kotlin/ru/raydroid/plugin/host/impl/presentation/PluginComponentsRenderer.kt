@@ -421,10 +421,20 @@ private fun ComponentListItem(
         horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        item.icon?.let { icon -> IconRenderer(PluginIconData(icon)) }
-        Column {
-            RText(item.title.asText())
-            item.subtitle?.let { subtitle -> RText(subtitle.asText(), fontSize = pluginFontSizeSmall()) }
+        if (item.content.isNotEmpty()) {
+            ComposeRayItemRenderer(
+                data = item.content,
+                onClick = onClick,
+                onItemEnter = onItemEnter,
+                onFocus = onFocus,
+                onActions = onActions
+            )
+        } else {
+            item.icon?.let { icon -> IconRenderer(PluginIconData(icon)) }
+            Column {
+                RText(item.title.asText())
+                item.subtitle?.let { subtitle -> RText(subtitle.asText(), fontSize = pluginFontSizeSmall()) }
+            }
         }
     }
 }

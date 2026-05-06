@@ -48,6 +48,7 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.api.ui.orUnknown
+import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
 import ru.raydroid.plugin.host.impl.presentation.ActionPanel
 import ru.raydroid.plugin.host.impl.presentation.ActionsPanelOverlay
@@ -84,7 +85,23 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 focus.requestFocus()
             }
             val listState = rememberLazyListState()
-            val focusedActions = state.focusedActions.map { focusedAction ->
+            val fullscreenFocusedActions = fullscreen
+                ?.content
+                ?.pluginFocusModel(
+                    focusedItemId = fullscreen.focusedItemId,
+                    query = fullscreen.searchFieldState.fieldState.text.toString()
+                )
+                ?.focusedActions
+                ?.takeIf { actions -> actions.isNotEmpty() }
+                ?.map { action ->
+                    FocusedCommandAction(
+                        resultId = fullscreen.resultId,
+                        action = action,
+                        updateUsage = false
+                    )
+                }
+            val focusedCommandActions = fullscreenFocusedActions ?: state.focusedActions
+            val focusedActions = focusedCommandActions.map { focusedAction ->
                 focusedAction.action
             }
             val contextActions = state.contextActions.map { contextAction ->
@@ -98,7 +115,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             val overlayFocusedActions = if (state.showContextActions) {
                 state.contextActions
             } else {
-                state.focusedActions
+                focusedCommandActions
             }
             LaunchedEffect(state.focusedItemIndex) {
                 if (fullscreen == null && state.focusedItemIndex != null) {
