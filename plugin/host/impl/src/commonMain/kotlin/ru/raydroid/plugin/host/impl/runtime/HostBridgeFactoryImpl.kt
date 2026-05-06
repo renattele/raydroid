@@ -4,6 +4,7 @@ import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
 import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
 import ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge
+import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 import ru.raydroid.plugin.api.host.transport.HostServiceBridge
 import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
@@ -24,6 +25,7 @@ class HostBridgeFactoryImpl(
     private val searchFieldBridge: (PluginId) -> SearchFieldServiceBridge,
     private val cacheBridge: (PluginId) -> CacheServiceBridge,
     private val storageBridge: (PluginId) -> StorageServiceBridge,
+    private val filesystemBridge: (PluginId) -> FileSystemServiceBridge,
     private val clipboardBridge: (PluginId) -> ClipboardServiceBridge,
     private val environmentBridge: (PluginId) -> EnvironmentServiceBridge,
     private val systemBridge: (PluginId) -> SystemServiceBridge
@@ -33,6 +35,7 @@ class HostBridgeFactoryImpl(
             cacheBridge = cacheBridge(pluginId),
             clipboardBridge = clipboardBridge(pluginId),
             environmentBridge = environmentBridge(pluginId),
+            filesystemBridge = filesystemBridge(pluginId),
             networkBridge = networkBridge(pluginId),
             notificationBridge = notificationBridge(pluginId),
             preferencesBridge = preferencesBridge(pluginId),

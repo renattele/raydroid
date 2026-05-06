@@ -5,6 +5,7 @@ import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
+import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
 import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
@@ -28,6 +29,11 @@ internal val hostServiceModule = module {
         )
     }
     factory<CacheServiceBridge> { RuntimeCacheServiceImpl() }
+    factory<FileSystemServiceBridge> {
+        FileSystemServiceBridgeImpl(
+            fileSystem = get(named("localFileSystem"))
+        )
+    }
     factory<StorageServiceBridge> {
         StorageServiceBridgeImpl(
             basePath = get(named("localPath")),

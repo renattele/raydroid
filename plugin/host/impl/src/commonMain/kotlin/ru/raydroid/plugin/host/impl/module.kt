@@ -108,6 +108,7 @@ val pluginHostModule = module {
             searchFieldBridge = { get { parametersOf(it) } },
             cacheBridge = { get { parametersOf(it) } },
             storageBridge = { get { parametersOf(it) } },
+            filesystemBridge = { get { parametersOf(it) } },
             clipboardBridge = { get { parametersOf(it) } },
             environmentBridge = { get { parametersOf(it) } },
             systemBridge = { get { parametersOf(it) } },

@@ -39,6 +39,7 @@ data class Access(
     val clipboard: ClipboardAccess? = null,
     val cache: SizedAccess? = null,
     val environment: EnvironmentAccess? = null,
+    val filesystem: FileSystemAccess? = null,
     val network: NetworkAccess? = null,
     val notification: NotificationAccess? = null,
     val preferences: SizedAccess? = null,
@@ -72,6 +73,28 @@ data class EnvironmentAccess(
     val permissions: List<Permission>? = null,
     val access: List<String>? = null
 )
+
+@Serializable
+data class FileSystemAccess(
+    val permissions: List<FileSystemAccessPermission>? = null,
+    @SerialName("allowed_paths")
+    val allowedPaths: List<String>? = null
+)
+
+@Serializable
+enum class FileSystemAccessPermission {
+    @SerialName("read")
+    Read,
+
+    @SerialName("write")
+    Write,
+
+    @SerialName("manage")
+    Manage,
+
+    @SerialName("watch")
+    Watch
+}
 
 @Serializable
 data class NetworkAccess(

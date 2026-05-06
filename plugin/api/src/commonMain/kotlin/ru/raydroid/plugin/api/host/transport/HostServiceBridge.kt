@@ -6,6 +6,7 @@ interface HostServiceBridge : ZiplineService {
    val cacheBridge: CacheServiceBridge
    val clipboardBridge: ClipboardServiceBridge
    val environmentBridge: EnvironmentServiceBridge
+   val filesystemBridge: FileSystemServiceBridge
    val networkBridge: NetworkServiceBridge
    val notificationBridge: NotificationServiceBridge
    val preferencesBridge: PreferencesServiceBridge
