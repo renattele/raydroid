@@ -2,6 +2,7 @@ package ru.raydroid.plugin.api.manifest
 
 import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.ui.Icon
 
 
 @Serializable
@@ -13,6 +14,7 @@ data class Command(
     val description: UiText,
     @Serializable(with = ManifestUiTextSerializer::class)
     val placeholder: UiText? = null,
+    val icon: Icon? = null,
     val mode: Mode,
     val match: String?,
     val searchable: Boolean = true,

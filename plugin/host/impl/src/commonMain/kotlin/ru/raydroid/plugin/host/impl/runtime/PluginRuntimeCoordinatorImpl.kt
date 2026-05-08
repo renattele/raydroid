@@ -18,6 +18,7 @@ import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.impl.ui.toPluginIcon
 import ru.raydroid.plugin.host.impl.ui.toPluginUiText
 
 internal class PluginRuntimeCoordinatorImpl(
@@ -48,7 +49,7 @@ internal class PluginRuntimeCoordinatorImpl(
                                 runtime = runtime,
                                 listEntry = PluginCommandListItem(
                                     id = CommandItemId.CommandRoot,
-                                    icon = null,
+                                    icon = command.icon?.toPluginIcon(runtime.pluginId),
                                     title = command.title.toPluginUiText(runtime.pluginId),
                                     description = command.description.toPluginUiText(runtime.pluginId),
                                 ),

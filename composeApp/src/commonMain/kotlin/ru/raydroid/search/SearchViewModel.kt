@@ -27,6 +27,7 @@ import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
+import ru.raydroid.plugin.host.api.application.usecase.BackCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
 import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandCallbackUseCase
@@ -64,6 +65,7 @@ class SearchViewModel(
     private val openCommandUseCase: OpenCommandUseCase,
     private val enterItemUseCase: EnterItemUseCase,
     private val closeCommandUseCase: CloseCommandUseCase,
+    private val backCommandUseCase: BackCommandUseCase,
     private val executeCommandCallbackUseCase: ExecuteCommandCallbackUseCase,
     private val getCommandFullscreenUseCase: GetCommandFullscreenUseCase,
     private val getEventsUseCase: GetEventsUseCase,
@@ -368,6 +370,19 @@ class SearchViewModel(
                 SearchScreenEvent.BackspaceOnEmpty -> {
                     val state = _state.value
                     val fullscreen = state.fullscreen ?: return@launch
+                    if (backCommandUseCase(fullscreen.resultId)) {
+                        _state.update { currentState ->
+                            val currentFullscreen = currentState.fullscreen ?: return@update currentState
+                            if (currentFullscreen.resultId == fullscreen.resultId) {
+                                currentState.copy(
+                                    fullscreen = currentFullscreen.copy(exitBackspaceCount = 0)
+                                )
+                            } else {
+                                currentState
+                            }
+                        }
+                        return@launch
+                    }
                     val exitBackspaceCount = (fullscreen.exitBackspaceCount + 1).coerceAtMost(2)
                     _state.update { currentState ->
                         val currentFullscreen = currentState.fullscreen ?: return@update currentState
@@ -453,6 +468,9 @@ class SearchViewModel(
                 SearchScreenEvent.CloseFullscreen -> {
                     val state = _state.value
                     val fullscreen = state.fullscreen ?: return@launch
+                    if (backCommandUseCase(fullscreen.resultId)) {
+                        return@launch
+                    }
                     collapseAndCloseFullscreen(fullscreen.resultId)
                 }
             }

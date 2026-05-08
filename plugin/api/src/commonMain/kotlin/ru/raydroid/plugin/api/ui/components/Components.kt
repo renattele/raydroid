@@ -102,15 +102,34 @@ data class FormData(
     val isLoading: Boolean = false,
     val navigationTitle: UiText? = null,
     val fields: List<FormFieldData>,
-    val submit: FormSubmitData? = null
+    val submit: FormSubmitData? = null,
+    val suppressHostActions: Boolean = false,
+    val requireChanges: Boolean = false,
+    val unchangedView: EmptyViewData? = null,
+    val actionPanelHintMode: ActionPanelHintMode = ActionPanelHintMode.Full
 ) : RayNodeData()
+
+@Serializable
+enum class ActionPanelHintMode {
+    Full,
+    MenuOnly,
+    Hidden
+}
 
 @Serializable
 data class FormSubmitData(
     val title: UiText,
     val callback: CommandCallbackRef,
+    val icon: Icon? = null,
+    val style: FormSubmitStyle = FormSubmitStyle.Filled,
     val enabled: Boolean = true
 )
+
+@Serializable
+enum class FormSubmitStyle {
+    Filled,
+    Tonal
+}
 
 @Serializable
 sealed class FormValue {
@@ -267,10 +286,18 @@ class FormScope internal constructor(
         fields += FormFieldData.Description(id, text)
     }
 
-    fun submit(title: UiText, enabled: Boolean = true, onSubmit: suspend (FormValues) -> Unit) {
+    fun submit(
+        title: UiText,
+        icon: Icon? = null,
+        style: FormSubmitStyle = FormSubmitStyle.Filled,
+        enabled: Boolean = true,
+        onSubmit: suspend (FormValues) -> Unit
+    ) {
         submit = FormSubmitData(
             title = title,
             callback = registerFormCallback("form-submit-${index++}", onSubmit),
+            icon = icon,
+            style = style,
             enabled = enabled
         )
     }
@@ -281,6 +308,10 @@ fun RayScope.Form(
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     navigationTitle: UiText? = null,
+    suppressHostActions: Boolean = false,
+    requireChanges: Boolean = false,
+    unchangedView: EmptyViewData? = null,
+    actionPanelHintMode: ActionPanelHintMode = ActionPanelHintMode.Full,
     content: FormScope.() -> Unit
 ) {
     val formScope = FormScope(::registerFormCallback)
@@ -290,7 +321,11 @@ fun RayScope.Form(
             isLoading = isLoading,
             navigationTitle = navigationTitle,
             fields = formScope.fields,
-            submit = formScope.submit
+            submit = formScope.submit,
+            suppressHostActions = suppressHostActions,
+            requireChanges = requireChanges,
+            unchangedView = unchangedView,
+            actionPanelHintMode = actionPanelHintMode
         ).withModifier(modifier(modifier))
     )
 }

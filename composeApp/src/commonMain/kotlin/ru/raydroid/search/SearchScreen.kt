@@ -46,9 +46,12 @@ import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.api.ui.PluginActionPanelHintMode
 import ru.raydroid.plugin.host.api.ui.PluginUiText
+import ru.raydroid.plugin.host.api.ui.actionPanelHintMode
 import ru.raydroid.plugin.host.api.ui.orUnknown
 import ru.raydroid.plugin.host.api.ui.pluginFocusModel
+import ru.raydroid.plugin.host.api.ui.suppressesHostActions
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
 import ru.raydroid.plugin.host.impl.presentation.ActionPanel
 import ru.raydroid.plugin.host.impl.presentation.ActionsPanelOverlay
@@ -100,7 +103,14 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         updateUsage = false
                     )
                 }
-            val focusedCommandActions = fullscreenFocusedActions ?: state.focusedActions
+            val suppressHostActions = fullscreen?.content?.suppressesHostActions() == true
+            val actionPanelHintMode = fullscreen?.content?.actionPanelHintMode()
+                ?: PluginActionPanelHintMode.Full
+            val focusedCommandActions = if (suppressHostActions) {
+                emptyList()
+            } else {
+                fullscreenFocusedActions ?: state.focusedActions
+            }
             val focusedActions = focusedCommandActions.map { focusedAction ->
                 focusedAction.action
             }
@@ -351,13 +361,16 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     null
                 }
             ) {
-                ActionPanel(
-                    actions = focusedActions,
-                    showActions = state.showActions,
-                    onToggleActions = {
-                        state.eventSink(SearchScreenEvent.ToggleActions)
-                    }
-                )
+                if (actionPanelHintMode != PluginActionPanelHintMode.Hidden) {
+                    ActionPanel(
+                        actions = focusedActions,
+                        showActions = state.showActions,
+                        showPrimaryHint = actionPanelHintMode == PluginActionPanelHintMode.Full,
+                        onToggleActions = {
+                            state.eventSink(SearchScreenEvent.ToggleActions)
+                        }
+                    )
+                }
             }
         }
     }

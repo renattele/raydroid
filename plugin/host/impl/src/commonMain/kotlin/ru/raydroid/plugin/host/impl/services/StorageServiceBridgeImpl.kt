@@ -28,6 +28,7 @@ internal class StorageServiceBridgeImpl(
             FileSystem.SYSTEM.write(getFilePath(key)) {
                 write(value.encodeToByteArray())
             }
+            Unit
         }
     }
 

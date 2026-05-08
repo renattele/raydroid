@@ -27,6 +27,7 @@ interface PluginRuntime {
 
     suspend fun update(action: CommandActionBridge)
     suspend fun update(commandName: String, action: CommandActionBridge)
+    suspend fun back(commandName: String): Boolean
     suspend fun unload()
 
     data class ContentItem(
