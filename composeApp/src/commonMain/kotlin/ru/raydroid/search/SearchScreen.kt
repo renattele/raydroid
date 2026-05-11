@@ -366,6 +366,9 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         actions = focusedActions,
                         showActions = state.showActions,
                         showPrimaryHint = actionPanelHintMode == PluginActionPanelHintMode.Full,
+                        onPrimaryAction = {
+                            state.eventSink(SearchScreenEvent.Enter())
+                        },
                         onToggleActions = {
                             state.eventSink(SearchScreenEvent.ToggleActions)
                         }

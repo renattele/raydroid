@@ -56,6 +56,7 @@ fun ActionPanel(
     showActions: Boolean,
     onToggleActions: () -> Unit,
     showPrimaryHint: Boolean = true,
+    onPrimaryAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val spacing = RaydroidTheme.spacing
@@ -67,7 +68,8 @@ fun ActionPanel(
             actions = actions,
             showActions = showActions,
             onToggleActions = onToggleActions,
-            showPrimaryHint = showPrimaryHint
+            showPrimaryHint = showPrimaryHint,
+            onPrimaryAction = onPrimaryAction
         )
     }
 }
@@ -108,6 +110,7 @@ private fun Action(
     showActions: Boolean,
     onToggleActions: () -> Unit,
     showPrimaryHint: Boolean,
+    onPrimaryAction: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     val spacing = RaydroidTheme.spacing
@@ -131,7 +134,7 @@ private fun Action(
                         fontSize = PluginFontSize.ExtraSmall
                     )
                 )
-                RKeyHint {
+                RKeyHint(onClick = onPrimaryAction) {
                     RIcon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
                         contentDescription = null,

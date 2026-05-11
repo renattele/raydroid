@@ -643,13 +643,23 @@ private fun ComponentGridItem(
 @Composable
 private fun EmptyViewRenderer(emptyView: PluginEmptyViewData?) {
     Column(
-        Modifier.fillMaxWidth().padding(RaydroidTheme.spacing.large),
+        Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = RaydroidTheme.spacing.large,
+                vertical = RaydroidTheme.spacing.medium
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall)
     ) {
-        emptyView?.icon?.let { icon -> IconRenderer(PluginIconData(icon, size = PluginIconSize.Large)) }
+        emptyView?.icon?.let { icon -> IconRenderer(PluginIconData(icon, size = PluginIconSize.Medium)) }
         RText(emptyView?.title?.asText() ?: "No items")
-        emptyView?.description?.let { description -> RText(description.asText(), fontSize = pluginFontSizeSmall()) }
+        emptyView?.description?.let { description ->
+            RText(
+                description.asText(),
+                fontSize = pluginFontSizeSmall()
+            )
+        }
     }
 }
 
