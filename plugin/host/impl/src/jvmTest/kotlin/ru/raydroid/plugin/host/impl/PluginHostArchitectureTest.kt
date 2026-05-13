@@ -40,6 +40,7 @@ import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
 import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
 import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.PluginDescriptor
 import ru.raydroid.plugin.host.api.domain.model.RankedSearchResult
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
@@ -74,6 +75,7 @@ import ru.raydroid.plugin.host.impl.services.SearchFieldServiceBridgeImpl
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandPresentation
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
@@ -451,7 +453,7 @@ class PluginHostArchitectureTest {
                 override suspend fun load(url: String): RemotePlugin? = null
             },
             localPluginDataSource = object : LocalPluginDataSource {
-                override suspend fun add(pluginId: PluginId, data: ByteArray) = Unit
+                override suspend fun add(pluginId: PluginId, data: ByteArray, signature: String?) = Unit
                 override suspend fun load(pluginId: PluginId): ByteArray? = localData
                 override suspend fun hash(pluginId: PluginId): String? = null
                 override suspend fun signature(pluginId: PluginId): String? = null
@@ -472,6 +474,51 @@ class PluginHostArchitectureTest {
         val artifact = repository.loadPlugin(pluginId)
 
         assertEquals(PluginArtifact(localData), artifact)
+    }
+
+    @Test
+    fun `plugin repository installs remote plugin into local data source`() = runTest {
+        val pluginId = PluginId("ru.test.plugin")
+        val remoteData = byteArrayOf(4, 5, 6)
+        var storedData: ByteArray? = null
+        var storedSignature: String? = null
+        val repository = PluginRepositoryImpl(
+            remotePluginDataSource = object : RemotePluginDataSource {
+                override suspend fun load(url: String): RemotePlugin? =
+                    RemotePlugin(data = remoteData, signature = "sig-1")
+            },
+            localPluginDataSource = object : LocalPluginDataSource {
+                override suspend fun add(pluginId: PluginId, data: ByteArray, signature: String?) {
+                    storedData = data
+                    storedSignature = signature
+                }
+
+                override suspend fun load(pluginId: PluginId): ByteArray? = storedData
+                override suspend fun hash(pluginId: PluginId): String? = null
+                override suspend fun signature(pluginId: PluginId): String? = storedSignature
+                override suspend fun listPlugins(): List<PluginId> = emptyList()
+                override suspend fun delete(pluginId: PluginId) = Unit
+            },
+            resourcePluginDataSource = object : ResourcePluginDataSource {
+                override suspend fun load(pluginId: PluginId): ByteArray? = null
+                override suspend fun listPlugins(): List<PluginId> = emptyList()
+            },
+            pluginLoader = object : PluginLoader {
+                override suspend fun loadPlugin(plugin: PluginArtifact): PluginRuntime? = null
+                override suspend fun loadPluginMetadata(plugin: PluginArtifact) = object : PluginDescriptor {
+                    override val pluginId: PluginId = pluginId
+                    override val manifest: Manifest = testManifest(name = pluginId.id)
+                    override val resources: FileSystem = FakeFileSystem()
+                }
+
+                override suspend fun join(plugins: StateFlow<List<PluginRuntime>>) = error("unused")
+            },
+        )
+
+        repository.installPlugin("https://example.test/plugin.rext")
+
+        assertContentEquals(remoteData, storedData)
+        assertEquals("sig-1", storedSignature)
     }
 }
 

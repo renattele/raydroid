@@ -1,0 +1,37 @@
+plugins {
+    alias(libs.plugins.raydroidAndroidLib)
+    alias(libs.plugins.raydroidMultiplatform)
+}
+
+kotlin {
+    android {
+        namespace = "ru.raydroid.feature.search"
+    }
+
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "RaydroidShared"
+            isStatic = true
+        }
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.bundles.koin)
+            implementation(libs.kotlinx.coroutines)
+            implementation(libs.okio)
+            implementation(projects.core.data)
+            implementation(projects.plugin.api)
+            implementation(projects.plugin.host.api)
+            implementation(projects.plugin.host.impl)
+        }
+        jvmTest.dependencies {
+            implementation(libs.kotlin.testJunit)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.okio.fakefilesystem)
+        }
+    }
+}

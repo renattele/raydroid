@@ -33,6 +33,7 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
+include(":feature:search")
 include(":server")
 include(":shared")
 include(":androidApp")

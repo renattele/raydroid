@@ -39,8 +39,7 @@ fun RTextField(
     leadingContent: (@Composable BoxScope.() -> Unit)? = null,
     trailingContent: (@Composable BoxScope.() -> Unit)? = null,
 ) {
-    BasicTextField(
-        state,
+    Row(
         modifier = modifier.then(
             if (onPreviewKeyEvent != null) {
                 Modifier.onPreviewKeyEvent(onPreviewKeyEvent)
@@ -48,36 +47,36 @@ fun RTextField(
                 Modifier
             }
         ),
-        textStyle = textStyle,
-        keyboardOptions = keyboardOptions,
-        onKeyboardAction = {
-            onKeyboardAction()
-        },
-        lineLimits = lineLimits,
-        cursorBrush = SolidColor(cursorColor),
-        decorator = { content ->
-            Row(Modifier.fillMaxWidth()) {
-                if (leadingContent != null) {
-                    Box(Modifier.align(Alignment.CenterVertically)) {
-                        leadingContent()
-                    }
-                }
-                Box(
-                    contentModifier
-                        .padding(contentPadding)
-                        .weight(1f)
-                ) {
-                    content()
-                    if (state.text.isEmpty() && placeholder != null) {
-                        placeholder()
-                    }
-                }
-                if (trailingContent != null) {
-                    Box(Modifier.align(Alignment.CenterVertically)) {
-                        trailingContent()
-                    }
-                }
+    ) {
+        if (leadingContent != null) {
+            Box(Modifier.align(Alignment.CenterVertically)) {
+                leadingContent()
             }
         }
-    )
+        Box(
+            contentModifier
+                .padding(contentPadding)
+                .weight(1f)
+        ) {
+            if (state.text.isEmpty() && placeholder != null) {
+                placeholder()
+            }
+            BasicTextField(
+                state = state,
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = textStyle,
+                keyboardOptions = keyboardOptions,
+                onKeyboardAction = {
+                    onKeyboardAction()
+                },
+                lineLimits = lineLimits,
+                cursorBrush = SolidColor(cursorColor)
+            )
+        }
+        if (trailingContent != null) {
+            Box(Modifier.align(Alignment.CenterVertically)) {
+                trailingContent()
+            }
+        }
+    }
 }

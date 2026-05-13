@@ -34,8 +34,8 @@ internal fun resolveStringVariants(
 
     if (resolved.isEmpty()) {
         resolved[DEFAULT_STRINGS_BUCKET] = key
-    } else if (defaultBucket != null && defaultBucket[key] != null) {
-        resolved.putIfAbsent(DEFAULT_STRINGS_BUCKET, defaultBucket.getValue(key))
+    } else if (defaultBucket != null && defaultBucket[key] != null && DEFAULT_STRINGS_BUCKET !in resolved) {
+        resolved[DEFAULT_STRINGS_BUCKET] = defaultBucket.getValue(key)
     }
 
     return resolved

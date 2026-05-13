@@ -6,16 +6,6 @@ kotlin {
     android {
         namespace = "ru.raydroid"
     }
-    
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "ComposeApp"
-            isStatic = true
-        }
-    }
 
     sourceSets {
         androidMain.dependencies {
@@ -25,16 +15,12 @@ kotlin {
             implementation(libs.bundles.composeCommon)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.bundles.lifecycleCompose)
-            implementation(libs.bundles.koin)
             implementation(libs.bundles.koin.compose)
             implementation(projects.core.designsystem)
-            implementation(projects.shared)
+            implementation(projects.feature.search)
             implementation(projects.plugin.api)
             implementation(projects.plugin.host.api)
             implementation(projects.plugin.host.impl)
-            implementation(projects.core.data)
-            implementation(projects.core.domain)
-            implementation(projects.core.model)
         }
     }
 }

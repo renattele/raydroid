@@ -10,8 +10,14 @@ class LoadRuntimesUseCase(
     private val pluginLoader: PluginLoader
 ) {
     suspend operator fun invoke() {
+        val loadedPluginIds = pluginRuntimeRegistry.get()
+            .runtimes()
+            .value
+            .map { runtime -> runtime.pluginId }
+            .toSet()
         val installedPluginIds = pluginRepository.listInstalledPlugins()
         installedPluginIds.forEach { pluginId ->
+            if (pluginId in loadedPluginIds) return@forEach
             val pluginArtifact = pluginRepository.loadPlugin(pluginId) ?: return@forEach
             val pluginRuntime = pluginLoader.loadPlugin(pluginArtifact) ?: return@forEach
             pluginRuntimeRegistry.load(pluginRuntime)

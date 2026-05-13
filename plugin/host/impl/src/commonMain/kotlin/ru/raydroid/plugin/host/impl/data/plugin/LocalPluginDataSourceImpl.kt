@@ -13,10 +13,19 @@ class LocalPluginDataSourceImpl(
 ) : LocalPluginDataSource {
     override suspend fun add(
         pluginId: PluginId,
-        data: ByteArray
+        data: ByteArray,
+        signature: String?
     ): Unit = withContext(Dispatchers.IO) {
         localFs.write(getPluginPath(pluginId)) {
             write(data)
+        }
+        val signaturePath = getSignaturePath(pluginId)
+        if (signature == null) {
+            localFs.delete(signaturePath, mustExist = false)
+        } else {
+            localFs.write(signaturePath) {
+                writeUtf8(signature)
+            }
         }
     }
 
@@ -36,8 +45,13 @@ class LocalPluginDataSourceImpl(
     }
 
     override suspend fun signature(pluginId: PluginId): String? {
-        // TODO: implement
-        return null
+        return withContext(Dispatchers.IO) {
+            val signaturePath = getSignaturePath(pluginId)
+            if (!localFs.exists(signaturePath)) return@withContext null
+            localFs.read(signaturePath) {
+                readUtf8()
+            }
+        }
     }
 
     override suspend fun listPlugins(): List<PluginId> = withContext(Dispatchers.IO) {
@@ -50,6 +64,7 @@ class LocalPluginDataSourceImpl(
 
     override suspend fun delete(pluginId: PluginId) = withContext(Dispatchers.IO) {
         localFs.delete(getPluginPath(pluginId))
+        localFs.delete(getSignaturePath(pluginId), mustExist = false)
     }
 
     private fun pluginExists(pluginId: PluginId): Boolean {
@@ -59,4 +74,8 @@ class LocalPluginDataSourceImpl(
     private fun getPluginPath(
         pluginId: PluginId
     ): Path = basePath / (pluginId.id + ".rext")
+
+    private fun getSignaturePath(
+        pluginId: PluginId
+    ): Path = basePath / (pluginId.id + ".sig")
 }

@@ -45,6 +45,7 @@ abstract class GenerateOutlinedMaterialIconRegistryTask : DefaultTask() {
                                 && path.endsWith(".kt")
                         }
                         .map { path -> path.substringAfterLast('/').removeSuffix(".kt") }
+                        .filterNot { iconName -> iconName == "Addchart" }
                         .toList()
                 }.asSequence()
             }
