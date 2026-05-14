@@ -56,6 +56,8 @@ fun ActionPanel(
     actions: List<PluginCommandListAction>,
     showActions: Boolean,
     onToggleActions: () -> Unit,
+    showPrimaryHint: Boolean = true,
+    onPrimaryAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val spacing = RaydroidTheme.spacing
@@ -66,7 +68,9 @@ fun ActionPanel(
         Action(
             actions = actions,
             showActions = showActions,
-            onToggleActions = onToggleActions
+            onToggleActions = onToggleActions,
+            showPrimaryHint = showPrimaryHint,
+            onPrimaryAction = onPrimaryAction
         )
     }
 }
@@ -106,6 +110,8 @@ private fun Action(
     actions: List<PluginCommandListAction>,
     showActions: Boolean,
     onToggleActions: () -> Unit,
+    showPrimaryHint: Boolean,
+    onPrimaryAction: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     val spacing = RaydroidTheme.spacing
@@ -121,20 +127,22 @@ private fun Action(
             actions.find { it.primary } ?: actions.firstOrNull()
         }
         if (primaryAction != null) {
-            TextRenderer(
-                PluginTextData(
-                    text = primaryAction.title,
-                    color = PluginColor.OnSurfaceVariant,
-                    fontSize = PluginFontSize.ExtraSmall
+            if (showPrimaryHint) {
+                TextRenderer(
+                    PluginTextData(
+                        text = primaryAction.title,
+                        color = PluginColor.OnSurfaceVariant,
+                        fontSize = PluginFontSize.ExtraSmall
+                    )
                 )
-            )
-            RKeyHint {
-                RIcon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
-                    contentDescription = null,
-                    modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
-                    tint = PluginColor.OnPrimaryContainer.toColor()
-                )
+                RKeyHint(onClick = onPrimaryAction) {
+                    RIcon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
+                        contentDescription = null,
+                        modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
+                        tint = PluginColor.OnPrimaryContainer.toColor()
+                    )
+                }
             }
             RKeyHint(
                 onClick = onToggleActions,

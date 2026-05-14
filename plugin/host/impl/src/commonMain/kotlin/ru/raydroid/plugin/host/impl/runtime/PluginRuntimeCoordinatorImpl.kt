@@ -13,11 +13,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
+import ru.raydroid.plugin.api.manifest.Command
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
+import ru.raydroid.plugin.host.impl.ui.toPluginIcon
 import ru.raydroid.plugin.host.impl.ui.toPluginUiText
 
 internal class PluginRuntimeCoordinatorImpl(
@@ -40,26 +43,7 @@ internal class PluginRuntimeCoordinatorImpl(
             var previousJob: Job? = null
             pluginRuntimes.collectLatest { runtimes ->
                 previousJob?.cancel()
-                commandFlow.value = runtimes.flatMap { runtime ->
-                    runtime.manifest.commands
-                        .filter { command -> command.searchable }
-                        .map { command ->
-                            PluginRuntimeCoordinator.CommandItem(
-                                runtime = runtime,
-                                listEntry = PluginCommandListItem(
-                                    id = CommandItemId.CommandRoot,
-                                    icon = null,
-                                    title = command.title.toPluginUiText(runtime.pluginId),
-                                    description = command.description.toPluginUiText(runtime.pluginId),
-                                ),
-                                resultId = SearchResultId(
-                                    pluginId = runtime.pluginId,
-                                    commandName = command.service,
-                                    itemId = CommandItemId.CommandRoot
-                                )
-                            )
-                        }
-                }
+                commandFlow.value = runtimes.commandItems()
                 previousJob = launch {
                     runtimes.forEach { runtime ->
                         launch {
@@ -79,7 +63,10 @@ internal class PluginRuntimeCoordinatorImpl(
                                         )
                                     }
                                 }
-                                contentFlow.value = newContent
+                                contentFlow.value = newContent.filterNot { contentItem ->
+                                    contentItem.resultId.itemId == CommandItemId.CommandRoot
+                                }
+                                commandFlow.value = runtimes.commandItems(newContent)
                             }
                         }
                         launch {
@@ -116,4 +103,41 @@ internal class PluginRuntimeCoordinatorImpl(
         }.awaitAll()
         Unit
     }
+
+    private fun List<PluginRuntime>.commandItems(
+        content: List<PluginRuntimeCoordinator.ContentItem> = emptyList()
+    ): List<PluginRuntimeCoordinator.CommandItem> =
+        flatMap { runtime ->
+            runtime.manifest.commands
+                .filter { command -> command.searchable }
+                .map { command ->
+                    val resultId = SearchResultId(
+                        pluginId = runtime.pluginId,
+                        commandName = command.service,
+                        itemId = CommandItemId.CommandRoot
+                    )
+                    PluginRuntimeCoordinator.CommandItem(
+                        runtime = runtime,
+                        listEntry = commandListEntry(
+                            runtime = runtime,
+                            command = command,
+                            override = content.firstOrNull { item -> item.resultId == resultId }?.presentation
+                        ),
+                        resultId = resultId
+                    )
+                }
+        }
+
+    private fun commandListEntry(
+        runtime: PluginRuntime,
+        command: Command,
+        override: PluginCommandPresentation?
+    ): PluginCommandListItem =
+        PluginCommandListItem(
+            id = CommandItemId.CommandRoot,
+            icon = override?.listEntry?.icon ?: command.icon?.toPluginIcon(runtime.pluginId),
+            title = override?.listEntry?.title ?: command.title.toPluginUiText(runtime.pluginId),
+            description = override?.listEntry?.description ?: command.description.toPluginUiText(runtime.pluginId),
+            enabled = override?.listEntry?.enabled ?: true
+        )
 }

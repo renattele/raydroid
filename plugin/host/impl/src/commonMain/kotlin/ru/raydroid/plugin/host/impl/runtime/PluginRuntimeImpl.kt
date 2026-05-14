@@ -214,6 +214,15 @@ internal class PluginRuntimeImpl(
         }
     }
 
+    override suspend fun back(commandName: String): Boolean {
+        return withContext(pluginRuntimeDispatcher) {
+            val command = commandServices.firstOrNull { command ->
+                command.getServiceName() == commandName
+            } ?: return@withContext false
+            command.back()
+        }
+    }
+
     override suspend fun unload() {
         withContext(pluginRuntimeDispatcher) {
             zipline.close()

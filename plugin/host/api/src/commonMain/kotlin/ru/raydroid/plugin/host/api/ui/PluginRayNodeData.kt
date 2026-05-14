@@ -82,14 +82,31 @@ data class PluginFormData(
     val isLoading: Boolean = false,
     val navigationTitle: PluginUiText? = null,
     val fields: List<PluginFormFieldData>,
-    val submit: PluginFormSubmitData? = null
+    val submit: PluginFormSubmitData? = null,
+    val suppressHostActions: Boolean = false,
+    val requireChanges: Boolean = false,
+    val unchangedView: PluginEmptyViewData? = null,
+    val actionPanelHintMode: PluginActionPanelHintMode = PluginActionPanelHintMode.Full
 ) : PluginRayNodeData()
+
+enum class PluginActionPanelHintMode {
+    Full,
+    MenuOnly,
+    Hidden
+}
 
 data class PluginFormSubmitData(
     val title: PluginUiText,
     val callback: PluginFormSubmitCallback,
+    val icon: PluginIcon? = null,
+    val style: PluginFormSubmitStyle = PluginFormSubmitStyle.Filled,
     val enabled: Boolean = true
 )
+
+enum class PluginFormSubmitStyle {
+    Filled,
+    Tonal
+}
 
 sealed class PluginFormValue {
     data class Text(val value: String) : PluginFormValue()

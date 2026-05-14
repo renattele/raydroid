@@ -137,4 +137,6 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
         override suspend fun update(action: CommandActionBridge) {
             this@toBridge.update(action)
         }
+
+        override suspend fun back(): Boolean = this@toBridge.back()
     }

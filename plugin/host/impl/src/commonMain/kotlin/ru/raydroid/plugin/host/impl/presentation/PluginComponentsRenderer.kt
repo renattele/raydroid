@@ -57,11 +57,14 @@ import ru.raydroid.core.designsystem.component.RTextField
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
+import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginDetailData
 import ru.raydroid.plugin.host.api.ui.PluginDetailMetadataItemData
 import ru.raydroid.plugin.host.api.ui.PluginEmptyViewData
 import ru.raydroid.plugin.host.api.ui.PluginFormData
 import ru.raydroid.plugin.host.api.ui.PluginFormFieldData
+import ru.raydroid.plugin.host.api.ui.PluginFormSubmitData
+import ru.raydroid.plugin.host.api.ui.PluginFormSubmitStyle
 import ru.raydroid.plugin.host.api.ui.PluginFormValue
 import ru.raydroid.plugin.host.api.ui.PluginGridAspectRatio
 import ru.raydroid.plugin.host.api.ui.PluginGridData
@@ -182,19 +185,132 @@ internal fun FormRenderer(data: PluginFormData, modifier: Modifier = Modifier) {
         }
         val submit = data.submit
         if (submit != null) {
-            RButton(
-                enabled = submit.enabled,
-                onClick = {
+            val hasChangedValues = data.hasChangedValues(values)
+            val submitEnabled = submit.enabled &&
+                data.hasValidRequiredValues(values) &&
+                (!data.requireChanges || hasChangedValues)
+            val onSubmit: () -> Unit = {
+                if (submitEnabled) {
                     coroutineScope.launch {
                         submit.callback(values.toMap())
                     }
                 }
-            ) {
-                RText(submit.title.asText())
+            }
+            when (submit.style) {
+                PluginFormSubmitStyle.Filled -> {
+                    RButton(
+                        enabled = submitEnabled,
+                        onClick = onSubmit
+                    ) {
+                        SubmitButtonContent(submit = submit)
+                    }
+                }
+                PluginFormSubmitStyle.Tonal -> {
+                    val contentColor = if (submitEnabled) {
+                        RaydroidTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        RaydroidTheme.colorScheme.onSurfaceVariant
+                    }
+                    RTextButton(
+                        enabled = submitEnabled,
+                        onClick = onSubmit,
+                        modifier = Modifier
+                            .clip(RaydroidTheme.shapes.small)
+                            .background(
+                                if (submitEnabled) {
+                                    RaydroidTheme.colorScheme.primaryContainer
+                                } else {
+                                    RaydroidTheme.colorScheme.surfaceContainerHigh
+                                }
+                            )
+                    ) {
+                        SubmitButtonContent(
+                            submit = submit,
+                            color = contentColor,
+                            iconColor = if (submitEnabled) {
+                                PluginColor.OnPrimaryContainer
+                            } else {
+                                PluginColor.OnSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+            if (data.requireChanges && !hasChangedValues && data.unchangedView != null) {
+                EmptyViewRenderer(data.unchangedView)
             }
         }
     }
 }
+
+@Composable
+private fun SubmitButtonContent(
+    submit: PluginFormSubmitData,
+    color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
+    iconColor: PluginColor? = null
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        submit.icon?.let { icon ->
+            IconRenderer(
+                PluginIconData(
+                    icon = icon,
+                    size = PluginIconSize.Small,
+                    color = iconColor
+                )
+            )
+        }
+        RText(submit.title.asText(), color = color)
+    }
+}
+
+private fun PluginFormData.hasValidRequiredValues(values: Map<String, PluginFormValue>): Boolean =
+    fields.all { field ->
+        if (!field.required) {
+            true
+        } else {
+            when (field) {
+                is PluginFormFieldData.TextField -> (values[field.id] as? PluginFormValue.Text)
+                    ?.value
+                    ?.trim()
+                    ?.isNotEmpty() == true
+                is PluginFormFieldData.Checkbox -> (values[field.id] as? PluginFormValue.BooleanValue)?.value == true
+                is PluginFormFieldData.Dropdown -> (values[field.id] as? PluginFormValue.Text)
+                    ?.value
+                    ?.isNotBlank() == true
+                is PluginFormFieldData.DatePicker -> (values[field.id] as? PluginFormValue.DateValue)?.value != null
+                is PluginFormFieldData.Description,
+                is PluginFormFieldData.Separator -> true
+            }
+        }
+    }
+
+private fun PluginFormData.hasChangedValues(values: Map<String, PluginFormValue>): Boolean =
+    fields.any { field ->
+        when (field) {
+            is PluginFormFieldData.TextField -> {
+                val value = (values[field.id] as? PluginFormValue.Text)?.value.orEmpty()
+                value != field.defaultValue
+            }
+            is PluginFormFieldData.Checkbox -> {
+                val value = (values[field.id] as? PluginFormValue.BooleanValue)?.value ?: false
+                value != field.defaultValue
+            }
+            is PluginFormFieldData.Dropdown -> {
+                val initial = field.defaultValue ?: field.options.firstOrNull()?.value.orEmpty()
+                val value = (values[field.id] as? PluginFormValue.Text)?.value.orEmpty()
+                value != initial
+            }
+            is PluginFormFieldData.DatePicker -> {
+                val value = (values[field.id] as? PluginFormValue.DateValue)?.value
+                value != field.defaultValue
+            }
+            is PluginFormFieldData.Description,
+            is PluginFormFieldData.Separator -> false
+        }
+    }
 
 @Composable
 private fun FormFieldRenderer(
@@ -204,7 +320,7 @@ private fun FormFieldRenderer(
     val spacing = RaydroidTheme.spacing
     when (field) {
         is PluginFormFieldData.TextField -> {
-            val state = remember(field.id) { TextFieldState(field.defaultValue) }
+            val state = remember(field.id, field.defaultValue) { TextFieldState(field.defaultValue) }
             LaunchedEffect(state.text) {
                 values[field.id] = PluginFormValue.Text(state.text.toString())
             }
@@ -374,7 +490,8 @@ internal fun ListRenderer(
             }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall),
-                state = listState
+                state = listState,
+                modifier = Modifier.heightIn(max = ListMaxHeight)
             ) {
                 sections.forEach { section ->
                     section.title?.let { title ->
@@ -542,13 +659,23 @@ private fun ComponentGridItem(
 @Composable
 private fun EmptyViewRenderer(emptyView: PluginEmptyViewData?) {
     Column(
-        Modifier.fillMaxWidth().padding(RaydroidTheme.spacing.large),
+        Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = RaydroidTheme.spacing.large,
+                vertical = RaydroidTheme.spacing.medium
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall)
     ) {
-        emptyView?.icon?.let { icon -> IconRenderer(PluginIconData(icon, size = PluginIconSize.Large)) }
+        emptyView?.icon?.let { icon -> IconRenderer(PluginIconData(icon, size = PluginIconSize.Medium)) }
         RText(emptyView?.title?.asText() ?: "No items")
-        emptyView?.description?.let { description -> RText(description.asText(), fontSize = pluginFontSizeSmall()) }
+        emptyView?.description?.let { description ->
+            RText(
+                description.asText(),
+                fontSize = pluginFontSizeSmall()
+            )
+        }
     }
 }
 
@@ -736,6 +863,7 @@ private val PluginGridAspectRatio.value: Float
     }
 
 private val GridMinWidth = 128.dp
+private val ListMaxHeight = 420.dp
 private val GridMaxHeight = 520.dp
 @Composable
 private fun pluginFontSizeSmall() = ru.raydroid.plugin.host.api.ui.PluginFontSize.Small.toTextUnit()

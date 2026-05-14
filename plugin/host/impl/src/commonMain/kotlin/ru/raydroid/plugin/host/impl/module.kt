@@ -8,6 +8,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
+import ru.raydroid.plugin.host.api.application.usecase.BackCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.CommandActionDispatcher
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
@@ -92,6 +93,7 @@ val pluginHostModule = module {
     singleOf(::LoadRuntimesUseCase)
     singleOf(::SearchUseCase)
     singleOf(::CommandActionDispatcher)
+    singleOf(::BackCommandUseCase)
     singleOf(::OpenCommandUseCase)
     singleOf(::EnterItemUseCase)
     singleOf(::CloseCommandUseCase)

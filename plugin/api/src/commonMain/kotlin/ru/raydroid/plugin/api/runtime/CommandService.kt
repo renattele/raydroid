@@ -80,6 +80,8 @@ interface CommandServiceBridge : ZiplineService {
 
     suspend fun update(action: CommandActionBridge)
 
+    suspend fun back(): Boolean
+
     interface RenderRequest : ZiplineService {
         fun requestRender()
     }
@@ -108,6 +110,8 @@ abstract class CommandService {
 
     @Ray
     open fun CommandActionScope.actions(target: CommandActionTarget) = Unit
+
+    open suspend fun back(): Boolean = false
 
     abstract suspend fun execute(action: CommandAction)
 

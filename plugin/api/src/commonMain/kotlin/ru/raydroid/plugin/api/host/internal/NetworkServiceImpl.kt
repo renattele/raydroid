@@ -26,7 +26,7 @@ internal class NetworkServiceImpl(
         )
         return NetworkService.NetworkResponse(
             statusCode = response.statusCode,
-            body = body
+            body = response.body
         )
     }
 

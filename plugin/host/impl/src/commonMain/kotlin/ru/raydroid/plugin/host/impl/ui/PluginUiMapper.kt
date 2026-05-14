@@ -6,6 +6,7 @@ import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
 import ru.raydroid.plugin.api.ui.Alignment
+import ru.raydroid.plugin.api.ui.ActionPanelHintMode
 import ru.raydroid.plugin.api.ui.Arrangement
 import ru.raydroid.plugin.api.ui.BoxAlignment
 import ru.raydroid.plugin.api.ui.BoxData
@@ -29,6 +30,7 @@ import ru.raydroid.plugin.api.ui.DetailMetadataItemData
 import ru.raydroid.plugin.api.ui.EmptyViewData
 import ru.raydroid.plugin.api.ui.FormData
 import ru.raydroid.plugin.api.ui.FormFieldData
+import ru.raydroid.plugin.api.ui.FormSubmitStyle
 import ru.raydroid.plugin.api.ui.FormValue
 import ru.raydroid.plugin.api.ui.FormValues
 import ru.raydroid.plugin.api.ui.GridAspectRatio
@@ -40,6 +42,7 @@ import ru.raydroid.plugin.api.ui.ListItemData
 import ru.raydroid.plugin.api.ui.ListSectionData
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.ui.PluginAlignment
+import ru.raydroid.plugin.host.api.ui.PluginActionPanelHintMode
 import ru.raydroid.plugin.host.api.ui.PluginArrangement
 import ru.raydroid.plugin.host.api.ui.PluginBoxAlignment
 import ru.raydroid.plugin.host.api.ui.PluginBoxData
@@ -55,6 +58,7 @@ import ru.raydroid.plugin.host.api.ui.PluginFormData
 import ru.raydroid.plugin.host.api.ui.PluginFormFieldData
 import ru.raydroid.plugin.host.api.ui.PluginFormSubmitCallback
 import ru.raydroid.plugin.host.api.ui.PluginFormSubmitData
+import ru.raydroid.plugin.host.api.ui.PluginFormSubmitStyle
 import ru.raydroid.plugin.host.api.ui.PluginFormValue
 import ru.raydroid.plugin.host.api.ui.PluginFormValues
 import ru.raydroid.plugin.host.api.ui.PluginGridAspectRatio
@@ -306,9 +310,15 @@ internal fun RayNodeData.toPluginRayNodeData(
                 callback = PluginFormSubmitCallback { values ->
                     dispatchFormCallback(submit.callback, values.toApiFormValues())
                 },
+                icon = submit.icon?.toPluginIcon(pluginId),
+                style = submit.style.toPluginFormSubmitStyle(),
                 enabled = submit.enabled
             )
-        }
+        },
+        suppressHostActions = suppressHostActions,
+        requireChanges = requireChanges,
+        unchangedView = unchangedView?.toPluginEmptyViewData(pluginId),
+        actionPanelHintMode = actionPanelHintMode.toPluginActionPanelHintMode()
     ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is ListData -> PluginListData(
         sections = sections.map { it.toPluginListSectionData(pluginId, dispatchCallback, dispatchFormCallback) },
@@ -460,6 +470,17 @@ private fun GridAspectRatio.toPluginGridAspectRatio(): PluginGridAspectRatio = w
     GridAspectRatio.ThreeToFour -> PluginGridAspectRatio.ThreeToFour
     GridAspectRatio.SixteenToNine -> PluginGridAspectRatio.SixteenToNine
     GridAspectRatio.NineToSixteen -> PluginGridAspectRatio.NineToSixteen
+}
+
+private fun FormSubmitStyle.toPluginFormSubmitStyle(): PluginFormSubmitStyle = when (this) {
+    FormSubmitStyle.Filled -> PluginFormSubmitStyle.Filled
+    FormSubmitStyle.Tonal -> PluginFormSubmitStyle.Tonal
+}
+
+private fun ActionPanelHintMode.toPluginActionPanelHintMode(): PluginActionPanelHintMode = when (this) {
+    ActionPanelHintMode.Full -> PluginActionPanelHintMode.Full
+    ActionPanelHintMode.MenuOnly -> PluginActionPanelHintMode.MenuOnly
+    ActionPanelHintMode.Hidden -> PluginActionPanelHintMode.Hidden
 }
 
 private fun PluginFormValues.toApiFormValues(): FormValues = mapValues { (_, value) ->
