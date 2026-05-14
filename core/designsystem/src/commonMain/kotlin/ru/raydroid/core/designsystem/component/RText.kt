@@ -13,6 +13,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import ru.raydroid.core.designsystem.RaydroidTheme
 
 @Composable
 fun RText(
@@ -28,10 +29,15 @@ fun RText(
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
 ) {
+    val resolvedColor = if (color == Color.Unspecified) {
+        RaydroidTheme.colorScheme.onSurface
+    } else {
+        color
+    }
     Text(
         text = text,
         modifier = modifier,
-        color = color,
+        color = resolvedColor,
         fontSize = fontSize,
         fontStyle = fontStyle,
         fontWeight = fontWeight,
@@ -57,10 +63,15 @@ fun RText(
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
 ) {
+    val resolvedColor = if (color == Color.Unspecified) {
+        RaydroidTheme.colorScheme.onSurface
+    } else {
+        color
+    }
     Text(
         text = text,
         modifier = modifier,
-        color = color,
+        color = resolvedColor,
         fontSize = fontSize,
         fontStyle = fontStyle,
         fontWeight = fontWeight,

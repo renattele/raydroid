@@ -39,7 +39,13 @@ fun RayDecorator(
         modifier
             .rInteractable(focused = focused, onClick = onClick)
             .clip(RaydroidTheme.shapes.medium)
-            .background(RaydroidTheme.colorScheme.primaryContainer)
+            .background(
+                if (focused) {
+                    RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
+                } else {
+                    RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                }
+            )
             .padding(RaydroidTheme.spacing.small)
     ) {
         Box(Modifier.fillMaxWidth()) {
@@ -59,11 +65,14 @@ fun RayDecorator(
                 PluginTextData(
                     text = commandName,
                     fontSize = PluginFontSize.ExtraSmall,
-                    color = PluginColor.OnPrimaryContainer
+                    color = PluginColor.OnSurfaceVariant
                 )
             )
             Spacer(Modifier.weight(1f))
-            RText(stringResource(Res.string.live_results_reference, pluginName.asText()))
+            RText(
+                stringResource(Res.string.live_results_reference, pluginName.asText()),
+                color = PluginColor.OnSurfaceVariant.toColor()
+            )
         }
     }
 }

@@ -63,7 +63,8 @@ fun SearchListItem(
             if (title != null) {
                 RText(
                     text = title.asText().highlight(result.titleMatches, highlightStyle),
-                    fontSize = PluginFontSize.Large.toTextUnit()
+                    fontSize = PluginFontSize.Large.toTextUnit(),
+                    color = PluginColor.OnSurface.toColor()
                 )
             }
             val description = result.listEntry.description
@@ -71,7 +72,7 @@ fun SearchListItem(
                 RText(
                     text = description.asText().highlight(result.descriptionMatches, highlightStyle),
                     fontSize = PluginFontSize.Small.toTextUnit(),
-                    color = PluginColor.OutlineVariant.toColor()
+                    color = PluginColor.OnSurfaceVariant.toColor()
                 )
             }
         }
@@ -120,7 +121,7 @@ fun CommandListItemView(
                     data = PluginTextData(
                         text = description,
                         fontSize = PluginFontSize.Small,
-                        color = PluginColor.OutlineVariant
+                        color = PluginColor.OnSurfaceVariant
                     )
                 )
             }

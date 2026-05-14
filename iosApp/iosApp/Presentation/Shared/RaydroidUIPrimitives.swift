@@ -190,7 +190,7 @@ struct SearchInputField: UIViewRepresentable {
         textField.font = .preferredFont(forTextStyle: .body)
         textField.adjustsFontForContentSizeCategory = true
         textField.textColor = .label
-        textField.tintColor = .systemBlue
+        textField.tintColor = .tintColor
         textField.clearButtonMode = .whileEditing
         textField.backspaceDelegate = context.coordinator
         textField.addTarget(
@@ -210,7 +210,7 @@ struct SearchInputField: UIViewRepresentable {
             uiView.text = text
         }
         uiView.textColor = .label
-        uiView.tintColor = .systemBlue
+        uiView.tintColor = .tintColor
         uiView.returnKeyType = canSubmit ? .go : .search
         if uiView.placeholder != placeholder {
             uiView.placeholder = placeholder
@@ -367,7 +367,7 @@ struct RaydroidGlassSurface: ViewModifier {
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(.white.opacity(0.24), lineWidth: 1)
+                        .stroke(Color(uiColor: .separator).opacity(0.32), lineWidth: 1)
                 }
         }
     }

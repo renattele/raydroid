@@ -17,9 +17,12 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -364,6 +367,66 @@ private val LocalRaydroidTypographyScale = staticCompositionLocalOf { RaydroidTy
 private val LocalRaydroidIconSizes = staticCompositionLocalOf { RaydroidIconSizes() }
 private val LocalRaydroidShapes = staticCompositionLocalOf { RaydroidShapes.default() }
 private val LocalRaydroidMotionScheme = staticCompositionLocalOf { RaydroidMotionScheme.default() }
+private val LightColorScheme = lightColorScheme(
+    primary = Color(0xFF315FD3),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFDDE1FF),
+    onPrimaryContainer = Color(0xFF00174A),
+    secondary = Color(0xFF565E71),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFDCE2F9),
+    onSecondaryContainer = Color(0xFF131C2B),
+    tertiary = Color(0xFF705574),
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFFAD8FC),
+    onTertiaryContainer = Color(0xFF29132E),
+    error = Color(0xFFBA1A1A),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002),
+    background = Color(0xFFF9F9FF),
+    onBackground = Color(0xFF191C23),
+    surface = Color(0xFFF9F9FF),
+    onSurface = Color(0xFF191C23),
+    surfaceVariant = Color(0xFFE1E2EC),
+    onSurfaceVariant = Color(0xFF44474F),
+    outline = Color(0xFF74777F),
+    outlineVariant = Color(0xFFC4C6D0),
+    scrim = Color(0xFF000000),
+    inverseSurface = Color(0xFF2E3038),
+    inverseOnSurface = Color(0xFFF0F0F7),
+    inversePrimary = Color(0xFFB9C4FF)
+)
+private val DarkColorScheme = darkColorScheme(
+    primary = Color(0xFFB9C4FF),
+    onPrimary = Color(0xFF002A78),
+    primaryContainer = Color(0xFF1146BA),
+    onPrimaryContainer = Color(0xFFDDE1FF),
+    secondary = Color(0xFFC0C6DC),
+    onSecondary = Color(0xFF283041),
+    secondaryContainer = Color(0xFF3F4758),
+    onSecondaryContainer = Color(0xFFDCE2F9),
+    tertiary = Color(0xFFDDBCE0),
+    onTertiary = Color(0xFF402843),
+    tertiaryContainer = Color(0xFF573E5B),
+    onTertiaryContainer = Color(0xFFFAD8FC),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
+    background = Color(0xFF11131A),
+    onBackground = Color(0xFFE2E2E9),
+    surface = Color(0xFF11131A),
+    onSurface = Color(0xFFE2E2E9),
+    surfaceVariant = Color(0xFF4A4E59),
+    onSurfaceVariant = Color(0xFFD9DCE5),
+    outline = Color(0xFF8E9099),
+    outlineVariant = Color(0xFF676C78),
+    scrim = Color(0xFF000000),
+    inverseSurface = Color(0xFFE2E2E9),
+    inverseOnSurface = Color(0xFF2E3038),
+    inversePrimary = Color(0xFF315FD3)
+)
 
 object RaydroidTheme {
     val colorScheme
@@ -404,9 +467,15 @@ object RaydroidTheme {
 
 @Composable
 fun RaydroidTheme(
+    darkTheme: Boolean = platformIsSystemInDarkTheme(),
     reduceMotion: Boolean = platformPrefersReducedMotion(),
     content: @Composable () -> Unit
 ) {
+    val colorScheme = platformColorScheme(darkTheme = darkTheme) ?: if (darkTheme) {
+        DarkColorScheme
+    } else {
+        LightColorScheme
+    }
     val spacing = remember { RaydroidSpacing() }
     val typographyScale = remember { RaydroidTypographyScale() }
     val iconSizes = remember { RaydroidIconSizes() }
@@ -420,6 +489,7 @@ fun RaydroidTheme(
         )
     }
     MaterialTheme(
+        colorScheme = colorScheme,
         shapes = materialShapes
     ) {
         CompositionLocalProvider(
@@ -433,4 +503,10 @@ fun RaydroidTheme(
     }
 }
 
+@Composable
+internal expect fun platformIsSystemInDarkTheme(): Boolean
+
 internal expect fun platformPrefersReducedMotion(): Boolean
+
+@Composable
+internal expect fun platformColorScheme(darkTheme: Boolean): ColorScheme?

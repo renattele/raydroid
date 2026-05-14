@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
@@ -184,7 +185,7 @@ fun ActionsPanelOverlay(
                 .heightIn(max = PopupHeight)
                 .width(PopupWidth),
             shape = popupShape,
-            color = PluginColor.SurfaceBright.toColor()
+            color = RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f)
         ) {
             LazyColumn {
                 itemsIndexed(groupedActions) { index, (groupName, actionsList) ->
@@ -222,7 +223,7 @@ private fun ActionsPopupAction(
             .rInteractable(enabled = action.enabled) {
                 onClick()
             }
-            .background(PluginColor.Surface.toColor())
+            .background(Color.Transparent)
             .padding(RaydroidTheme.spacing.extraSmall),
         horizontalArrangement = Arrangement.spacedBy(spacing.small),
         verticalAlignment = Alignment.CenterVertically

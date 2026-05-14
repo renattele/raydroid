@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlinx.coroutines.flow.collectLatest
@@ -43,7 +44,11 @@ fun Modifier.rInteractable(
         RInteractiveDefaults.targetScale(isFocused),
         animationSpec = RaydroidTheme.motionScheme.fast.floatSpec()
     )
-    val color = RaydroidTheme.colorScheme.primary.copy(alpha = 0.1f)
+    val color = if (isFocused) {
+        RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
+    } else {
+        Color.Transparent
+    }
     val shape = RaydroidTheme.shapes.medium
     combinedClickable(interactionSource, indication = null, enabled = enabled, onClick = onClick)
         .graphicsLayer {
@@ -51,9 +56,9 @@ fun Modifier.rInteractable(
             scaleY = scale
         }
         .drawWithContent {
-            drawContent()
             if (isFocused) {
                 drawRoundRect(color, cornerRadius = CornerRadius(shape.topStart.toPx(size, this)))
             }
+            drawContent()
         }
 }

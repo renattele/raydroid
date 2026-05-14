@@ -341,7 +341,7 @@ private struct ActionsOverlay: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.white.opacity(0.22), lineWidth: 1)
+                .stroke(Color(uiColor: .separator).opacity(0.28), lineWidth: 1)
         }
     }
 
@@ -468,7 +468,7 @@ private struct SearchDock: View {
                     .onSubmit(onSubmit)
                     .font(.body)
                     .foregroundStyle(.primary)
-                    .tint(.blue)
+                    .tint(.accentColor)
                     .frame(maxWidth: .infinity)
                     .frame(height: 30)
                     .layoutPriority(1)
@@ -484,12 +484,12 @@ private struct SearchDock: View {
             .padding(.trailing, 8)
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            .background(.white, in: Capsule())
+            .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
             .overlay {
                 Capsule()
-                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                    .stroke(Color(uiColor: .separator).opacity(0.22), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+            .shadow(color: Color(uiColor: .separator).opacity(0.12), radius: 8, y: 2)
             .layoutPriority(1)
         }
         .frame(maxWidth: .infinity)

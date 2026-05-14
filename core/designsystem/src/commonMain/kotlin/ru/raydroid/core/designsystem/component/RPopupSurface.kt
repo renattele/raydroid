@@ -18,8 +18,8 @@ fun RPopupSurface(
     modifier: Modifier = Modifier,
     shape: Shape = RaydroidTheme.shapes.medium,
     color: Color = RaydroidTheme.colorScheme.surfaceBright,
-    shadowColor: Color = RaydroidTheme.colorScheme.outline,
-    shadowRadius: Dp = RaydroidTheme.spacing.extraSmall,
+    shadowColor: Color = RaydroidTheme.colorScheme.scrim.copy(alpha = 0.45f),
+    shadowRadius: Dp = RaydroidTheme.spacing.small,
     content: @Composable BoxScope.() -> Unit,
 ) {
     Box(

@@ -412,9 +412,9 @@ private fun ComponentListItem(
             .clip(RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium))
             .background(
                 if (focused) {
-                    RaydroidTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
                 } else {
-                    RaydroidTheme.colorScheme.surfaceContainerLow
+                    RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
                 }
             )
             .padding(RaydroidTheme.spacing.small),
@@ -432,8 +432,14 @@ private fun ComponentListItem(
         } else {
             item.icon?.let { icon -> IconRenderer(PluginIconData(icon)) }
             Column {
-                RText(item.title.asText())
-                item.subtitle?.let { subtitle -> RText(subtitle.asText(), fontSize = pluginFontSizeSmall()) }
+                RText(item.title.asText(), color = RaydroidTheme.colorScheme.onSurface)
+                item.subtitle?.let { subtitle ->
+                    RText(
+                        subtitle.asText(),
+                        fontSize = pluginFontSizeSmall(),
+                        color = RaydroidTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -498,9 +504,9 @@ private fun ComponentGridItem(
             .clip(RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium))
             .background(
                 if (focused) {
-                    RaydroidTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
                 } else {
-                    RaydroidTheme.colorScheme.surfaceContainerLow
+                    RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
                 }
             )
             .padding(RaydroidTheme.spacing.small),
@@ -518,8 +524,18 @@ private fun ComponentGridItem(
         } else if (icon != null) {
             IconRenderer(PluginIconData(icon, size = PluginIconSize.Large))
         }
-        RText(item.title.asText(), fontSize = pluginFontSizeSmall())
-        item.subtitle?.let { subtitle -> RText(subtitle.asText(), fontSize = pluginFontSizeSmall()) }
+        RText(
+            item.title.asText(),
+            fontSize = pluginFontSizeSmall(),
+            color = RaydroidTheme.colorScheme.onSurface
+        )
+        item.subtitle?.let { subtitle ->
+            RText(
+                subtitle.asText(),
+                fontSize = pluginFontSizeSmall(),
+                color = RaydroidTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
