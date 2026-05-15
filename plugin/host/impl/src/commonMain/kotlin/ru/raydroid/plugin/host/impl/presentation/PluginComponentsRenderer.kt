@@ -547,7 +547,14 @@ private fun ComponentListItem(
                 onActions = onActions
             )
         } else {
-            item.icon?.let { icon -> IconRenderer(PluginIconData(icon)) }
+            item.icon?.let { icon ->
+                IconRenderer(
+                    PluginIconData(
+                        icon = icon,
+                        color = item.iconColor
+                    )
+                )
+            }
             Column {
                 RText(item.title.asText(), color = RaydroidTheme.colorScheme.onSurface)
                 item.subtitle?.let { subtitle ->
@@ -668,7 +675,15 @@ private fun EmptyViewRenderer(emptyView: PluginEmptyViewData?) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.extraSmall)
     ) {
-        emptyView?.icon?.let { icon -> IconRenderer(PluginIconData(icon, size = PluginIconSize.Medium)) }
+        emptyView?.icon?.let { icon ->
+            IconRenderer(
+                PluginIconData(
+                    icon = icon,
+                    size = PluginIconSize.Medium,
+                    color = emptyView.iconColor
+                )
+            )
+        }
         RText(emptyView?.title?.asText() ?: "No items")
         emptyView?.description?.let { description ->
             RText(

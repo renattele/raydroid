@@ -352,6 +352,7 @@ data class ListItemData(
     val title: UiText,
     val subtitle: UiText? = null,
     val icon: Icon? = null,
+    val iconColor: Color? = null,
     val keywords: List<String> = emptyList(),
     val detail: DetailData? = null,
     val content: List<RayNodeData> = emptyList(),
@@ -402,7 +403,8 @@ enum class GridAspectRatio {
 data class EmptyViewData(
     val title: UiText,
     val description: UiText? = null,
-    val icon: Icon? = null
+    val icon: Icon? = null,
+    val iconColor: Color? = null
 )
 
 @Ray
@@ -422,6 +424,7 @@ class ListScope internal constructor(private val owner: RayScope) {
         title: UiText,
         subtitle: UiText? = null,
         icon: Icon? = null,
+        iconColor: Color? = null,
         keywords: List<String> = emptyList(),
         modifier: Modifier = Modifier,
         detail: (DetailMetadataScope.() -> Unit)? = null,
@@ -434,6 +437,7 @@ class ListScope internal constructor(private val owner: RayScope) {
             title = title,
             subtitle = subtitle,
             icon = icon,
+            iconColor = iconColor,
             keywords = keywords,
             modifier = modifier,
             detailMarkdown = detailMarkdown,
@@ -442,8 +446,8 @@ class ListScope internal constructor(private val owner: RayScope) {
         )
     }
 
-    fun emptyView(title: UiText, description: UiText? = null, icon: Icon? = null) {
-        emptyView = EmptyViewData(title, description, icon)
+    fun emptyView(title: UiText, description: UiText? = null, icon: Icon? = null, iconColor: Color? = null) {
+        emptyView = EmptyViewData(title, description, icon, iconColor)
     }
 
     internal fun allSections(): List<ListSectionData> =
@@ -459,6 +463,7 @@ class ListSectionScope internal constructor(private val owner: RayScope) {
         title: UiText,
         subtitle: UiText? = null,
         icon: Icon? = null,
+        iconColor: Color? = null,
         keywords: List<String> = emptyList(),
         modifier: Modifier = Modifier,
         detail: (DetailMetadataScope.() -> Unit)? = null,
@@ -471,6 +476,7 @@ class ListSectionScope internal constructor(private val owner: RayScope) {
             title = title,
             subtitle = subtitle,
             icon = icon,
+            iconColor = iconColor,
             keywords = keywords,
             modifier = modifier,
             detailMarkdown = detailMarkdown,
@@ -486,6 +492,7 @@ private fun listItem(
     title: UiText,
     subtitle: UiText?,
     icon: Icon?,
+    iconColor: Color?,
     keywords: List<String>,
     modifier: Modifier,
     detailMarkdown: String?,
@@ -501,6 +508,7 @@ private fun listItem(
         title = title,
         subtitle = subtitle,
         icon = icon,
+        iconColor = iconColor,
         keywords = keywords,
         detail = detailMarkdown?.let { DetailData(markdown = it, metadata = metadataScope.items) },
         content = content?.let(owner::fork).orEmpty(),
