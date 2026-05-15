@@ -36,13 +36,17 @@ import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.RAlertDialog
 import ru.raydroid.core.designsystem.component.RButton
 import ru.raydroid.core.designsystem.component.RIcon
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
+import ru.raydroid.feature.search.FocusedCommandAction
+import ru.raydroid.feature.search.SearchScreenEvent
+import ru.raydroid.feature.search.SearchScreenState
+import ru.raydroid.feature.search.SearchStore
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
@@ -68,8 +72,8 @@ import ru.raydroid.plugin.host.impl.presentation.asText
 
 @Composable
 fun SearchScreen(modifier: Modifier = Modifier) {
-    val viewModel = koinViewModel<SearchViewModel>()
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val store = koinInject<SearchStore>()
+    val state by store.state.collectAsStateWithLifecycle()
     SearchScreen(state, modifier)
 }
 
@@ -127,9 +131,11 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             } else {
                 focusedCommandActions
             }
+            val focusedItemIndex = state.focusedItemIndex
+            val searchResults = state.searchResults
             LaunchedEffect(state.focusedItemIndex) {
-                if (fullscreen == null && state.focusedItemIndex != null) {
-                    listState.scrollToItem(state.focusedItemIndex)
+                if (fullscreen == null && focusedItemIndex != null) {
+                    listState.scrollToItem(focusedItemIndex)
                 }
             }
             state.alerts.forEach { alert ->
@@ -216,19 +222,19 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         reverseLayout = true,
                         state = listState
                     ) {
-                        if (state.searchResults != null) {
-                            itemsIndexed(state.searchResults.results) { index, searchResult ->
+                        if (searchResults != null) {
+                            itemsIndexed(searchResults.results) { index, searchResult ->
                                 if (searchResult is SearchResultSet.CachedSearchResult) {
                                     SearchListItem(searchResult, onClick = {
                                         state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
-                                    }, focused = index == state.focusedItemIndex)
+                                    }, focused = index == focusedItemIndex)
                                 } else if (searchResult is SearchResultSet.CommandSearchResult) {
                                     CommandListItemView(
                                         listEntry = searchResult.listEntry,
                                         onClick = {
                                             state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
                                         },
-                                        focused = index == state.focusedItemIndex
+                                        focused = index == focusedItemIndex
                                     )
                                 } else if (searchResult is SearchResultSet.LiveSearchResult) {
                                     RayDecorator(
@@ -240,7 +246,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                         pluginName = remember(state.plugins) {
                                             searchResult.rayDecoratorPluginName(state.plugins)
                                         },
-                                        focused = index == state.focusedItemIndex,
+                                        focused = index == focusedItemIndex,
                                         onClick = {
                                             state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
                                         }
@@ -322,7 +328,8 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         } else {
                             state.focusedItemIndex != null
                         }
-                    ),
+                    )
+                    .toPresentationState(),
                 onEvent = { event ->
                     when (event) {
                         SearchFieldEvent.Enter -> {
@@ -495,3 +502,10 @@ private fun SearchResultSet.LiveSearchResult.rayDecoratorPluginName(
         ?.title
         ?.toPluginUiText(resultId.pluginId)
         .orUnknown()
+
+private fun ru.raydroid.feature.search.SearchFieldState.toPresentationState() =
+    ru.raydroid.plugin.host.impl.presentation.SearchFieldState(
+        fieldState = fieldState,
+        canGoOnEnter = canGoOnEnter,
+        isKeyboardPresent = isKeyboardPresent
+    )

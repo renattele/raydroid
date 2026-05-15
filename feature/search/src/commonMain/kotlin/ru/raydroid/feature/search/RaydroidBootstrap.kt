@@ -15,7 +15,24 @@ val raydroidSearchModule = module {
 
     factoryOf(::GetCommandCatalogUseCase)
     factoryOf(::CommandCatalogProvider)
-    factoryOf(::SearchStore)
+    factory {
+        SearchStore(
+            syncCacheUseCase = get(),
+            loadRuntimesUseCase = get(),
+            searchUseCase = get(),
+            getPluginsUseCase = get(),
+            openCommandUseCase = get(),
+            enterItemUseCase = get(),
+            closeCommandUseCase = get(),
+            backCommandUseCase = get(),
+            executeCommandCallbackUseCase = get(),
+            getCommandFullscreenUseCase = get(),
+            getEventsUseCase = get(),
+            emitEventUseCase = get(),
+            getSearchFieldRequestsUseCase = get(),
+            updateCommandQueryUseCase = get()
+        )
+    }
 }
 
 fun initKoin(configuration: KoinAppDeclaration? = null) {

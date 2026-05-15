@@ -20,6 +20,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.ui)
             implementation(libs.bundles.koin)
             implementation(libs.kotlinx.coroutines)
             implementation(libs.okio)

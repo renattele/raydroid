@@ -283,6 +283,8 @@ private class FakePluginRuntime(
         commandUpdates += commandName to action
     }
 
+    override suspend fun back(commandName: String): Boolean = false
+
     override suspend fun unload() = Unit
 }
 

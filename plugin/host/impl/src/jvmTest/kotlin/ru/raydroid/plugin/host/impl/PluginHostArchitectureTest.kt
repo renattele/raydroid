@@ -601,6 +601,8 @@ private class FakePluginRuntime(
         update(action)
     }
 
+    override suspend fun back(commandName: String): Boolean = false
+
     override suspend fun unload() = Unit
 
     data class CommandUpdate(

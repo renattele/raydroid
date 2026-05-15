@@ -44,8 +44,8 @@ class RaydroidThemeTest {
 
         assertEquals(180, normal.spec(RaydroidMotionToken.Default).durationMillis)
         assertEquals(0.03f, normal.spec(RaydroidMotionToken.Default).scaleDelta)
-        assertEquals(false, normal.spec(RaydroidMotionToken.Default).usesExpressiveSpatialMotion)
-        assertEquals(Spring.DampingRatioNoBouncy, normal.spec(RaydroidMotionToken.Default).dampingRatio)
+        assertEquals(true, normal.spec(RaydroidMotionToken.Default).usesExpressiveSpatialMotion)
+        assertEquals(Spring.DampingRatioMediumBouncy, normal.spec(RaydroidMotionToken.Default).dampingRatio)
         assertEquals(true, normal.spec(RaydroidMotionToken.Emphasized).usesExpressiveSpatialMotion)
         assertEquals(Spring.DampingRatioLowBouncy, normal.spec(RaydroidMotionToken.Emphasized).dampingRatio)
         assertEquals(120, reduced.spec(RaydroidMotionToken.Default).durationMillis)

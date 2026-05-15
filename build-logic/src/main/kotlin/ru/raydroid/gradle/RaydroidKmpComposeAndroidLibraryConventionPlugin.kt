@@ -4,7 +4,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.plugins.ExtensionAware
-import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.configure
 import org.jetbrains.compose.ComposeExtension
 import org.jetbrains.compose.resources.ResourcesExtension
@@ -42,26 +41,5 @@ private fun Project.configureAndroidComposeResourceTaskWorkaround() {
         outputDirectory.convention(
             layout.buildDirectory.dir("generated/compose/resourceGenerator/androidAssets/$name")
         )
-    }
-
-    tasks.configureEach {
-        if (name != "bundleAndroidMainAar") return@configureEach
-        val bundleTask = this as? Zip ?: return@configureEach
-        val copyTask = tasks.named("copyAndroidMainComposeResourcesToAndroidAssets")
-        val copyTaskOutput = copyTask.flatMap { task ->
-            val outputDirectoryGetter = task.javaClass.methods.firstOrNull { method ->
-                method.name == "getOutputDirectory" && method.parameterCount == 0
-            } ?: error("copyAndroidMainComposeResourcesToAndroidAssets must expose outputDirectory")
-
-            val outputDirectory = outputDirectoryGetter.invoke(task) as? DirectoryProperty
-                ?: error("copyAndroidMainComposeResourcesToAndroidAssets outputDirectory has unexpected type")
-            outputDirectory
-        }
-
-        bundleTask.dependsOn(copyTask)
-        bundleTask.with(copySpec {
-            from(copyTaskOutput)
-            into("assets")
-        })
     }
 }

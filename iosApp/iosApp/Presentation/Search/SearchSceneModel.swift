@@ -2,6 +2,8 @@ import Foundation
 import Observation
 import RaydroidShared
 
+typealias SearchQueryState = SearchFieldState
+
 enum SearchResultsBodyState {
     case loading
     case empty
@@ -261,7 +263,7 @@ private struct SearchSceneStateMapper {
 
     private func mapResultsBody(state: SearchUiState) -> SearchResultsBodyState {
         guard state.fullscreen == nil else { return .empty }
-        if let results = state.searchResults {
+        if let results = state.searchResults?.results {
             return .results(
                 results.enumerated().map { index, result in
                     mapResult(
@@ -280,52 +282,17 @@ private struct SearchSceneStateMapper {
     }
 
     private func mapResult(
-        _ result: any SearchResultUiModel,
+        _ result: any ApiSearchResultSetSearchResult,
         index: Int,
         query: String,
         focusedIndex: Int?
     ) -> SearchResultRowModel {
-        if let cached = result as? SearchResultUiModelCached {
-            return SearchResultRowModel(
-                id: "result.cached.\(index).\(cached.resultId.commandName)",
-                iconAsset: client.resolveIcon(cached.listEntry.icon),
-                title: client.resolveText(cached.listEntry.title),
-                subtitle: client.resolveText(cached.listEntry.description_),
-                titleMatches: cached.titleMatches.map(HighlightMatch.init),
-                subtitleMatches: cached.descriptionMatches.map(HighlightMatch.init),
-                detailNodes: [],
-                isFocused: focusedIndex == index,
-                onSelect: {
-                    client.enter(cached.resultId)
-                }
-            )
-        }
+        let detailNodes: [PluginNodeViewData]
+        let resultKind: String
 
-        if let command = result as? SearchResultUiModelCommand {
-            return SearchResultRowModel(
-                id: "result.command.\(index).\(command.resultId.commandName)",
-                iconAsset: client.resolveIcon(command.listEntry.icon),
-                title: client.resolveText(command.listEntry.title),
-                subtitle: client.resolveText(command.listEntry.description_),
-                titleMatches: [],
-                subtitleMatches: [],
-                detailNodes: [],
-                isFocused: focusedIndex == index,
-                onSelect: {
-                    client.enter(command.resultId)
-                }
-            )
-        }
-
-        let live = result as! SearchResultUiModelLive
-        return SearchResultRowModel(
-            id: "result.live.\(index).\(live.resultId.commandName)",
-            iconAsset: client.resolveIcon(live.listEntry.icon),
-            title: client.resolveText(live.listEntry.title),
-            subtitle: client.resolveText(live.listEntry.description_),
-            titleMatches: [],
-            subtitleMatches: [],
-            detailNodes: PluginNodeMapper(
+        if let live = result as? ApiPluginRuntimeCoordinatorContentItem {
+            resultKind = "live"
+            detailNodes = PluginNodeMapper(
                 client: client,
                 query: query,
                 resultId: live.resultId,
@@ -333,10 +300,23 @@ private struct SearchSceneStateMapper {
             ).mapNodes(
                 live.presentation.content.map { $0 as AnyObject },
                 path: "live.\(index)"
-            ),
+            )
+        } else {
+            resultKind = "result"
+            detailNodes = []
+        }
+
+        return SearchResultRowModel(
+            id: "\(resultKind).\(index).\(result.resultId.commandName)",
+            iconAsset: client.resolveIcon(result.listEntry.icon),
+            title: client.resolveText(result.listEntry.title),
+            subtitle: client.resolveText(result.listEntry.description_),
+            titleMatches: [],
+            subtitleMatches: [],
+            detailNodes: detailNodes,
             isFocused: focusedIndex == index,
             onSelect: {
-                client.enter(live.resultId)
+                client.enter(result.resultId)
             }
         )
     }
@@ -386,15 +366,6 @@ private struct SearchSceneStateMapper {
         default:
             return .normal
         }
-    }
-}
-
-private extension HighlightMatch {
-    init(_ range: KotlinIntRange) {
-        self.init(
-            start: max(Int(range.start.int32Value), 0),
-            end: max(Int(range.endInclusive.int32Value), 0)
-        )
     }
 }
 

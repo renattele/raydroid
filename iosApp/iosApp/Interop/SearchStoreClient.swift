@@ -1,6 +1,9 @@
 import Foundation
 import RaydroidShared
 
+typealias SearchUiState = SearchScreenState
+typealias ActionUiModel = FocusedCommandAction
+
 enum PluginAsset: Equatable {
     case remoteURL(String)
     case base64(String)
@@ -23,6 +26,23 @@ final class SearchStoreObservation {
 
     func cancel() {
         cancelBlock()
+    }
+}
+
+private final class SearchStoreStateCollector: NSObject, Kotlinx_coroutines_coreFlowCollector {
+    private let onState: @MainActor (SearchScreenState) -> Void
+
+    init(onState: @escaping @MainActor (SearchScreenState) -> Void) {
+        self.onState = onState
+    }
+
+    func emit(value: Any?, completionHandler: @escaping (Error?) -> Void) {
+        if let state = value as? SearchScreenState {
+            Task { @MainActor in
+                onState(state)
+            }
+        }
+        completionHandler(nil)
     }
 }
 
@@ -60,7 +80,7 @@ protocol SearchStoreClient {
 @MainActor
 final class KmpSearchStoreClient: SearchStoreClient {
     private let store: SearchStore
-    private var watchHandle: SearchStoreWatchHandle?
+    private var watchTask: Task<Void, Never>?
 
     init(store: SearchStore = RaydroidBootstrapKt.CreateSearchStore()) {
         self.store = store
@@ -75,24 +95,25 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func stop() {
-        watchHandle?.close()
-        watchHandle = nil
-        store.stop()
+        watchTask?.cancel()
+        watchTask = nil
     }
 
     func watch(_ observer: @escaping (SearchUiState) -> Void) -> SearchStoreObservation {
-        watchHandle?.close()
-        let handle = store.watch { updated in
-            DispatchQueue.main.async {
-                observer(updated)
+        watchTask?.cancel()
+        observer(store.currentState())
+        let collector = SearchStoreStateCollector(onState: observer)
+        let flow = store.state
+        watchTask = Task {
+            await withCheckedContinuation { continuation in
+                flow.collect(collector: collector) { _ in
+                    continuation.resume()
+                }
             }
         }
-        watchHandle = handle
-        observer(store.currentState())
         return SearchStoreObservation { [weak self] in
-            guard let self else { return }
-            self.watchHandle?.close()
-            self.watchHandle = nil
+            self?.watchTask?.cancel()
+            self?.watchTask = nil
         }
     }
 
@@ -101,19 +122,19 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func openCommand(commandId: String) {
-        store.openCommand(commandName: commandId)
+        store.openCommand(query: commandId)
     }
 
     func updateRootQuery(_ query: String) {
-        store.updateRootQuery(query: query)
+        store.currentState().eventSink(SearchScreenEventQueryChanged(query: query))
     }
 
     func updateFullscreenQuery(_ query: String) {
-        store.updateFullscreenQuery(query: query)
+        store.currentState().eventSink(SearchScreenEventQueryChanged(query: query))
     }
 
     func submit() {
-        store.enter(resultId: nil)
+        store.currentState().eventSink(SearchScreenEventEnter(resultId: nil))
     }
 
     func submitForm(callback: ApiPluginFormSubmitCallback, values: [String: PluginFormValueDraft]) {
@@ -128,11 +149,11 @@ final class KmpSearchStoreClient: SearchStoreClient {
                 builder.putDate(key: key, value: value)
             }
         }
-        store.submitForm(callback: callback, values: builder.build())
+        callback.invoke(values: builder.build()) { _ in }
     }
 
     func closeFullscreen() {
-        store.closeFullscreen()
+        store.currentState().eventSink(SearchScreenEventCloseFullscreen.shared)
     }
 
     func toggleActions() {
@@ -144,43 +165,57 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func backspaceOnEmpty() {
-        store.backspaceOnEmpty()
+        store.currentState().eventSink(SearchScreenEventBackspaceOnEmpty.shared)
     }
 
     func enter(_ resultId: ApiSearchResultId?) {
-        store.enter(resultId: resultId)
+        store.currentState().eventSink(SearchScreenEventEnter(resultId: resultId))
     }
 
     func enterAction(_ action: ActionUiModel) {
-        store.enterAction(action: action)
+        store.currentState().eventSink(SearchScreenEventEnterAction(action: action))
     }
 
     func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool = false) {
-        store.enterCallback(resultId: resultId, callback: callback, updateUsage: updateUsage)
+        store.currentState().eventSink(
+            SearchScreenEventEnterCallback(
+                resultId: resultId,
+                callback: callback,
+                updateUsage: updateUsage
+            )
+        )
     }
 
     func focusPluginItem(_ itemId: Any) {
-        store.focusPluginItem(itemId: itemId)
+        store.currentState().eventSink(SearchScreenEventFocusPluginItem(itemId: itemId))
     }
 
     func enterPluginItem(_ itemId: Any) {
-        store.enterPluginItem(itemId: itemId)
+        store.currentState().eventSink(SearchScreenEventEnterPluginItem(itemId: itemId))
     }
 
     func showContextActions(resultId: ApiSearchResultId, actions: [ApiPluginCommandListAction]) {
-        store.showContextActions(resultId: resultId, actions: actions)
+        store.currentState().eventSink(
+            SearchScreenEventShowContextActions(
+                resultId: resultId,
+                actions: actions
+            )
+        )
     }
 
     func dismissAlert(_ alert: ApiNotificationEventAlert) {
-        store.dismissAlert(alert: alert)
+        store.currentState().eventSink(SearchScreenEventDismissAlert(alert: alert))
     }
 
     func confirmAlert(_ alert: ApiNotificationEventAlert) {
-        store.confirmAlert(alert: alert)
+        store.currentState().eventSink(SearchScreenEventConfirmAlert(alert: alert))
     }
 
     func hideToast(_ toastId: String) {
-        store.hideToast(toastId: toastId)
+        guard let toast = store.currentState().toasts.first(where: { $0.toastId == toastId }) else {
+            return
+        }
+        store.currentState().eventSink(SearchScreenEventHideToast(toast: toast))
     }
 
     func resolveText(_ text: ApiPluginUiText?) -> String {
@@ -199,7 +234,10 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     private var resolver: PluginResourceResolver {
-        store.resourceResolver(language: Locale.current.language.languageCode?.identifier ?? "en")
+        PluginResourceResolver(
+            plugins: store.currentState().plugins,
+            language: Locale.current.language.languageCode?.identifier ?? "en"
+        )
     }
 
     private func makeAsset(from asset: ResolvedPluginAsset) -> PluginAsset? {

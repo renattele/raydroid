@@ -155,7 +155,6 @@ dependencies {
     outlinedMaterialIconSources("org.jetbrains.compose.material:material-icons-core:${libs.versions.composeIcons.get()}:sources@jar")
     outlinedMaterialIconSources("org.jetbrains.compose.material:material-icons-extended:${libs.versions.composeIcons.get()}:sources@jar")
     androidRuntimeClasspath(libs.compose.uiTooling)
-    add("kspCommonMainMetadata", libs.room.compiler)
     add("kspAndroid", libs.room.compiler)
     add("kspJvm", libs.room.compiler)
     add("kspIosArm64", libs.room.compiler)

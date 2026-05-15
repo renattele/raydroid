@@ -310,6 +310,8 @@ private class FakeSearchRuntime(
 
     override suspend fun update(commandName: String, action: CommandActionBridge) = Unit
 
+    override suspend fun back(commandName: String): Boolean = false
+
     override suspend fun unload() = Unit
 }
 

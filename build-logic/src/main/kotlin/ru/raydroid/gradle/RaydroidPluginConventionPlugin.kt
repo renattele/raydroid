@@ -9,6 +9,7 @@ import org.gradle.kotlin.dsl.register
 class RaydroidPluginConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         pluginManager.apply("raydroid.zipline")
+        configureJsWebpackTaskDependencies()
 
         registerPluginVariantTasks(
             variantName = "Development",
@@ -18,6 +19,13 @@ class RaydroidPluginConventionPlugin : Plugin<Project> {
             variantName = "Production",
             outputVariantName = "production",
         )
+    }
+}
+
+private fun Project.configureJsWebpackTaskDependencies() {
+    tasks.configureEach {
+        if (name != "jsBrowserProductionWebpack") return@configureEach
+        dependsOn("jsDevelopmentExecutableCompileSync")
     }
 }
 

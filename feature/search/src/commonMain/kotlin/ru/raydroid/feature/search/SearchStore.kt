@@ -1,16 +1,16 @@
-package ru.raydroid.search
+package ru.raydroid.feature.search
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.text.TextRange
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,10 +54,10 @@ import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.api.host.service.SearchFieldState as ApiSearchFieldState
-import ru.raydroid.plugin.host.impl.presentation.SearchFieldState as PresentationSearchFieldState
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
-class SearchViewModel(
+class SearchStore(
+    private val applicationScope: CoroutineScope,
     private val syncCacheUseCase: SyncCacheUseCase,
     private val loadRuntimesUseCase: LoadRuntimesUseCase,
     private val searchUseCase: SearchUseCase,
@@ -65,31 +65,75 @@ class SearchViewModel(
     private val openCommandUseCase: OpenCommandUseCase,
     private val enterItemUseCase: EnterItemUseCase,
     private val closeCommandUseCase: CloseCommandUseCase,
-    private val backCommandUseCase: BackCommandUseCase,
     private val executeCommandCallbackUseCase: ExecuteCommandCallbackUseCase,
     private val getCommandFullscreenUseCase: GetCommandFullscreenUseCase,
     private val getEventsUseCase: GetEventsUseCase,
     private val emitEventUseCase: EmitEventUseCase,
     private val getSearchFieldRequestsUseCase: GetSearchFieldRequestsUseCase,
-    private val updateCommandQueryUseCase: UpdateCommandQueryUseCase
-) : ViewModel() {
+    private val updateCommandQueryUseCase: UpdateCommandQueryUseCase,
+    private val backCommandUseCase: BackCommandUseCase? = null
+) {
+    constructor(
+        syncCacheUseCase: SyncCacheUseCase,
+        loadRuntimesUseCase: LoadRuntimesUseCase,
+        searchUseCase: SearchUseCase,
+        getPluginsUseCase: GetPluginsUseCase,
+        openCommandUseCase: OpenCommandUseCase,
+        enterItemUseCase: EnterItemUseCase,
+        closeCommandUseCase: CloseCommandUseCase,
+        backCommandUseCase: BackCommandUseCase,
+        executeCommandCallbackUseCase: ExecuteCommandCallbackUseCase,
+        getCommandFullscreenUseCase: GetCommandFullscreenUseCase,
+        getEventsUseCase: GetEventsUseCase,
+        emitEventUseCase: EmitEventUseCase,
+        getSearchFieldRequestsUseCase: GetSearchFieldRequestsUseCase,
+        updateCommandQueryUseCase: UpdateCommandQueryUseCase
+    ) : this(
+        applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
+        syncCacheUseCase = syncCacheUseCase,
+        loadRuntimesUseCase = loadRuntimesUseCase,
+        searchUseCase = searchUseCase,
+        getPluginsUseCase = getPluginsUseCase,
+        openCommandUseCase = openCommandUseCase,
+        enterItemUseCase = enterItemUseCase,
+        closeCommandUseCase = closeCommandUseCase,
+        executeCommandCallbackUseCase = executeCommandCallbackUseCase,
+        getCommandFullscreenUseCase = getCommandFullscreenUseCase,
+        getEventsUseCase = getEventsUseCase,
+        emitEventUseCase = emitEventUseCase,
+        getSearchFieldRequestsUseCase = getSearchFieldRequestsUseCase,
+        updateCommandQueryUseCase = updateCommandQueryUseCase,
+        backCommandUseCase = backCommandUseCase
+    )
+
     private val _state = MutableStateFlow(
         SearchScreenState(
             eventSink = ::onEvent
         )
     )
+    private val scope = CoroutineScope(
+        applicationScope.coroutineContext.minusKey(Job) + SupervisorJob()
+    )
     val state = _state.asStateFlow()
     private var fullscreenJob: Job? = null
     private val toastDismissJobs = mutableMapOf<String, Job>()
+    private var started = false
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
+        start()
+    }
+
+    fun start() {
+        if (started) return
+        started = true
+
+        scope.launch(Dispatchers.IO) {
             syncCacheUseCase()
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO) {
             loadRuntimesUseCase()
         }
-        viewModelScope.launch {
+        scope.launch {
             getPluginsUseCase().collectLatest { plugins ->
                 val pluginMap = plugins.associateBy { it.pluginId }
                 val currentState = _state.value
@@ -113,7 +157,7 @@ class SearchViewModel(
                 }
             }
         }
-        viewModelScope.launch {
+        scope.launch {
             getEventsUseCase().collectLatest { event ->
                 when (val data = event.data) {
                     is NotificationEvent.Alert -> {
@@ -134,7 +178,7 @@ class SearchViewModel(
                 }
             }
         }
-        viewModelScope.launch {
+        scope.launch {
             snapshotFlow { _state.value.searchFieldState.fieldState.text }
                 .map { text -> text.toString() }
                 .distinctUntilChanged()
@@ -184,7 +228,7 @@ class SearchViewModel(
                     }
                 }
         }
-        viewModelScope.launch {
+        scope.launch {
             _state
                 .map { state ->
                     state.fullscreen?.let { fullscreen ->
@@ -233,7 +277,7 @@ class SearchViewModel(
                     }
                 }
         }
-        viewModelScope.launch {
+        scope.launch {
             getSearchFieldRequestsUseCase().collectLatest { request ->
                 val fullscreen = _state.value.fullscreen ?: return@collectLatest
                 if (fullscreen.resultId.pluginId != request.pluginId) {
@@ -254,8 +298,48 @@ class SearchViewModel(
         }
     }
 
+    fun currentState(): SearchScreenState = _state.value
+
+    fun openSearch(query: String) {
+        _state.value.searchFieldState.fieldState.apply(
+            ApiSearchFieldState(text = query, selection = SearchFieldSelection.CursorAtEnd)
+        )
+    }
+
+    fun openCommand(query: String) {
+        openSearch(query)
+    }
+
+    fun toggleActions() {
+        _state.update { state ->
+            state.copy(
+                showActions = !state.showActions,
+                showContextActions = false
+            )
+        }
+    }
+
+    fun hideActions() {
+        _state.update { state ->
+            state.copy(
+                showActions = false,
+                showContextActions = false
+            )
+        }
+    }
+
+    fun hideToast(toastId: String) {
+        hideToastInternal(toastId)
+    }
+
+    fun confirmAlert(alert: NotificationEvent.Alert) {
+        scope.launch {
+            onEvent(SearchScreenEvent.ConfirmAlert(alert))
+        }
+    }
+
     private fun onEvent(event: SearchScreenEvent) {
-        viewModelScope.launch {
+        scope.launch {
             when (event) {
                 is SearchScreenEvent.Enter -> {
                     val state = _state.value
@@ -375,7 +459,7 @@ class SearchViewModel(
                 SearchScreenEvent.BackspaceOnEmpty -> {
                     val state = _state.value
                     val fullscreen = state.fullscreen ?: return@launch
-                    if (backCommandUseCase(fullscreen.resultId)) {
+                    if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
                         _state.update { currentState ->
                             val currentFullscreen = currentState.fullscreen ?: return@update currentState
                             if (currentFullscreen.resultId == fullscreen.resultId) {
@@ -473,7 +557,7 @@ class SearchViewModel(
                 SearchScreenEvent.CloseFullscreen -> {
                     val state = _state.value
                     val fullscreen = state.fullscreen ?: return@launch
-                    if (backCommandUseCase(fullscreen.resultId)) {
+                    if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
                         return@launch
                     }
                     collapseAndCloseFullscreen(fullscreen.resultId)
@@ -518,17 +602,17 @@ class SearchViewModel(
         }
         val autoDismissMillis = toast.toast.autoDismissMillis ?: return
         toastDismissJobs.remove(toast.toastId)?.cancel()
-        toastDismissJobs[toast.toastId] = viewModelScope.launch {
+        toastDismissJobs[toast.toastId] = scope.launch {
             delay(autoDismissMillis)
             dismissToast(toast.toastId, cancelJob = false)
         }
     }
 
     private fun hideToast(event: NotificationEvent.HideToast) {
-        hideToast(event.toastId)
+        hideToastInternal(event.toastId)
     }
 
-    private fun hideToast(toastId: String) {
+    private fun hideToastInternal(toastId: String) {
         dismissToast(toastId, cancelJob = true)
     }
 
@@ -650,7 +734,7 @@ class SearchViewModel(
                     resultId = fullscreenResultId,
                     title = result.listEntry.title,
                     placeholder = command?.placeholder?.toPluginUiText(fullscreenResultId.pluginId),
-                    searchFieldState = PresentationSearchFieldState(
+                    searchFieldState = SearchFieldState(
                         fieldState = TextFieldState()
                     ),
                     exitBackspaceCount = 0,
@@ -663,7 +747,7 @@ class SearchViewModel(
                 showContextActions = false
             )
         }
-        viewModelScope.launch {
+        scope.launch {
             val focusedActions = if (result.resultId == fullscreenResultId) {
                 result.actions(_state.value.plugins).map { action ->
                     FocusedCommandAction(
@@ -692,7 +776,7 @@ class SearchViewModel(
                 }
             }
         }
-        fullscreenJob = viewModelScope.launch {
+        fullscreenJob = scope.launch {
             getCommandFullscreenUseCase(fullscreenResultId).collectLatest { content ->
                 val newContent = content?.content.orEmpty()
                 _state.update { state ->
@@ -719,7 +803,7 @@ class SearchViewModel(
 }
 
 data class SearchScreenState(
-    val searchFieldState: PresentationSearchFieldState = PresentationSearchFieldState(
+    val searchFieldState: SearchFieldState = SearchFieldState(
         fieldState = TextFieldState()
     ),
     val searchResults: SearchResultSet? = null,
@@ -740,7 +824,7 @@ data class PluginFullscreenState(
     val resultId: SearchResultId,
     val title: PluginUiText?,
     val placeholder: PluginUiText?,
-    val searchFieldState: PresentationSearchFieldState,
+    val searchFieldState: SearchFieldState,
     val exitBackspaceCount: Int,
     val content: List<PluginRayNodeData>,
     val focusedItemId: CommandItemId?
@@ -761,6 +845,22 @@ private data class FullscreenSearchField(
     val resultId: SearchResultId,
     val fieldState: TextFieldState
 )
+
+data class SearchFieldState(
+    val fieldState: TextFieldState,
+    val canGoOnEnter: Boolean = false,
+    val isKeyboardPresent: Boolean = false
+) {
+    val text: String
+        get() = fieldState.text.toString()
+
+    val selection: SearchFieldSelection
+        get() = when {
+            fieldState.selection.start == 0 && fieldState.selection.end == 0 -> SearchFieldSelection.CursorAtStart
+            fieldState.selection.start == 0 && fieldState.selection.end == fieldState.text.length -> SearchFieldSelection.SelectAll
+            else -> SearchFieldSelection.CursorAtEnd
+        }
+}
 
 private fun TextFieldState.apply(state: ApiSearchFieldState) {
     edit {

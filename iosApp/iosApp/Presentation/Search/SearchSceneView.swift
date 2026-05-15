@@ -72,15 +72,15 @@ struct SearchSceneView: View {
             .navigationTitle("Raydroid")
             .toolbarTitleDisplayMode(.inline)
             .onAppear {
-                keepSearchFocused()
+                syncSearchFocus()
             }
             .task {
-                keepSearchFocused()
+                syncSearchFocus()
                 model.start()
                 await spotlightIndexing.indexCommands()
                 if router.pendingRoute != nil {
                     model.applyRoute(router.pendingRoute, router: router)
-                    keepSearchFocused()
+                    syncSearchFocus()
                 }
             }
             .onDisappear {
@@ -89,11 +89,14 @@ struct SearchSceneView: View {
             .onChange(of: router.pendingRoute) { _, route in
                 if route != nil {
                     model.applyRoute(route, router: router)
-                    keepSearchFocused()
+                    syncSearchFocus()
                 }
             }
+            .onChange(of: model.state.showsBackButton) { _, _ in
+                syncSearchFocus()
+            }
             .onChange(of: searchFocused) { _, focused in
-                if !focused {
+                if !focused, shouldKeepSearchFocused {
                     keepSearchFocused()
                 }
             }
@@ -106,9 +109,21 @@ struct SearchSceneView: View {
         }
     }
 
+    private var shouldKeepSearchFocused: Bool {
+        !model.state.showsBackButton
+    }
+
     private func keepSearchFocused() {
         Task { @MainActor in
             searchFocused = true
+        }
+    }
+
+    private func syncSearchFocus() {
+        if shouldKeepSearchFocused {
+            keepSearchFocused()
+        } else {
+            searchFocused = false
         }
     }
 
