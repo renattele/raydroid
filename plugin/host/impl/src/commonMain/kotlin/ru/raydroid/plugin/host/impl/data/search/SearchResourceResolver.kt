@@ -74,7 +74,7 @@ internal class SearchResourceResolverImpl(
                 val metadata = metadataCache.getOrPutMetadata(pluginId) ?: return icon
 
                 val bytes = readBinaryResource(metadata.resources, icon.value) ?: return icon
-                return Icon.Base64(bytes.toByteString().base64())
+                return Icon.Url("data:image/png;base64,${bytes.toByteString().base64()}")
             }
         }
     }

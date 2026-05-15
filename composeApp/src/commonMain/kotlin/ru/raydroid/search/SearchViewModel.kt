@@ -277,6 +277,13 @@ class SearchViewModel(
                             collectFullscreen(openResult)
                             openCommandUseCase(openResultId)
                         }
+                        is SearchResultSet.CachedSearchResult -> {
+                            collectFullscreen(
+                                result = openResult,
+                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+                            )
+                            enterItemUseCase(openResultId)
+                        }
                         is SearchResultSet.LiveSearchResult -> {
                             val primaryCallback = openResult.presentation.primaryCallback
                             if (primaryCallback != null) {
@@ -287,9 +294,7 @@ class SearchViewModel(
                                 )
                             }
                         }
-                        else -> {
-                            enterItemUseCase(openResultId)
-                        }
+                        null -> Unit
                     }
                 }
 
@@ -629,19 +634,22 @@ class SearchViewModel(
         }
     }
 
-    private fun collectFullscreen(result: SearchResultSet.CommandSearchResult) {
+    private fun collectFullscreen(
+        result: SearchResultSet.SearchResult,
+        fullscreenResultId: SearchResultId = result.resultId
+    ) {
         fullscreenJob?.cancel()
-        val runtime = _state.value.plugins[result.resultId.pluginId]
+        val runtime = _state.value.plugins[fullscreenResultId.pluginId]
         val command = runtime
             ?.manifest
             ?.commands
-            ?.firstOrNull { command -> command.service == result.resultId.commandName }
+            ?.firstOrNull { command -> command.service == fullscreenResultId.commandName }
         _state.update { state ->
             state.copy(
                 fullscreen = PluginFullscreenState(
-                    resultId = result.resultId,
+                    resultId = fullscreenResultId,
                     title = result.listEntry.title,
-                    placeholder = command?.placeholder?.toPluginUiText(result.resultId.pluginId),
+                    placeholder = command?.placeholder?.toPluginUiText(fullscreenResultId.pluginId),
                     searchFieldState = PresentationSearchFieldState(
                         fieldState = TextFieldState()
                     ),
@@ -656,16 +664,20 @@ class SearchViewModel(
             )
         }
         viewModelScope.launch {
-            val focusedActions = result.actions(_state.value.plugins).map { action ->
-                FocusedCommandAction(
-                    resultId = result.resultId,
-                    action = action,
-                    updateUsage = false
-                )
+            val focusedActions = if (result.resultId == fullscreenResultId) {
+                result.actions(_state.value.plugins).map { action ->
+                    FocusedCommandAction(
+                        resultId = fullscreenResultId,
+                        action = action,
+                        updateUsage = false
+                    )
+                }
+            } else {
+                emptyList()
             }
             _state.update { state ->
                 val fullscreen = state.fullscreen
-                if (fullscreen?.resultId == result.resultId) {
+                if (fullscreen?.resultId == fullscreenResultId) {
                     val query = fullscreen.searchFieldState.fieldState.text.toString()
                     if (fullscreen.content.pluginFocusModel(fullscreen.focusedItemId, query).focusedItemId != null) {
                         state
@@ -681,11 +693,11 @@ class SearchViewModel(
             }
         }
         fullscreenJob = viewModelScope.launch {
-            getCommandFullscreenUseCase(result.resultId).collectLatest { content ->
+            getCommandFullscreenUseCase(fullscreenResultId).collectLatest { content ->
                 val newContent = content?.content.orEmpty()
                 _state.update { state ->
                     val fullscreen = state.fullscreen
-                    if (fullscreen?.resultId != result.resultId) {
+                    if (fullscreen?.resultId != fullscreenResultId) {
                         state
                     } else {
                         state.copy(

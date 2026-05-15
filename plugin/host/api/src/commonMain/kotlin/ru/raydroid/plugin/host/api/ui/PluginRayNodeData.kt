@@ -197,6 +197,7 @@ data class PluginListItemData(
     val title: PluginUiText,
     val subtitle: PluginUiText? = null,
     val icon: PluginIcon? = null,
+    val iconColor: PluginColor? = null,
     val keywords: List<String> = emptyList(),
     val detail: PluginDetailData? = null,
     val content: List<PluginRayNodeData> = emptyList(),
@@ -242,5 +243,6 @@ enum class PluginGridAspectRatio {
 data class PluginEmptyViewData(
     val title: PluginUiText,
     val description: PluginUiText? = null,
-    val icon: PluginIcon? = null
+    val icon: PluginIcon? = null,
+    val iconColor: PluginColor? = null
 )

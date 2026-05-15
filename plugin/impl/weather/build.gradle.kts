@@ -4,6 +4,7 @@ import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import ru.raydroid.gradle.generateKotlinSecret
 
 plugins {
     alias(libs.plugins.raydroidPlugin)
@@ -26,6 +27,13 @@ extensions.configure<KotlinMultiplatformExtension> {
         }
     }
 }
+
+generateKotlinSecret(
+    packageName = "ru.raydroid.plugin.impl.weather",
+    constantName = "DefaultOpenWeatherApiKey",
+    propertyName = "openWeatherApiKey",
+    environmentName = "OPENWEATHER_API_KEY",
+)
 
 plugins.withType<YarnPlugin> {
     the<YarnRootExtension>().yarnLockAutoReplace = true

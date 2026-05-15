@@ -428,6 +428,7 @@ private fun ListItemData.toPluginListItemData(
     title = title.toPluginUiText(pluginId),
     subtitle = subtitle?.toPluginUiText(pluginId),
     icon = icon?.toPluginIcon(pluginId),
+    iconColor = iconColor?.toPluginColor(),
     keywords = keywords,
     detail = detail?.toPluginDetailData(pluginId),
     content = content.map { it.toPluginRayNodeData(pluginId, dispatchCallback, dispatchFormCallback) },
@@ -459,7 +460,8 @@ private fun EmptyViewData.toPluginEmptyViewData(pluginId: PluginId): PluginEmpty
     PluginEmptyViewData(
         title = title.toPluginUiText(pluginId),
         description = description?.toPluginUiText(pluginId),
-        icon = icon?.toPluginIcon(pluginId)
+        icon = icon?.toPluginIcon(pluginId),
+        iconColor = iconColor?.toPluginColor()
     )
 
 private fun GridAspectRatio.toPluginGridAspectRatio(): PluginGridAspectRatio = when (this) {
