@@ -27,16 +27,17 @@ final class PreviewSearchStoreClient: SearchStoreClient {
         return SearchStoreObservation(cancelBlock: {})
     }
 
+    func updateQuery(_ query: String, selectionName: String) {}
     func openSearch(query: String) {}
     func openCommand(commandId: String) {}
-    func updateRootQuery(_ query: String) {}
-    func updateFullscreenQuery(_ query: String) {}
-    func submit() {}
+    func submit(resultId: ApiSearchResultId?) {}
     func submitForm(callback: ApiPluginFormSubmitCallback, values: [String : PluginFormValueDraft]) {}
     func closeFullscreen() {}
     func toggleActions() {}
     func hideActions() {}
     func backspaceOnEmpty() {}
+    func moveFocusNext() {}
+    func moveFocusPrevious() {}
     func enter(_ resultId: ApiSearchResultId?) {}
     func enterAction(_ action: ActionUiModel) {}
     func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool) {}
@@ -222,6 +223,7 @@ enum PreviewData {
                     title: "Server",
                     placeholder: "https://api.example.com",
                     defaultValue: "",
+                    isRequired: true,
                     isPassword: false,
                     isMultiline: false
                 )
@@ -232,6 +234,7 @@ enum PreviewData {
                     title: "Token",
                     placeholder: "API token",
                     defaultValue: "",
+                    isRequired: true,
                     isPassword: true,
                     isMultiline: false
                 )
@@ -240,6 +243,7 @@ enum PreviewData {
                 CheckboxFormFieldViewData(
                     id: "remember",
                     title: "Remember credentials",
+                    isRequired: false,
                     defaultValue: true
                 )
             ),
@@ -261,6 +265,7 @@ enum PreviewData {
                             iconAsset: .builtinName("GridView")
                         )
                     ],
+                    isRequired: false,
                     defaultValue: "dev"
                 )
             ),
@@ -268,6 +273,7 @@ enum PreviewData {
                 DateFormFieldViewData(
                     id: "expiry",
                     title: "Expiry",
+                    isRequired: false,
                     defaultValue: "2026-05-08"
                 )
             ),
@@ -279,7 +285,16 @@ enum PreviewData {
             )
         ],
         submitTitle: "Connect",
-        isSubmitEnabled: true,
+        submitIconAsset: .builtinName("Save"),
+        submitStyle: .filled,
+        isSubmitEnabledByPlugin: true,
+        requireChanges: true,
+        unchangedView: EmptyStateViewData(
+            id: "form.unchanged",
+            iconAsset: .builtinName("Edit"),
+            title: "No changes yet",
+            description: "Update any field to enable the action."
+        ),
         onSubmit: { _ in }
     )
 
@@ -325,6 +340,7 @@ enum PreviewData {
         selectionName: "cursorAtEnd",
         resultsBody: searchResultsBody,
         fullscreen: nil,
+        loadingStatusMessage: nil,
         actions: [
             OverlayActionModel(
                 id: "action.run",
@@ -342,6 +358,7 @@ enum PreviewData {
             )
         ],
         actionTitle: "Run Command",
+        showsActionToggle: true,
         showsActionsPanel: true,
         showsBackButton: false,
         exitBackspaceCount: 0,
@@ -373,6 +390,7 @@ enum PreviewData {
         selectionName: "cursorAtEnd",
         resultsBody: .empty,
         fullscreen: fullscreenModel,
+        loadingStatusMessage: nil,
         actions: [
             OverlayActionModel(
                 id: "action.copy",
@@ -383,6 +401,7 @@ enum PreviewData {
             )
         ],
         actionTitle: "Copy Result",
+        showsActionToggle: true,
         showsActionsPanel: true,
         showsBackButton: true,
         exitBackspaceCount: 1,
@@ -394,7 +413,10 @@ enum PreviewData {
 @MainActor
 extension SearchSceneModel {
     static func preview(state: SearchSceneState) -> SearchSceneModel {
-        let model = SearchSceneModel(storeClient: PreviewSearchStoreClient())
+        let model = SearchSceneModel(
+            storeClient: PreviewSearchStoreClient(),
+            router: AppRouter()
+        )
         model.state = state
         return model
     }

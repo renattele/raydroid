@@ -159,20 +159,26 @@ struct PluginImageView: View {
 }
 
 struct SearchInputField: UIViewRepresentable {
-    @Binding var text: String
+    let text: String
     let placeholder: String
     let selectionName: String
-    @Binding var isFocused: Bool
+    let desiredFocus: Bool
+    let retainFocusWhenBlurred: Bool
     let canSubmit: Bool
+    let onTextChange: (String, String) -> Void
     let onSubmit: () -> Void
     let onBackspaceOnEmpty: () -> Void
+    let onMoveFocusUp: () -> Void
+    let onMoveFocusDown: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
-            text: $text,
-            isFocused: $isFocused,
+            retainFocusWhenBlurred: retainFocusWhenBlurred,
+            onTextChange: onTextChange,
             onSubmit: onSubmit,
-            onBackspaceOnEmpty: onBackspaceOnEmpty
+            onBackspaceOnEmpty: onBackspaceOnEmpty,
+            onMoveFocusUp: onMoveFocusUp,
+            onMoveFocusDown: onMoveFocusDown
         )
     }
 
@@ -189,9 +195,8 @@ struct SearchInputField: UIViewRepresentable {
         textField.backgroundColor = .clear
         textField.font = .preferredFont(forTextStyle: .body)
         textField.adjustsFontForContentSizeCategory = true
-        textField.textColor = .label
-        textField.tintColor = .tintColor
-        textField.clearButtonMode = .whileEditing
+        applyVisibleTextStyling(to: textField)
+        textField.clearButtonMode = .never
         textField.backspaceDelegate = context.coordinator
         textField.addTarget(
             context.coordinator,
@@ -204,13 +209,17 @@ struct SearchInputField: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: BackspaceAwareTextField, context: Context) {
+        context.coordinator.onTextChange = onTextChange
         context.coordinator.onSubmit = onSubmit
         context.coordinator.onBackspaceOnEmpty = onBackspaceOnEmpty
+        context.coordinator.onMoveFocusUp = onMoveFocusUp
+        context.coordinator.onMoveFocusDown = onMoveFocusDown
+        context.coordinator.retainFocusWhenBlurred = retainFocusWhenBlurred
+        context.coordinator.desiredFocus = desiredFocus
         if uiView.text != text {
             uiView.text = text
         }
-        uiView.textColor = .label
-        uiView.tintColor = .tintColor
+        applyVisibleTextStyling(to: uiView)
         uiView.returnKeyType = canSubmit ? .go : .search
         if uiView.placeholder != placeholder {
             uiView.placeholder = placeholder
@@ -222,20 +231,27 @@ struct SearchInputField: UIViewRepresentable {
                 .font: UIFont.preferredFont(forTextStyle: .body)
             ]
         )
-        if isFocused {
-            if uiView.window != nil, !uiView.isFirstResponder {
-                uiView.becomeFirstResponder()
-            }
-        } else if uiView.isFirstResponder {
-            uiView.resignFirstResponder()
-        }
         let selectionSignature = selectionName.lowercased() + "\u{1F}" + text
         if uiView.window != nil,
            uiView.markedTextRange == nil,
            context.coordinator.lastAppliedSelectionSignature != selectionSignature {
+            context.coordinator.isApplyingSelection = true
             applySelection(selectionName, to: uiView)
             context.coordinator.lastAppliedSelectionSignature = selectionSignature
+            context.coordinator.isApplyingSelection = false
         }
+        syncFocus(uiView, coordinator: context.coordinator)
+    }
+
+    private func applyVisibleTextStyling(to textField: UITextField) {
+        let font = UIFont.preferredFont(forTextStyle: .body)
+        textField.font = font
+        textField.textColor = .label
+        textField.tintColor = .systemBlue
+        textField.defaultTextAttributes = [
+            .foregroundColor: UIColor.label,
+            .font: font
+        ]
     }
 
     private func applySelection(_ selectionName: String, to textField: UITextField) {
@@ -259,41 +275,54 @@ struct SearchInputField: UIViewRepresentable {
         }
     }
 
+    private func syncFocus(_ textField: BackspaceAwareTextField, coordinator: Coordinator) {
+        guard textField.window != nil else { return }
+        if coordinator.desiredFocus {
+            guard !textField.isFirstResponder else { return }
+            DispatchQueue.main.async {
+                if coordinator.desiredFocus, textField.window != nil {
+                    textField.becomeFirstResponder()
+                }
+            }
+        }
+    }
+
     final class Coordinator: NSObject, UITextFieldDelegate, BackspaceAwareTextFieldDelegate {
-        @Binding var text: String
-        @Binding var isFocused: Bool
+        var desiredFocus: Bool = false
+        var retainFocusWhenBlurred: Bool
+        var onTextChange: (String, String) -> Void
         var onSubmit: () -> Void
         var onBackspaceOnEmpty: () -> Void
+        var onMoveFocusUp: () -> Void
+        var onMoveFocusDown: () -> Void
         var lastAppliedSelectionSignature: String?
+        var isApplyingSelection = false
 
         init(
-            text: Binding<String>,
-            isFocused: Binding<Bool>,
+            retainFocusWhenBlurred: Bool,
+            onTextChange: @escaping (String, String) -> Void,
             onSubmit: @escaping () -> Void,
-            onBackspaceOnEmpty: @escaping () -> Void
+            onBackspaceOnEmpty: @escaping () -> Void,
+            onMoveFocusUp: @escaping () -> Void,
+            onMoveFocusDown: @escaping () -> Void
         ) {
-            _text = text
-            _isFocused = isFocused
+            self.retainFocusWhenBlurred = retainFocusWhenBlurred
+            self.onTextChange = onTextChange
             self.onSubmit = onSubmit
             self.onBackspaceOnEmpty = onBackspaceOnEmpty
+            self.onMoveFocusUp = onMoveFocusUp
+            self.onMoveFocusDown = onMoveFocusDown
         }
 
         @objc func textDidChange(_ textField: UITextField) {
             let nextValue = textField.text ?? ""
-            if text != nextValue {
-                text = nextValue
-            }
-        }
-
-        func textFieldDidBeginEditing(_ textField: UITextField) {
-            if !isFocused {
-                isFocused = true
-            }
+            onTextChange(nextValue, selectionName(in: textField))
         }
 
         func textFieldDidEndEditing(_ textField: UITextField) {
-            if isFocused {
-                isFocused = false
+            guard retainFocusWhenBlurred, desiredFocus else { return }
+            DispatchQueue.main.async {
+                textField.becomeFirstResponder()
             }
         }
 
@@ -302,23 +331,70 @@ struct SearchInputField: UIViewRepresentable {
             return false
         }
 
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            guard !isApplyingSelection else { return }
+            onTextChange(textField.text ?? "", selectionName(in: textField))
+        }
+
         func textFieldDidBackspaceOnEmpty() {
             onBackspaceOnEmpty()
+        }
+
+        func textFieldDidPressMoveFocusUp() {
+            onMoveFocusUp()
+        }
+
+        func textFieldDidPressMoveFocusDown() {
+            onMoveFocusDown()
+        }
+
+        private func selectionName(in textField: UITextField) -> String {
+            guard let selectedRange = textField.selectedTextRange else {
+                return "cursorAtEnd"
+            }
+            let beginning = textField.beginningOfDocument
+            let start = textField.offset(from: beginning, to: selectedRange.start)
+            let end = textField.offset(from: beginning, to: selectedRange.end)
+            let textLength = textField.text?.count ?? 0
+            if textLength == 0 {
+                return "cursorAtEnd"
+            }
+            if start == 0, end == 0 {
+                return "cursorAtStart"
+            }
+            if start == 0, end == textLength, textLength > 0 {
+                return "selectAll"
+            }
+            return "cursorAtEnd"
         }
     }
 }
 
 protocol BackspaceAwareTextFieldDelegate: AnyObject {
     func textFieldDidBackspaceOnEmpty()
+    func textFieldDidPressMoveFocusUp()
+    func textFieldDidPressMoveFocusDown()
 }
 
 final class BackspaceAwareTextField: UITextField {
-    override var intrinsicContentSize: CGSize {
-        let size = super.intrinsicContentSize
-        return CGSize(width: size.width, height: 30)
-    }
+    private let contentInsets = UIEdgeInsets(top: 6, left: 0, bottom: 6, right: 0)
 
     weak var backspaceDelegate: BackspaceAwareTextFieldDelegate?
+
+    override var keyCommands: [UIKeyCommand]? {
+        [
+            UIKeyCommand(
+                input: UIKeyCommand.inputUpArrow,
+                modifierFlags: [],
+                action: #selector(handleMoveFocusUp)
+            ),
+            UIKeyCommand(
+                input: UIKeyCommand.inputDownArrow,
+                modifierFlags: [],
+                action: #selector(handleMoveFocusDown)
+            )
+        ]
+    }
 
     override func deleteBackward() {
         if (text ?? "").isEmpty {
@@ -327,27 +403,28 @@ final class BackspaceAwareTextField: UITextField {
         super.deleteBackward()
     }
 
+    @objc private func handleMoveFocusUp() {
+        backspaceDelegate?.textFieldDidPressMoveFocusUp()
+    }
+
+    @objc private func handleMoveFocusDown() {
+        backspaceDelegate?.textFieldDidPressMoveFocusDown()
+    }
+
     override func textRect(forBounds bounds: CGRect) -> CGRect {
-        centeredTextRect(for: bounds)
+        insetBounds(bounds)
     }
 
     override func editingRect(forBounds bounds: CGRect) -> CGRect {
-        centeredTextRect(for: bounds)
+        insetBounds(bounds)
     }
 
     override func placeholderRect(forBounds bounds: CGRect) -> CGRect {
-        centeredTextRect(for: bounds)
+        insetBounds(bounds)
     }
 
-    private func centeredTextRect(for bounds: CGRect) -> CGRect {
-        let targetHeight = min(bounds.height, 30)
-        let originY = bounds.origin.y + max(0, (bounds.height - targetHeight) / 2)
-        return CGRect(
-            x: bounds.origin.x,
-            y: originY,
-            width: bounds.width,
-            height: targetHeight
-        )
+    private func insetBounds(_ bounds: CGRect) -> CGRect {
+        bounds.inset(by: contentInsets)
     }
 }
 
@@ -626,14 +703,42 @@ func sfSymbol(for builtinName: String) -> String {
         return "xmark.circle"
     case "Calculate":
         return "function"
+    case "Check":
+        return "checkmark"
+    case "Delete":
+        return "trash"
+    case "Edit":
+        return "pencil"
     case "ArrowRight", "ArrowForward":
         return "arrow.right"
     case "ArrowDropUp":
         return "chevron.up"
     case "GridView":
         return "square.grid.2x2"
+    case "LocationCity":
+        return "building.2"
+    case "Save":
+        return "square.and.arrow.down"
+    case "Search":
+        return "magnifyingglass"
+    case "StickyNote2":
+        return "note.text"
     case "Tune":
         return "slider.horizontal.3"
+    case "Article":
+        return "doc.text"
+    case "Thunderstorm":
+        return "cloud.bolt.rain"
+    case "WaterDrop":
+        return "drop"
+    case "AcUnit":
+        return "snowflake"
+    case "WbCloudy":
+        return "cloud"
+    case "DeviceThermostat":
+        return "thermometer"
+    case "WbSunny":
+        return "sun.max"
     case "Help", "HelpOutline":
         return "questionmark.circle"
     default:

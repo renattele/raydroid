@@ -1,15 +1,11 @@
 package ru.raydroid.feature.search
 
-import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.text.TextRange
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,11 +19,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.raydroid.plugin.api.host.service.SearchFieldSelection
+import ru.raydroid.plugin.api.host.service.SearchFieldState as ApiSearchFieldState
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
-import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.BackCommandUseCase
+import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
 import ru.raydroid.plugin.host.api.application.usecase.ExecuteCommandCallbackUseCase
@@ -45,15 +43,17 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.event.NotificationEvent
-import ru.raydroid.plugin.host.api.event.NotificationEvent.*
+import ru.raydroid.plugin.host.api.event.NotificationEvent.Alert
+import ru.raydroid.plugin.host.api.event.NotificationEvent.AlertResult
+import ru.raydroid.plugin.host.api.event.NotificationEvent.HideToast
+import ru.raydroid.plugin.host.api.event.NotificationEvent.Selection
+import ru.raydroid.plugin.host.api.event.NotificationEvent.ShowToast
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
-import ru.raydroid.plugin.api.host.service.SearchFieldSelection
-import ru.raydroid.plugin.api.host.service.SearchFieldState as ApiSearchFieldState
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class SearchStore(
@@ -106,15 +106,12 @@ class SearchStore(
         backCommandUseCase = backCommandUseCase
     )
 
-    private val _state = MutableStateFlow(
-        SearchScreenState(
-            eventSink = ::onEvent
-        )
-    )
+    private val _state = MutableStateFlow(SearchUiState())
     private val scope = CoroutineScope(
         applicationScope.coroutineContext.minusKey(Job) + SupervisorJob()
     )
     val state = _state.asStateFlow()
+
     private var fullscreenJob: Job? = null
     private val toastDismissJobs = mutableMapOf<String, Job>()
     private var started = false
@@ -138,8 +135,8 @@ class SearchStore(
                 val pluginMap = plugins.associateBy { it.pluginId }
                 val currentState = _state.value
                 if (currentState.fullscreen != null) {
-                    _state.update { state ->
-                        state.copy(plugins = pluginMap)
+                    _state.update { uiState ->
+                        uiState.copy(plugins = pluginMap)
                     }
                     focusFullscreenItem(currentState.fullscreen.focusedItemId)
                 } else {
@@ -147,11 +144,11 @@ class SearchStore(
                         currentState.focusedItemIndex,
                         pluginMap
                     )
-                    _state.update { state ->
-                        state.copy(
+                    _state.update { uiState ->
+                        uiState.copy(
                             plugins = pluginMap,
                             focusedActions = focusedActions,
-                            showActions = state.showActions && focusedActions.isNotEmpty()
+                            showActions = uiState.showActions && focusedActions.isNotEmpty()
                         )
                     }
                 }
@@ -160,33 +157,31 @@ class SearchStore(
         scope.launch {
             getEventsUseCase().collectLatest { event ->
                 when (val data = event.data) {
-                    is NotificationEvent.Alert -> {
-                        _state.update { state ->
-                            state.copy(
-                                alerts = state.alerts + data
-                            )
+                    is Alert -> {
+                        _state.update { uiState ->
+                            uiState.copy(alerts = uiState.alerts + data)
                         }
                     }
 
-                    is NotificationEvent.ShowToast -> {
+                    is ShowToast -> {
                         showToast(data)
                     }
 
-                    is NotificationEvent.HideToast -> {
-                        hideToast(data)
+                    is HideToast -> {
+                        hideToast(data.toastId)
                     }
                 }
             }
         }
         scope.launch {
-            snapshotFlow { _state.value.searchFieldState.fieldState.text }
-                .map { text -> text.toString() }
+            _state
+                .map { uiState -> uiState.searchFieldState.query }
                 .distinctUntilChanged()
                 .onEach {
-                    _state.update { state ->
-                        state.copy(
-                            isSearching = state.searchResults == null,
-                            focusedItemIndex = state.searchResults
+                    _state.update { uiState ->
+                        uiState.copy(
+                            isSearching = uiState.searchResults == null,
+                            focusedItemIndex = uiState.searchResults
                                 ?.results
                                 ?.takeIf { results -> results.isNotEmpty() }
                                 ?.let { 0 },
@@ -214,13 +209,13 @@ class SearchStore(
                             focusedIndex,
                             currentState.plugins
                         )
-                        _state.update { state ->
-                            state.copy(
+                        _state.update { uiState ->
+                            uiState.copy(
                                 searchResults = searchResults,
                                 focusedItemIndex = focusedIndex,
                                 isSearching = false,
                                 focusedActions = focusedActions,
-                                showActions = state.showActions && focusedActions.isNotEmpty(),
+                                showActions = uiState.showActions && focusedActions.isNotEmpty(),
                                 contextActions = emptyList(),
                                 showContextActions = false
                             )
@@ -230,36 +225,20 @@ class SearchStore(
         }
         scope.launch {
             _state
-                .map { state ->
-                    state.fullscreen?.let { fullscreen ->
-                        FullscreenSearchField(
-                            resultId = fullscreen.resultId,
-                            fieldState = fullscreen.searchFieldState.fieldState
-                        )
-                    }
-                }
-                .distinctUntilChanged()
-                .flatMapLatest { fullscreenSearchField ->
-                    if (fullscreenSearchField == null) {
-                        flowOf(null)
-                    } else {
-                        snapshotFlow {
-                            FullscreenQuery(
-                                resultId = fullscreenSearchField.resultId,
-                                query = fullscreenSearchField.fieldState.text.toString()
-                            )
-                        }
+                .map { uiState ->
+                    uiState.fullscreen?.let { fullscreen ->
+                        FullscreenQuery(fullscreen.resultId, fullscreen.searchFieldState.query)
                     }
                 }
                 .distinctUntilChanged()
                 .onEach { fullscreenQuery ->
                     if (fullscreenQuery?.query?.isNotEmpty() == true) {
-                        _state.update { state ->
-                            val fullscreen = state.fullscreen ?: return@update state
+                        _state.update { uiState ->
+                            val fullscreen = uiState.fullscreen ?: return@update uiState
                             if (fullscreen.resultId != fullscreenQuery.resultId) {
-                                state
+                                uiState
                             } else {
-                                state.copy(
+                                uiState.copy(
                                     fullscreen = fullscreen.copy(exitBackspaceCount = 0)
                                 )
                             }
@@ -283,14 +262,16 @@ class SearchStore(
                 if (fullscreen.resultId.pluginId != request.pluginId) {
                     return@collectLatest
                 }
-                fullscreen.searchFieldState.fieldState.apply(request.state)
-                _state.update { state ->
-                    val currentFullscreen = state.fullscreen ?: return@update state
+                _state.update { uiState ->
+                    val currentFullscreen = uiState.fullscreen ?: return@update uiState
                     if (currentFullscreen.resultId.pluginId != request.pluginId) {
-                        state
+                        uiState
                     } else {
-                        state.copy(
-                            fullscreen = currentFullscreen.copy(exitBackspaceCount = 0)
+                        uiState.copy(
+                            fullscreen = currentFullscreen.copy(
+                                searchFieldState = currentFullscreen.searchFieldState.apply(request.state),
+                                exitBackspaceCount = 0
+                            )
                         )
                     }
                 }
@@ -298,30 +279,48 @@ class SearchStore(
         }
     }
 
-    fun currentState(): SearchScreenState = _state.value
+    fun currentState(): SearchUiState = _state.value
+
+    fun send(intent: SearchIntent) {
+        scope.launch {
+            handleIntent(intent)
+        }
+    }
 
     fun openSearch(query: String) {
-        _state.value.searchFieldState.fieldState.apply(
-            ApiSearchFieldState(text = query, selection = SearchFieldSelection.CursorAtEnd)
-        )
+        _state.update { uiState ->
+            uiState.copy(
+                searchFieldState = SearchFieldUiState(
+                    query = query,
+                    selection = SearchFieldSelection.CursorAtEnd
+                )
+            )
+        }
     }
 
     fun openCommand(query: String) {
-        openSearch(query)
+        _state.update { uiState ->
+            uiState.copy(
+                searchFieldState = SearchFieldUiState(
+                    query = query,
+                    selection = SearchFieldSelection.CursorAtEnd
+                )
+            )
+        }
     }
 
     fun toggleActions() {
-        _state.update { state ->
-            state.copy(
-                showActions = !state.showActions,
+        _state.update { uiState ->
+            uiState.copy(
+                showActions = !uiState.showActions,
                 showContextActions = false
             )
         }
     }
 
     fun hideActions() {
-        _state.update { state ->
-            state.copy(
+        _state.update { uiState ->
+            uiState.copy(
                 showActions = false,
                 showContextActions = false
             )
@@ -329,263 +328,297 @@ class SearchStore(
     }
 
     fun hideToast(toastId: String) {
-        hideToastInternal(toastId)
+        dismissToast(toastId, cancelJob = true)
     }
 
-    fun confirmAlert(alert: NotificationEvent.Alert) {
-        scope.launch {
-            onEvent(SearchScreenEvent.ConfirmAlert(alert))
-        }
+    fun confirmAlert(alert: Alert) {
+        send(SearchIntent.ConfirmAlert(alert))
     }
 
-    private fun onEvent(event: SearchScreenEvent) {
-        scope.launch {
-            when (event) {
-                is SearchScreenEvent.Enter -> {
-                    val state = _state.value
-                    val fullscreen = state.fullscreen
-                    if (fullscreen != null) {
-                        enterFocusedFullscreenItem(fullscreen)
-                        return@launch
-                    }
-                    val openResultId =
-                        event.resultId ?: state.focusedResultId()
-                    if (openResultId == null) {
-                        return@launch
-                    }
-                    val openResult = state.searchResults
-                        ?.results
-                        ?.firstOrNull { result -> result.resultId == openResultId }
-                    when (openResult) {
-                        is SearchResultSet.CommandSearchResult -> {
-                            collectFullscreen(openResult)
-                            openCommandUseCase(openResultId)
-                        }
-                        is SearchResultSet.CachedSearchResult -> {
-                            collectFullscreen(
-                                result = openResult,
-                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+    private suspend fun handleIntent(intent: SearchIntent) {
+        when (intent) {
+            is SearchIntent.UpdateQuery -> {
+                _state.update { uiState ->
+                    if (uiState.fullscreen != null) {
+                        uiState.copy(
+                            fullscreen = uiState.fullscreen.copy(
+                                searchFieldState = uiState.fullscreen.searchFieldState.copy(
+                                    query = intent.query,
+                                    selection = intent.selection
+                                )
                             )
-                            enterItemUseCase(openResultId)
-                        }
-                        is SearchResultSet.LiveSearchResult -> {
-                            val primaryCallback = openResult.presentation.primaryCallback
-                            if (primaryCallback != null) {
-                                executeCommandCallbackUseCase(
-                                    resultId = openResultId,
-                                    callback = primaryCallback,
-                                    updateUsage = false
-                                )
-                            }
-                        }
-                        null -> Unit
+                        )
+                    } else {
+                        uiState.copy(
+                            searchFieldState = uiState.searchFieldState.copy(
+                                query = intent.query,
+                                selection = intent.selection
+                            )
+                        )
                     }
                 }
+            }
 
-                SearchScreenEvent.MoveFocusNext -> {
-                    val state = _state.value
-                    if (state.fullscreen != null) {
-                        moveFullscreenFocus(1)
-                        return@launch
-                    }
-                    val focusedIndex = state.searchResults?.let { searchResults ->
-                        state.focusedItemIndex?.let { itemIndex ->
-                            (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
-                        }
-                    }
-                    val focusedActions = state.searchResults.actionsForFocused(
-                        focusedIndex,
-                        state.plugins
+            is SearchIntent.OpenSearch -> {
+                _state.update { uiState ->
+                    uiState.copy(
+                        searchFieldState = SearchFieldUiState(
+                            query = intent.query,
+                            selection = SearchFieldSelection.CursorAtEnd
+                        )
                     )
-                    _state.update { state ->
-                        state.copy(
-                            focusedItemIndex = focusedIndex,
-                            focusedActions = focusedActions,
-                            showActions = false,
-                            contextActions = emptyList(),
-                            showContextActions = false
-                        )
-                    }
                 }
+            }
 
-                SearchScreenEvent.MoveFocusPrevious -> {
-                    val state = _state.value
-                    if (state.fullscreen != null) {
-                        moveFullscreenFocus(-1)
-                        return@launch
-                    }
-                    val focusedIndex = state.searchResults?.let { searchResults ->
-                        state.focusedItemIndex?.let { itemIndex ->
-                            (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
-                        }
-                    }
-                    val focusedActions = state.searchResults.actionsForFocused(
-                        focusedIndex,
-                        state.plugins
+            is SearchIntent.OpenCommand -> {
+                _state.update { uiState ->
+                    uiState.copy(
+                        searchFieldState = SearchFieldUiState(
+                            query = intent.query,
+                            selection = SearchFieldSelection.CursorAtEnd
+                        )
                     )
-                    _state.update { state ->
-                        state.copy(
-                            focusedItemIndex = focusedIndex,
-                            focusedActions = focusedActions,
-                            showActions = false,
-                            contextActions = emptyList(),
-                            showContextActions = false
-                        )
+                }
+            }
+
+            is SearchIntent.Submit -> {
+                val uiState = _state.value
+                val fullscreen = uiState.fullscreen
+                if (fullscreen != null) {
+                    enterFocusedFullscreenItem(fullscreen)
+                    return
+                }
+                val openResultId = intent.resultId ?: uiState.focusedResultId()
+                if (openResultId == null) {
+                    return
+                }
+                val openResult = uiState.searchResults
+                    ?.results
+                    ?.firstOrNull { result -> result.resultId == openResultId }
+                when (openResult) {
+                    is SearchResultSet.CommandSearchResult -> {
+                        collectFullscreen(openResult)
+                        openCommandUseCase(openResultId)
                     }
-                }
 
-                SearchScreenEvent.ToggleActions -> {
-                    _state.update { state ->
-                        state.copy(
-                            showActions = !state.showActions,
-                            showContextActions = false
+                    is SearchResultSet.CachedSearchResult -> {
+                        collectFullscreen(
+                            result = openResult,
+                            fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
                         )
+                        enterItemUseCase(openResultId)
                     }
-                }
 
-                SearchScreenEvent.HideActions -> {
-                    _state.update { state ->
-                        state.copy(
-                            showActions = false,
-                            showContextActions = false
-                        )
-                    }
-                }
-
-                is SearchScreenEvent.QueryChanged -> {
-
-                }
-
-                SearchScreenEvent.BackspaceOnEmpty -> {
-                    val state = _state.value
-                    val fullscreen = state.fullscreen ?: return@launch
-                    if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
-                        _state.update { currentState ->
-                            val currentFullscreen = currentState.fullscreen ?: return@update currentState
-                            if (currentFullscreen.resultId == fullscreen.resultId) {
-                                currentState.copy(
-                                    fullscreen = currentFullscreen.copy(exitBackspaceCount = 0)
-                                )
-                            } else {
-                                currentState
-                            }
+                    is SearchResultSet.LiveSearchResult -> {
+                        val primaryCallback = openResult.presentation.primaryCallback
+                        if (primaryCallback != null) {
+                            executeCommandCallbackUseCase(
+                                resultId = openResultId,
+                                callback = primaryCallback,
+                                updateUsage = false
+                            )
                         }
-                        return@launch
                     }
-                    val exitBackspaceCount = (fullscreen.exitBackspaceCount + 1).coerceAtMost(2)
+
+                    null -> Unit
+                }
+            }
+
+            SearchIntent.MoveFocusNext -> {
+                val uiState = _state.value
+                if (uiState.fullscreen != null) {
+                    moveFullscreenFocus(1)
+                    return
+                }
+                val focusedIndex = uiState.searchResults?.let { searchResults ->
+                    uiState.focusedItemIndex?.let { itemIndex ->
+                        (itemIndex + 1).coerceIn(0, searchResults.results.lastIndex)
+                    }
+                }
+                val focusedActions = uiState.searchResults.actionsForFocused(
+                    focusedIndex,
+                    uiState.plugins
+                )
+                _state.update { currentState ->
+                    currentState.copy(
+                        focusedItemIndex = focusedIndex,
+                        focusedActions = focusedActions,
+                        showActions = false,
+                        contextActions = emptyList(),
+                        showContextActions = false
+                    )
+                }
+            }
+
+            SearchIntent.MoveFocusPrevious -> {
+                val uiState = _state.value
+                if (uiState.fullscreen != null) {
+                    moveFullscreenFocus(-1)
+                    return
+                }
+                val focusedIndex = uiState.searchResults?.let { searchResults ->
+                    uiState.focusedItemIndex?.let { itemIndex ->
+                        (itemIndex - 1).coerceIn(0, searchResults.results.lastIndex)
+                    }
+                }
+                val focusedActions = uiState.searchResults.actionsForFocused(
+                    focusedIndex,
+                    uiState.plugins
+                )
+                _state.update { currentState ->
+                    currentState.copy(
+                        focusedItemIndex = focusedIndex,
+                        focusedActions = focusedActions,
+                        showActions = false,
+                        contextActions = emptyList(),
+                        showContextActions = false
+                    )
+                }
+            }
+
+            SearchIntent.ToggleActions -> {
+                _state.update { uiState ->
+                    uiState.copy(
+                        showActions = !uiState.showActions,
+                        showContextActions = false
+                    )
+                }
+            }
+
+            SearchIntent.HideActions -> {
+                _state.update { uiState ->
+                    uiState.copy(
+                        showActions = false,
+                        showContextActions = false
+                    )
+                }
+            }
+
+            SearchIntent.BackspaceOnEmpty -> {
+                val uiState = _state.value
+                val fullscreen = uiState.fullscreen ?: return
+                if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
                     _state.update { currentState ->
                         val currentFullscreen = currentState.fullscreen ?: return@update currentState
-                        currentState.copy(
-                            fullscreen = currentFullscreen.copy(
-                                exitBackspaceCount = exitBackspaceCount
+                        if (currentFullscreen.resultId == fullscreen.resultId) {
+                            currentState.copy(
+                                fullscreen = currentFullscreen.copy(exitBackspaceCount = 0)
                             )
-                        )
+                        } else {
+                            currentState
+                        }
                     }
-                    if (exitBackspaceCount >= 2) {
-                        collapseAndCloseFullscreen(fullscreen.resultId)
-                    }
+                    return
                 }
-
-                is SearchScreenEvent.DismissAlert -> {
-                    _state.update { state ->
-                        state.copy(
-                            alerts = state.alerts - event.alert
+                val exitBackspaceCount = (fullscreen.exitBackspaceCount + 1).coerceAtMost(2)
+                _state.update { currentState ->
+                    val currentFullscreen = currentState.fullscreen ?: return@update currentState
+                    currentState.copy(
+                        fullscreen = currentFullscreen.copy(
+                            exitBackspaceCount = exitBackspaceCount
                         )
-                    }
-                    emitEventUseCase.invoke(
-                        event.alert.pluginId,
-                        AlertResult(NotificationEvent.Selection.Dismiss)
                     )
                 }
-
-                is SearchScreenEvent.ConfirmAlert -> {
-                    _state.update { state ->
-                        state.copy(
-                            alerts = state.alerts - event.alert
-                        )
-                    }
-                    emitEventUseCase.invoke(
-                        event.alert.pluginId,
-                        AlertResult(NotificationEvent.Selection.Confirm)
-                    )
-                }
-
-                is SearchScreenEvent.HideToast -> {
-                    hideToast(event.toast.toastId)
-                }
-
-                is SearchScreenEvent.EnterAction -> {
-                    executeCommandCallbackUseCase(
-                        resultId = event.action.resultId,
-                        callback = event.action.action.callback,
-                        updateUsage = event.action.updateUsage
-                    )
-                }
-
-                is SearchScreenEvent.EnterCallback -> {
-                    executeCommandCallbackUseCase(
-                        resultId = event.resultId,
-                        callback = event.callback,
-                        updateUsage = event.updateUsage
-                    )
-                }
-
-                is SearchScreenEvent.ShowContextActions -> {
-                    _state.update { state ->
-                        state.copy(
-                            contextActions = event.actions.map { action ->
-                                FocusedCommandAction(
-                                    resultId = event.resultId,
-                                    action = action,
-                                    updateUsage = false
-                                )
-                            },
-                            showContextActions = event.actions.isNotEmpty(),
-                            showActions = false
-                        )
-                    }
-                }
-
-                is SearchScreenEvent.FocusPluginItem -> {
-                    focusFullscreenItem(event.itemId)
-                }
-
-                is SearchScreenEvent.EnterPluginItem -> {
-                    enterFullscreenItem(event.itemId)
-                }
-
-                SearchScreenEvent.CloseFullscreen -> {
-                    val state = _state.value
-                    val fullscreen = state.fullscreen ?: return@launch
-                    if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
-                        return@launch
-                    }
+                if (exitBackspaceCount >= 2) {
                     collapseAndCloseFullscreen(fullscreen.resultId)
                 }
+            }
+
+            SearchIntent.CloseFullscreen -> {
+                val uiState = _state.value
+                val fullscreen = uiState.fullscreen ?: return
+                if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
+                    return
+                }
+                collapseAndCloseFullscreen(fullscreen.resultId)
+            }
+
+            is SearchIntent.EnterAction -> {
+                executeCommandCallbackUseCase(
+                    resultId = intent.action.resultId,
+                    callback = intent.action.action.callback,
+                    updateUsage = intent.action.updateUsage
+                )
+            }
+
+            is SearchIntent.EnterCallback -> {
+                executeCommandCallbackUseCase(
+                    resultId = intent.resultId,
+                    callback = intent.callback,
+                    updateUsage = intent.updateUsage
+                )
+            }
+
+            is SearchIntent.ShowContextActions -> {
+                _state.update { uiState ->
+                    uiState.copy(
+                        contextActions = intent.actions.map { action ->
+                            FocusedCommandAction(
+                                resultId = intent.resultId,
+                                action = action,
+                                updateUsage = false
+                            )
+                        },
+                        showContextActions = intent.actions.isNotEmpty(),
+                        showActions = false
+                    )
+                }
+            }
+
+            is SearchIntent.FocusPluginItem -> {
+                focusFullscreenItem(intent.itemId)
+            }
+
+            is SearchIntent.EnterPluginItem -> {
+                enterFullscreenItem(intent.itemId)
+            }
+
+            is SearchIntent.DismissAlert -> {
+                _state.update { uiState ->
+                    uiState.copy(alerts = uiState.alerts - intent.alert)
+                }
+                emitEventUseCase.invoke(
+                    intent.alert.pluginId,
+                    AlertResult(Selection.Dismiss)
+                )
+            }
+
+            is SearchIntent.ConfirmAlert -> {
+                _state.update { uiState ->
+                    uiState.copy(alerts = uiState.alerts - intent.alert)
+                }
+                emitEventUseCase.invoke(
+                    intent.alert.pluginId,
+                    AlertResult(Selection.Confirm)
+                )
+            }
+
+            is SearchIntent.DismissToast -> {
+                dismissToast(intent.toastId, cancelJob = true)
             }
         }
     }
 
     private suspend fun collapseAndCloseFullscreen(resultId: SearchResultId) {
-        _state.update { state ->
-            val fullscreen = state.fullscreen ?: return@update state
+        _state.update { uiState ->
+            val fullscreen = uiState.fullscreen ?: return@update uiState
             if (fullscreen.resultId != resultId) {
-                state
+                uiState
             } else {
-                state.copy(
+                uiState.copy(
                     fullscreen = fullscreen.copy(exitBackspaceCount = 2)
                 )
             }
         }
         delay(FULLSCREEN_COLLAPSE_DELAY_MS)
-        val state = _state.value
-        if (state.fullscreen?.resultId == resultId) {
-            closeFullscreen(state)
+        val uiState = _state.value
+        if (uiState.fullscreen?.resultId == resultId) {
+            closeFullscreen(uiState)
         }
     }
 
-    private suspend fun closeFullscreen(state: SearchScreenState) {
-        val fullscreen = state.fullscreen ?: return
+    private suspend fun closeFullscreen(uiState: SearchUiState) {
+        val fullscreen = uiState.fullscreen ?: return
         fullscreenJob?.cancel()
         fullscreenJob = null
         closeCommandUseCase(fullscreen.resultId)
@@ -594,10 +627,17 @@ class SearchStore(
         }
     }
 
-    private fun showToast(toast: NotificationEvent.ShowToast) {
-        _state.update { state ->
-            state.copy(
-                toasts = state.toasts + toast
+    private fun showToast(toast: ShowToast) {
+        val replacedToastIds = _state.value.toasts
+            .filter { existing -> existing.shouldBeReplacedBy(toast) }
+            .map { existing -> existing.toastId }
+        replacedToastIds.forEach { toastId ->
+            toastDismissJobs.remove(toastId)?.cancel()
+        }
+        _state.update { uiState ->
+            uiState.copy(
+                toasts = uiState.toasts
+                    .filterNot { existing -> existing.shouldBeReplacedBy(toast) } + toast
             )
         }
         val autoDismissMillis = toast.toast.autoDismissMillis ?: return
@@ -608,29 +648,21 @@ class SearchStore(
         }
     }
 
-    private fun hideToast(event: NotificationEvent.HideToast) {
-        hideToastInternal(event.toastId)
-    }
-
-    private fun hideToastInternal(toastId: String) {
-        dismissToast(toastId, cancelJob = true)
-    }
-
     private fun dismissToast(toastId: String, cancelJob: Boolean) {
         val job = toastDismissJobs.remove(toastId)
         if (cancelJob) {
             job?.cancel()
         }
-        _state.update { state ->
-            state.copy(
-                toasts = state.toasts.filterNot { toast -> toast.toastId == toastId }
+        _state.update { uiState ->
+            uiState.copy(
+                toasts = uiState.toasts.filterNot { toast -> toast.toastId == toastId }
             )
         }
     }
 
     private suspend fun moveFullscreenFocus(delta: Int) {
         val fullscreen = _state.value.fullscreen ?: return
-        val query = fullscreen.searchFieldState.fieldState.text.toString()
+        val query = fullscreen.searchFieldState.query
         val model = fullscreen.content.pluginFocusModel(fullscreen.focusedItemId, query)
         val currentIndex = model.items.indexOfFirst { item -> item.id == model.focusedItemId }
         if (currentIndex < 0) return
@@ -642,12 +674,12 @@ class SearchStore(
         itemId: CommandItemId?,
         notifyPlugin: Boolean = true
     ) {
-        val state = _state.value
-        val fullscreen = state.fullscreen ?: return
-        val query = fullscreen.searchFieldState.fieldState.text.toString()
+        val uiState = _state.value
+        val fullscreen = uiState.fullscreen ?: return
+        val query = fullscreen.searchFieldState.query
         val model = fullscreen.content.pluginFocusModel(itemId, query)
         val focusedItem = model.focusedItem
-        val currentFocusedActions = state.focusedActions
+        val currentFocusedActions = uiState.focusedActions
             .takeIf {
                 fullscreen.focusedItemId == model.focusedItemId &&
                     it.all { action -> action.resultId == fullscreen.resultId }
@@ -659,7 +691,7 @@ class SearchStore(
             ?: currentFocusedActions.takeIf { actions -> actions.isNotEmpty() }
             ?: fullscreen.resultId.let { resultId ->
                 focusedItem?.let { item ->
-                    state.plugins[resultId.pluginId]?.actions(resultId.commandName, item.id)
+                    uiState.plugins[resultId.pluginId]?.actions(resultId.commandName, item.id)
                 }
             }.orEmpty()
         _state.update { currentState ->
@@ -685,7 +717,7 @@ class SearchStore(
             }
         }
         if (notifyPlugin && fullscreen.focusedItemId != model.focusedItemId) {
-            state.plugins[fullscreen.resultId.pluginId]?.update(
+            uiState.plugins[fullscreen.resultId.pluginId]?.update(
                 fullscreen.resultId.commandName,
                 CommandActionBridge.Regular(CommandAction.Focus(model.focusedItemId))
             )
@@ -698,8 +730,8 @@ class SearchStore(
     }
 
     private suspend fun enterFullscreenItem(itemId: CommandItemId) {
-        val state = _state.value
-        val fullscreen = state.fullscreen ?: return
+        val uiState = _state.value
+        val fullscreen = uiState.fullscreen ?: return
         focusFullscreenItem(itemId)
         val focusedAction = _state.value.focusedActions
             .firstOrNull { action -> action.action.primary }
@@ -711,7 +743,7 @@ class SearchStore(
                 updateUsage = false
             )
         } else {
-            state.plugins[fullscreen.resultId.pluginId]?.update(
+            uiState.plugins[fullscreen.resultId.pluginId]?.update(
                 fullscreen.resultId.commandName,
                 CommandActionBridge.Regular(CommandAction.Enter(itemId))
             )
@@ -728,15 +760,13 @@ class SearchStore(
             ?.manifest
             ?.commands
             ?.firstOrNull { command -> command.service == fullscreenResultId.commandName }
-        _state.update { state ->
-            state.copy(
+        _state.update { uiState ->
+            uiState.copy(
                 fullscreen = PluginFullscreenState(
                     resultId = fullscreenResultId,
                     title = result.listEntry.title,
                     placeholder = command?.placeholder?.toPluginUiText(fullscreenResultId.pluginId),
-                    searchFieldState = SearchFieldState(
-                        fieldState = TextFieldState()
-                    ),
+                    searchFieldState = SearchFieldUiState(),
                     exitBackspaceCount = 0,
                     content = emptyList(),
                     focusedItemId = null
@@ -759,35 +789,33 @@ class SearchStore(
             } else {
                 emptyList()
             }
-            _state.update { state ->
-                val fullscreen = state.fullscreen
+            _state.update { uiState ->
+                val fullscreen = uiState.fullscreen
                 if (fullscreen?.resultId == fullscreenResultId) {
-                    val query = fullscreen.searchFieldState.fieldState.text.toString()
+                    val query = fullscreen.searchFieldState.query
                     if (fullscreen.content.pluginFocusModel(fullscreen.focusedItemId, query).focusedItemId != null) {
-                        state
+                        uiState
                     } else {
-                        state.copy(
+                        uiState.copy(
                             focusedActions = focusedActions,
-                            showActions = state.showActions && focusedActions.isNotEmpty()
+                            showActions = uiState.showActions && focusedActions.isNotEmpty()
                         )
                     }
                 } else {
-                    state
+                    uiState
                 }
             }
         }
         fullscreenJob = scope.launch {
             getCommandFullscreenUseCase(fullscreenResultId).collectLatest { content ->
                 val newContent = content?.content.orEmpty()
-                _state.update { state ->
-                    val fullscreen = state.fullscreen
+                _state.update { uiState ->
+                    val fullscreen = uiState.fullscreen
                     if (fullscreen?.resultId != fullscreenResultId) {
-                        state
+                        uiState
                     } else {
-                        state.copy(
-                            fullscreen = fullscreen.copy(
-                                content = newContent
-                            )
+                        uiState.copy(
+                            fullscreen = fullscreen.copy(content = newContent)
                         )
                     }
                 }
@@ -802,10 +830,8 @@ class SearchStore(
     }
 }
 
-data class SearchScreenState(
-    val searchFieldState: SearchFieldState = SearchFieldState(
-        fieldState = TextFieldState()
-    ),
+data class SearchUiState(
+    val searchFieldState: SearchFieldUiState = SearchFieldUiState(),
     val searchResults: SearchResultSet? = null,
     val plugins: Map<PluginId, PluginRuntime> = emptyMap(),
     val focusedActions: List<FocusedCommandAction> = emptyList(),
@@ -815,16 +841,27 @@ data class SearchScreenState(
     val showActions: Boolean = false,
     val showContextActions: Boolean = false,
     val fullscreen: PluginFullscreenState? = null,
-    val alerts: List<NotificationEvent.Alert> = emptyList(),
-    val toasts: List<NotificationEvent.ShowToast> = emptyList(),
-    val eventSink: (SearchScreenEvent) -> Unit
+    val alerts: List<Alert> = emptyList(),
+    val toasts: List<ShowToast> = emptyList()
 )
+
+data class SearchFieldUiState(
+    val query: String = "",
+    val selection: SearchFieldSelection = SearchFieldSelection.CursorAtEnd
+) {
+    fun apply(state: ApiSearchFieldState): SearchFieldUiState {
+        return copy(
+            query = state.text,
+            selection = state.selection
+        )
+    }
+}
 
 data class PluginFullscreenState(
     val resultId: SearchResultId,
     val title: PluginUiText?,
     val placeholder: PluginUiText?,
-    val searchFieldState: SearchFieldState,
+    val searchFieldState: SearchFieldUiState,
     val exitBackspaceCount: Int,
     val content: List<PluginRayNodeData>,
     val focusedItemId: CommandItemId?
@@ -841,39 +878,49 @@ private data class FullscreenQuery(
     val query: String
 )
 
-private data class FullscreenSearchField(
-    val resultId: SearchResultId,
-    val fieldState: TextFieldState
-)
+sealed interface SearchIntent {
+    data class UpdateQuery(
+        val query: String,
+        val selection: SearchFieldSelection = SearchFieldSelection.CursorAtEnd
+    ) : SearchIntent
 
-data class SearchFieldState(
-    val fieldState: TextFieldState,
-    val canGoOnEnter: Boolean = false,
-    val isKeyboardPresent: Boolean = false
-) {
-    val text: String
-        get() = fieldState.text.toString()
+    data class OpenSearch(val query: String = "") : SearchIntent
+    data class OpenCommand(val query: String) : SearchIntent
+    data class Submit(val resultId: SearchResultId? = null) : SearchIntent
+    data class EnterAction(val action: FocusedCommandAction) : SearchIntent
+    data class EnterCallback(
+        val resultId: SearchResultId,
+        val callback: PluginCommandCallback,
+        val updateUsage: Boolean = false
+    ) : SearchIntent
 
-    val selection: SearchFieldSelection
-        get() = when {
-            fieldState.selection.start == 0 && fieldState.selection.end == 0 -> SearchFieldSelection.CursorAtStart
-            fieldState.selection.start == 0 && fieldState.selection.end == fieldState.text.length -> SearchFieldSelection.SelectAll
-            else -> SearchFieldSelection.CursorAtEnd
-        }
+    data class ShowContextActions(
+        val resultId: SearchResultId,
+        val actions: List<PluginCommandListAction>
+    ) : SearchIntent
+
+    data class FocusPluginItem(val itemId: CommandItemId) : SearchIntent
+    data class EnterPluginItem(val itemId: CommandItemId) : SearchIntent
+    data object MoveFocusPrevious : SearchIntent
+    data object MoveFocusNext : SearchIntent
+    data object ToggleActions : SearchIntent
+    data object HideActions : SearchIntent
+    data object BackspaceOnEmpty : SearchIntent
+    data object CloseFullscreen : SearchIntent
+    data class DismissAlert(val alert: Alert) : SearchIntent
+    data class ConfirmAlert(val alert: Alert) : SearchIntent
+    data class DismissToast(val toastId: String) : SearchIntent
 }
 
-private fun TextFieldState.apply(state: ApiSearchFieldState) {
-    edit {
-        replace(0, length, state.text)
-        selection = when (state.selection) {
-            SearchFieldSelection.CursorAtStart -> TextRange(0)
-            SearchFieldSelection.CursorAtEnd -> TextRange(state.text.length)
-            SearchFieldSelection.SelectAll -> TextRange(0, state.text.length)
-        }
-    }
-}
+private fun ShowToast.shouldBeReplacedBy(incoming: ShowToast): Boolean =
+    toastId == incoming.toastId || matchesAnimatedLoadingToast(incoming)
 
-private fun SearchScreenState.focusedResultId(): SearchResultId? =
+private fun ShowToast.matchesAnimatedLoadingToast(incoming: ShowToast): Boolean =
+    toast.style == NotificationEvent.Toast.Style.Animated &&
+        incoming.toast.style == NotificationEvent.Toast.Style.Animated &&
+        toast.message == incoming.toast.message
+
+private fun SearchUiState.focusedResultId(): SearchResultId? =
     focusedItemIndex?.let { itemIndex ->
         searchResults?.results?.getOrNull(itemIndex)?.resultId
     }
@@ -903,31 +950,4 @@ private suspend fun SearchResultSet.SearchResult.actions(
             itemId = resultId.itemId
         ).orEmpty()
     }
-}
-
-@Immutable
-sealed interface SearchScreenEvent {
-    data class QueryChanged(val query: String) : SearchScreenEvent
-    data class Enter(val resultId: SearchResultId? = null) : SearchScreenEvent
-    data class EnterAction(val action: FocusedCommandAction) : SearchScreenEvent
-    data class EnterCallback(
-        val resultId: SearchResultId,
-        val callback: PluginCommandCallback,
-        val updateUsage: Boolean = false
-    ) : SearchScreenEvent
-    data class ShowContextActions(
-        val resultId: SearchResultId,
-        val actions: List<PluginCommandListAction>
-    ) : SearchScreenEvent
-    data class FocusPluginItem(val itemId: CommandItemId) : SearchScreenEvent
-    data class EnterPluginItem(val itemId: CommandItemId) : SearchScreenEvent
-    data object MoveFocusPrevious : SearchScreenEvent
-    data object MoveFocusNext : SearchScreenEvent
-    data object ToggleActions : SearchScreenEvent
-    data object HideActions : SearchScreenEvent
-    data object BackspaceOnEmpty : SearchScreenEvent
-    data object CloseFullscreen : SearchScreenEvent
-    data class DismissAlert(val alert: NotificationEvent.Alert) : SearchScreenEvent
-    data class ConfirmAlert(val alert: NotificationEvent.Alert) : SearchScreenEvent
-    data class HideToast(val toast: NotificationEvent.ShowToast) : SearchScreenEvent
 }

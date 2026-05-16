@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +26,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,9 +36,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.compose.koinInject
 import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.RAlertDialog
@@ -44,9 +50,11 @@ import ru.raydroid.core.designsystem.component.RIcon
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.feature.search.FocusedCommandAction
-import ru.raydroid.feature.search.SearchScreenEvent
-import ru.raydroid.feature.search.SearchScreenState
+import ru.raydroid.feature.search.SearchFieldUiState
+import ru.raydroid.feature.search.SearchIntent
 import ru.raydroid.feature.search.SearchStore
+import ru.raydroid.feature.search.SearchUiState
+import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
@@ -74,14 +82,25 @@ import ru.raydroid.plugin.host.impl.presentation.asText
 fun SearchScreen(modifier: Modifier = Modifier) {
     val store = koinInject<SearchStore>()
     val state by store.state.collectAsStateWithLifecycle()
-    SearchScreen(state, modifier)
+    SearchScreen(
+        state = state,
+        onIntent = store::send,
+        modifier = modifier
+    )
 }
 
 @Composable
-fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
+fun SearchScreen(
+    state: SearchUiState,
+    onIntent: (SearchIntent) -> Unit,
+    modifier: Modifier = Modifier
+) {
     ResourceResolverProvider(state.plugins) {
         val spacing = RaydroidTheme.spacing
         val fullscreen = state.fullscreen
+        val activeSearchFieldState = fullscreen?.searchFieldState ?: state.searchFieldState
+        val latestSearchFieldState by rememberUpdatedState(activeSearchFieldState)
+        val searchField = remember(fullscreen?.resultId) { TextFieldState() }
         Column(
             modifier
                 .fillMaxSize()
@@ -91,12 +110,39 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
             LaunchedEffect(Unit) {
                 focus.requestFocus()
             }
+            LaunchedEffect(
+                searchField,
+                fullscreen?.resultId,
+                activeSearchFieldState.query,
+                activeSearchFieldState.selection
+            ) {
+                searchField.apply(activeSearchFieldState)
+            }
+            LaunchedEffect(searchField, fullscreen?.resultId) {
+                snapshotFlow {
+                    SearchFieldSnapshot(
+                        query = searchField.text.toString(),
+                        selection = searchField.selection.asSelection(searchField.text.length)
+                    )
+                }
+                    .distinctUntilChanged()
+                    .collectLatest { snapshot ->
+                        if (snapshot != latestSearchFieldState.asSnapshot()) {
+                            onIntent(
+                                SearchIntent.UpdateQuery(
+                                    query = snapshot.query,
+                                    selection = snapshot.selection
+                                )
+                            )
+                        }
+                    }
+            }
             val listState = rememberLazyListState()
             val fullscreenFocusedActions = fullscreen
                 ?.content
                 ?.pluginFocusModel(
                     focusedItemId = fullscreen.focusedItemId,
-                    query = fullscreen.searchFieldState.fieldState.text.toString()
+                    query = fullscreen.searchFieldState.query
                 )
                 ?.focusedActions
                 ?.takeIf { actions -> actions.isNotEmpty() }
@@ -142,12 +188,12 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 RAlertDialog(
                     onDismissRequest = {
                         if (alert.dismissAction != null) {
-                            state.eventSink(SearchScreenEvent.DismissAlert(alert))
+                            onIntent(SearchIntent.DismissAlert(alert))
                         }
                     },
                     confirmButton = {
                         RButton(onClick = {
-                            state.eventSink(SearchScreenEvent.ConfirmAlert(alert))
+                            onIntent(SearchIntent.ConfirmAlert(alert))
                         }) {
                             RText(alert.confirmAction.title.asText())
                         }
@@ -155,7 +201,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     dismissButton = if (alert.dismissAction != null) {
                         {
                             RTextButton(onClick = {
-                                state.eventSink(SearchScreenEvent.DismissAlert(alert))
+                                onIntent(SearchIntent.DismissAlert(alert))
                             }) {
                                 RText(alert.dismissAction!!.title.asText())
                             }
@@ -183,11 +229,11 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                     ) {
                         ComposeRayRenderer(
                             data = fullscreen.content,
-                            query = fullscreen.searchFieldState.fieldState.text.toString(),
+                            query = fullscreen.searchFieldState.query,
                             focusedItemId = fullscreen.focusedItemId,
                             onClick = { callback ->
-                                state.eventSink(
-                                    SearchScreenEvent.EnterCallback(
+                                onIntent(
+                                    SearchIntent.EnterCallback(
                                         resultId = fullscreen.resultId,
                                         callback = callback,
                                         updateUsage = false
@@ -195,14 +241,14 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                 )
                             },
                             onItemEnter = { itemId ->
-                                state.eventSink(SearchScreenEvent.EnterPluginItem(itemId))
+                                onIntent(SearchIntent.EnterPluginItem(itemId))
                             },
                             onFocus = { itemId ->
-                                state.eventSink(SearchScreenEvent.FocusPluginItem(itemId))
+                                onIntent(SearchIntent.FocusPluginItem(itemId))
                             },
                             onActions = { actions ->
-                                state.eventSink(
-                                    SearchScreenEvent.ShowContextActions(
+                                onIntent(
+                                    SearchIntent.ShowContextActions(
                                         resultId = fullscreen.resultId,
                                         actions = actions
                                     )
@@ -226,13 +272,13 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                             itemsIndexed(searchResults.results) { index, searchResult ->
                                 if (searchResult is SearchResultSet.CachedSearchResult) {
                                     SearchListItem(searchResult, onClick = {
-                                        state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
+                                        onIntent(SearchIntent.Submit(searchResult.resultId))
                                     }, focused = index == focusedItemIndex)
                                 } else if (searchResult is SearchResultSet.CommandSearchResult) {
                                     CommandListItemView(
                                         listEntry = searchResult.listEntry,
                                         onClick = {
-                                            state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
+                                            onIntent(SearchIntent.Submit(searchResult.resultId))
                                         },
                                         focused = index == focusedItemIndex
                                     )
@@ -248,14 +294,14 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                         },
                                         focused = index == focusedItemIndex,
                                         onClick = {
-                                            state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
+                                            onIntent(SearchIntent.Submit(searchResult.resultId))
                                         }
                                     ) {
                                         ComposeRayRenderer(
                                             data = searchResult.presentation.content,
                                             onClick = { callback ->
-                                                state.eventSink(
-                                                    SearchScreenEvent.EnterCallback(
+                                                onIntent(
+                                                    SearchIntent.EnterCallback(
                                                         resultId = searchResult.resultId,
                                                         callback = callback,
                                                         updateUsage = false
@@ -263,11 +309,11 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                                 )
                                             },
                                             onItemEnter = {
-                                                state.eventSink(SearchScreenEvent.Enter(searchResult.resultId))
+                                                onIntent(SearchIntent.Submit(searchResult.resultId))
                                             },
                                             onActions = { actions ->
-                                                state.eventSink(
-                                                    SearchScreenEvent.ShowContextActions(
+                                                onIntent(
+                                                    SearchIntent.ShowContextActions(
                                                         resultId = searchResult.resultId,
                                                         actions = actions
                                                     )
@@ -313,7 +359,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                                 overlayFocusedActions
                                     .firstOrNull { focusedAction -> focusedAction.action == action }
                                     ?.let { focusedAction ->
-                                        state.eventSink(SearchScreenEvent.EnterAction(focusedAction))
+                                        onIntent(SearchIntent.EnterAction(focusedAction))
                                     }
                             }
                         )
@@ -321,34 +367,33 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 }
             }
             SearchField(
-                (fullscreen?.searchFieldState ?: state.searchFieldState)
-                    .copy(
-                        canGoOnEnter = if (fullscreen != null) {
-                            fullscreen.focusedItemId != null
-                        } else {
-                            state.focusedItemIndex != null
-                        }
-                    )
-                    .toPresentationState(),
+                activeSearchFieldState.toPresentationState(
+                    fieldState = searchField,
+                    canGoOnEnter = if (fullscreen != null) {
+                        fullscreen.focusedItemId != null
+                    } else {
+                        state.focusedItemIndex != null
+                    }
+                ),
                 onEvent = { event ->
                     when (event) {
                         SearchFieldEvent.Enter -> {
-                            state.eventSink(SearchScreenEvent.Enter())
+                            onIntent(SearchIntent.Submit())
                         }
 
                         SearchFieldEvent.MoveFocusDown -> if (fullscreen != null) {
-                            state.eventSink(SearchScreenEvent.MoveFocusNext)
+                            onIntent(SearchIntent.MoveFocusNext)
                         } else {
-                            state.eventSink(SearchScreenEvent.MoveFocusPrevious)
+                            onIntent(SearchIntent.MoveFocusPrevious)
                         }
 
                         SearchFieldEvent.MoveFocusUp -> if (fullscreen != null) {
-                            state.eventSink(SearchScreenEvent.MoveFocusPrevious)
+                            onIntent(SearchIntent.MoveFocusPrevious)
                         } else {
-                            state.eventSink(SearchScreenEvent.MoveFocusNext)
+                            onIntent(SearchIntent.MoveFocusNext)
                         }
 
-                        SearchFieldEvent.BackspaceOnEmpty -> state.eventSink(SearchScreenEvent.BackspaceOnEmpty)
+                        SearchFieldEvent.BackspaceOnEmpty -> onIntent(SearchIntent.BackspaceOnEmpty)
                     }
                 },
                 Modifier.focusRequester(focus),
@@ -361,7 +406,7 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                 leadingContent = if (fullscreen != null) {
                     {
                         FullscreenBackButton(onClick = {
-                            state.eventSink(SearchScreenEvent.CloseFullscreen)
+                            onIntent(SearchIntent.CloseFullscreen)
                         }, exitBackspaceCount = fullscreen.exitBackspaceCount)
                     }
                 } else {
@@ -374,10 +419,10 @@ fun SearchScreen(state: SearchScreenState, modifier: Modifier = Modifier) {
                         showActions = state.showActions,
                         showPrimaryHint = actionPanelHintMode == PluginActionPanelHintMode.Full,
                         onPrimaryAction = {
-                            state.eventSink(SearchScreenEvent.Enter())
+                            onIntent(SearchIntent.Submit())
                         },
                         onToggleActions = {
-                            state.eventSink(SearchScreenEvent.ToggleActions)
+                            onIntent(SearchIntent.ToggleActions)
                         }
                     )
                 }
@@ -472,11 +517,9 @@ private fun FullscreenBackButton(
 fun SearchScreenPreview() {
     RaydroidPreviewTheme {
         val state = remember {
-            SearchScreenState {
-
-            }
+            SearchUiState()
         }
-        SearchScreen(state)
+        SearchScreen(state = state, onIntent = {})
     }
 }
 
@@ -503,9 +546,38 @@ private fun SearchResultSet.LiveSearchResult.rayDecoratorPluginName(
         ?.toPluginUiText(resultId.pluginId)
         .orUnknown()
 
-private fun ru.raydroid.feature.search.SearchFieldState.toPresentationState() =
+private fun SearchFieldUiState.toPresentationState(
+    fieldState: TextFieldState,
+    canGoOnEnter: Boolean
+) =
     ru.raydroid.plugin.host.impl.presentation.SearchFieldState(
         fieldState = fieldState,
-        canGoOnEnter = canGoOnEnter,
-        isKeyboardPresent = isKeyboardPresent
+        canGoOnEnter = canGoOnEnter
     )
+
+private data class SearchFieldSnapshot(
+    val query: String,
+    val selection: SearchFieldSelection
+)
+
+private fun SearchFieldUiState.asSnapshot(): SearchFieldSnapshot =
+    SearchFieldSnapshot(query = query, selection = selection)
+
+private fun TextRange.asSelection(textLength: Int): SearchFieldSelection =
+    when {
+        textLength == 0 -> SearchFieldSelection.CursorAtEnd
+        start == 0 && end == 0 -> SearchFieldSelection.CursorAtStart
+        start == 0 && end == textLength -> SearchFieldSelection.SelectAll
+        else -> SearchFieldSelection.CursorAtEnd
+    }
+
+private fun TextFieldState.apply(state: SearchFieldUiState) {
+    edit {
+        replace(0, length, state.query)
+        selection = when (state.selection) {
+            SearchFieldSelection.CursorAtStart -> TextRange(0)
+            SearchFieldSelection.CursorAtEnd -> TextRange(state.query.length)
+            SearchFieldSelection.SelectAll -> TextRange(0, state.query.length)
+        }
+    }
+}

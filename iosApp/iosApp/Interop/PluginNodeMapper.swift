@@ -135,6 +135,17 @@ struct EmptyStateViewData {
     let description: String
 }
 
+enum ActionPanelHintModeModel {
+    case full
+    case menuOnly
+    case hidden
+}
+
+enum FormSubmitStyleModel {
+    case filled
+    case tonal
+}
+
 struct ListNodeViewData {
     let id: String
     let isLoading: Bool
@@ -191,7 +202,11 @@ struct FormNodeViewData {
     let isLoading: Bool
     let fields: [PluginFormFieldViewData]
     let submitTitle: String?
-    let isSubmitEnabled: Bool
+    let submitIconAsset: PluginAsset?
+    let submitStyle: FormSubmitStyleModel
+    let isSubmitEnabledByPlugin: Bool
+    let requireChanges: Bool
+    let unchangedView: EmptyStateViewData?
     let onSubmit: (([String: PluginFormValueDraft]) -> Void)?
 }
 
@@ -220,6 +235,7 @@ struct TextFormFieldViewData {
     let title: String
     let placeholder: String
     let defaultValue: String
+    let isRequired: Bool
     let isPassword: Bool
     let isMultiline: Bool
 }
@@ -227,6 +243,7 @@ struct TextFormFieldViewData {
 struct CheckboxFormFieldViewData {
     let id: String
     let title: String
+    let isRequired: Bool
     let defaultValue: Bool
 }
 
@@ -234,6 +251,7 @@ struct DropdownFormFieldViewData {
     let id: String
     let title: String
     let options: [DropdownOptionViewData]
+    let isRequired: Bool
     let defaultValue: String
 }
 
@@ -247,6 +265,7 @@ struct DropdownOptionViewData: Identifiable {
 struct DateFormFieldViewData {
     let id: String
     let title: String
+    let isRequired: Bool
     let defaultValue: String?
 }
 
@@ -535,7 +554,18 @@ struct PluginNodeMapper {
                 mapFormField(field, path: "\(path).field.\(index)")
             },
             submitTitle: submit.map { client.resolveText(formSubmitTitle($0)) },
-            isSubmitEnabled: submit.map(formSubmitEnabled) ?? false,
+            submitIconAsset: submit.flatMap { client.resolveIcon(formSubmitIcon($0)) },
+            submitStyle: submit.map(formSubmitStyleModel) ?? .filled,
+            isSubmitEnabledByPlugin: submit.map(formSubmitEnabled) ?? false,
+            requireChanges: formRequireChanges(node),
+            unchangedView: formUnchangedView(node).map { emptyView in
+                EmptyStateViewData(
+                    id: "\(path).unchanged",
+                    iconAsset: client.resolveIcon(emptyViewIcon(emptyView)),
+                    title: client.resolveText(emptyViewTitle(emptyView)),
+                    description: client.resolveText(emptyViewDescription(emptyView))
+                )
+            },
             onSubmit: submit.flatMap { submit in
                 formSubmitCallback(submit).map { callback in
                     { values in
@@ -556,6 +586,7 @@ struct PluginNodeMapper {
                     title: client.resolveText(formFieldTitle(field)),
                     placeholder: client.resolveText(formFieldPlaceholder(field)),
                     defaultValue: formFieldDefaultText(field),
+                    isRequired: formFieldRequired(field),
                     isPassword: formFieldPassword(field),
                     isMultiline: formFieldMultiline(field)
                 )
@@ -565,6 +596,7 @@ struct PluginNodeMapper {
                 CheckboxFormFieldViewData(
                     id: fieldId,
                     title: client.resolveText(formFieldTitle(field)),
+                    isRequired: formFieldRequired(field),
                     defaultValue: formFieldDefaultBoolean(field)
                 )
             )
@@ -582,6 +614,7 @@ struct PluginNodeMapper {
                             iconAsset: client.resolveIcon(formOptionIcon(option))
                         )
                     },
+                    isRequired: formFieldRequired(field),
                     defaultValue: formFieldDefaultOption(field)
                         ?? options.first.map(formOptionValue)
                         ?? ""
@@ -592,6 +625,7 @@ struct PluginNodeMapper {
                 DateFormFieldViewData(
                     id: fieldId,
                     title: client.resolveText(formFieldTitle(field)),
+                    isRequired: formFieldRequired(field),
                     defaultValue: formFieldDefaultDate(field)
                 )
             )
@@ -843,8 +877,31 @@ private func formSubmitEnabled(_ object: AnyObject) -> Bool {
     SearchInteropBridge.shared.formSubmitEnabled(submit: object)
 }
 
+private func formSubmitStyle(_ object: AnyObject) -> String {
+    SearchInteropBridge.shared.formSubmitStyle(submit: object)
+}
+
+private func formSubmitIcon(_ object: AnyObject) -> ApiPluginIcon? {
+    SearchInteropBridge.shared.formSubmitIcon(submit: object)
+}
+
 private func formSubmitCallback(_ object: AnyObject) -> ApiPluginFormSubmitCallback? {
     SearchInteropBridge.shared.formSubmitCallback(submit: object)
+}
+
+private func formRequireChanges(_ object: AnyObject) -> Bool {
+    guard let node = object as? ApiPluginRayNodeData else { return false }
+    return SearchInteropBridge.shared.formRequireChanges(node: node)
+}
+
+private func formUnchangedView(_ object: AnyObject) -> AnyObject? {
+    guard let node = object as? ApiPluginRayNodeData else { return nil }
+    return SearchInteropBridge.shared.formUnchangedView(node: node) as AnyObject?
+}
+
+private func formActionPanelHintMode(_ object: AnyObject) -> String {
+    guard let node = object as? ApiPluginRayNodeData else { return "Full" }
+    return SearchInteropBridge.shared.formActionPanelHintMode(node: node)
 }
 
 private func formFieldId(_ object: AnyObject) -> String {
@@ -853,6 +910,10 @@ private func formFieldId(_ object: AnyObject) -> String {
 
 private func formFieldTitle(_ object: AnyObject) -> ApiPluginUiText? {
     SearchInteropBridge.shared.formFieldTitle(field: object)
+}
+
+private func formFieldRequired(_ object: AnyObject) -> Bool {
+    SearchInteropBridge.shared.formFieldRequired(field: object)
 }
 
 private func formFieldText(_ object: AnyObject) -> ApiPluginUiText? {
@@ -901,6 +962,15 @@ private func formOptionTitle(_ object: AnyObject) -> ApiPluginUiText? {
 
 private func formOptionIcon(_ object: AnyObject) -> ApiPluginIcon? {
     SearchInteropBridge.shared.formOptionIcon(option: object)
+}
+
+private func formSubmitStyleModel(_ object: AnyObject) -> FormSubmitStyleModel {
+    switch formSubmitStyle(object).lowercased() {
+    case "tonal":
+        return .tonal
+    default:
+        return .filled
+    }
 }
 
 private func commandItemIdValue(_ value: Any?) -> String {

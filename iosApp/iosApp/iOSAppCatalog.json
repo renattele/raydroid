@@ -1,0 +1,33 @@
+[
+  {
+    "id": "apple.settings",
+    "name": "Settings",
+    "url": "App-prefs:",
+    "icon": "Tune",
+    "queryScheme": "App-prefs:",
+    "enabled": true
+  },
+  {
+    "id": "apple.safari",
+    "name": "Safari",
+    "url": "https://apple.com",
+    "icon": "ArrowForward",
+    "enabled": true
+  },
+  {
+    "id": "apple.maps",
+    "name": "Maps",
+    "url": "maps://",
+    "icon": "GridView",
+    "queryScheme": "maps",
+    "enabled": true
+  },
+  {
+    "id": "apple.messages",
+    "name": "Messages",
+    "url": "sms://",
+    "icon": "ArrowForward",
+    "queryScheme": "sms",
+    "enabled": true
+  }
+]

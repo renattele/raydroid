@@ -9,12 +9,8 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>App-prefs</string>
-		<string>mailto</string>
-		<string>music</string>
-		<string>facetime</string>
-		<string>tel</string>
-		<string>sms</string>
 		<string>maps</string>
+		<string>sms</string>
 	</array>
 </dict>
 </plist>

@@ -3,27 +3,27 @@ import UIKit
 
 @MainActor
 struct SearchSceneView: View {
-    @State private var model: SearchSceneModel
+    @State private var model: SearchSceneViewModel
     @State private var router: AppRouter
-    private let spotlightIndexing: any SpotlightIndexing
-    @FocusState private var searchFocused: Bool
 
     @MainActor
     init(container: RaydroidAppContainer) {
-        _model = State(initialValue: SearchSceneModel(storeClient: container.searchStoreClient))
+        _model = State(
+            initialValue: SearchSceneViewModel(
+                storeClient: container.searchStoreClient,
+                router: container.router
+            )
+        )
         _router = State(initialValue: container.router)
-        self.spotlightIndexing = container.spotlightIndexing
     }
 
     @MainActor
     init(
-        model: SearchSceneModel,
-        router: AppRouter,
-        spotlightIndexing: any SpotlightIndexing
+        model: SearchSceneViewModel,
+        router: AppRouter
     ) {
         _model = State(initialValue: model)
         _router = State(initialValue: router)
-        self.spotlightIndexing = spotlightIndexing
     }
 
     var body: some View {
@@ -46,58 +46,66 @@ struct SearchSceneView: View {
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                         .padding(.trailing, 16)
-                        .padding(.bottom, 16)
+                        .padding(.bottom, 72)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    SearchDock(
-                        query: Binding(
-                            get: { model.state.query },
-                            set: model.updateQuery
-                        ),
-                        placeholder: model.state.placeholder,
-                        focused: $searchFocused,
-                        showsBackButton: model.state.showsBackButton,
-                        exitBackspaceCount: model.state.exitBackspaceCount,
-                        actionTitle: model.state.actionTitle,
-                        showsActions: model.state.showsActionsPanel,
-                        onSubmit: model.submit,
-                        onBack: model.closeFullscreen,
-                        onToggleActions: model.toggleActions
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
+                    if let loadingStatusMessage = model.state.loadingStatusMessage {
+                        LoadingStatusRow(message: loadingStatusMessage)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 6)
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    }
                 }
+
+                SearchDock(
+                    query: model.state.query,
+                    placeholder: model.state.placeholder,
+                    selectionName: model.state.selectionName,
+                    desiredFocus: !model.state.showsBackButton,
+                    retainFocusWhenBlurred: !model.state.showsBackButton,
+                    showsBackButton: model.state.showsBackButton,
+                    exitBackspaceCount: model.state.exitBackspaceCount,
+                    actionTitle: model.state.actionTitle,
+                    showsActionToggle: model.state.showsActionToggle,
+                    showsActions: model.state.showsActionsPanel,
+                    onQueryChange: { query, selectionName in
+                        model.send(.queryChanged(query, selectionName))
+                    },
+                    onSubmit: {
+                        model.send(.submit)
+                    },
+                    onBackspaceOnEmpty: {
+                        model.send(.backspaceOnEmpty)
+                    },
+                    onMoveFocusUp: {
+                        model.send(model.state.showsBackButton ? .moveFocusPrevious : .moveFocusNext)
+                    },
+                    onMoveFocusDown: {
+                        model.send(model.state.showsBackButton ? .moveFocusNext : .moveFocusPrevious)
+                    },
+                    onBack: {
+                        model.send(.closeFullscreen)
+                    },
+                    onToggleActions: {
+                        model.send(.toggleActions)
+                    }
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
             .navigationTitle("Raydroid")
             .toolbarTitleDisplayMode(.inline)
             .onAppear {
-                syncSearchFocus()
-            }
-            .task {
-                syncSearchFocus()
-                model.start()
-                await spotlightIndexing.indexCommands()
-                if router.pendingRoute != nil {
-                    model.applyRoute(router.pendingRoute, router: router)
-                    syncSearchFocus()
-                }
+                model.send(.appear)
             }
             .onDisappear {
-                model.stop()
+                model.send(.disappear)
             }
             .onChange(of: router.pendingRoute) { _, route in
                 if route != nil {
-                    model.applyRoute(route, router: router)
-                    syncSearchFocus()
-                }
-            }
-            .onChange(of: model.state.showsBackButton) { _, _ in
-                syncSearchFocus()
-            }
-            .onChange(of: searchFocused) { _, focused in
-                if !focused, shouldKeepSearchFocused {
-                    keepSearchFocused()
+                    model.send(.route(route))
                 }
             }
             .alert(item: Binding(
@@ -106,24 +114,6 @@ struct SearchSceneView: View {
             )) { alert in
                 buildAlert(for: alert)
             }
-        }
-    }
-
-    private var shouldKeepSearchFocused: Bool {
-        !model.state.showsBackButton
-    }
-
-    private func keepSearchFocused() {
-        Task { @MainActor in
-            searchFocused = true
-        }
-    }
-
-    private func syncSearchFocus() {
-        if shouldKeepSearchFocused {
-            keepSearchFocused()
-        } else {
-            searchFocused = false
         }
     }
 
@@ -159,6 +149,30 @@ struct SearchSceneView: View {
     }
 }
 
+private struct LoadingStatusRow: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(Color(uiColor: .separator).opacity(0.18), lineWidth: 1)
+        }
+    }
+}
+
 private struct SearchResultsView: View {
     let resultsBody: SearchResultsBodyState
 
@@ -173,7 +187,7 @@ private struct SearchResultsView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
-                .padding(.bottom, 32)
+                .padding(.bottom, 112)
             }
             .scrollDismissesKeyboard(.never)
         case .loading:
@@ -250,7 +264,7 @@ private struct FullscreenContentView: View {
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 16)
                 .padding(.top, 20)
-                .padding(.bottom, 32)
+                .padding(.bottom, 112)
         }
         .scrollDismissesKeyboard(.never)
     }
@@ -261,10 +275,11 @@ private struct OverlayChrome: View {
     let toasts: [ToastModel]
     let showsActionsPanel: Bool
     private var actionIds: [String] { actions.map(\.id) }
+    private var visibleToasts: [ToastModel] { Array(toasts.suffix(3)) }
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 10) {
-            ForEach(toasts) { toast in
+            ForEach(visibleToasts) { toast in
                 ToastView(toast: toast)
             }
             if showsActionsPanel && !actions.isEmpty {
@@ -399,7 +414,7 @@ private struct ActionsOverlay: View {
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: UInt64(index) * 25_000_000)
                 guard actionIds.contains(id) else { return }
-                withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
+                _ = withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
                     visibleActionIds.insert(id)
                 }
             }
@@ -454,14 +469,21 @@ private struct ToastView: View {
 }
 
 private struct SearchDock: View {
-    @Binding var query: String
+    let query: String
     let placeholder: String
-    let focused: FocusState<Bool>.Binding
+    let selectionName: String
+    let desiredFocus: Bool
+    let retainFocusWhenBlurred: Bool
     let showsBackButton: Bool
     let exitBackspaceCount: Int
     let actionTitle: String?
+    let showsActionToggle: Bool
     let showsActions: Bool
+    let onQueryChange: (String, String) -> Void
     let onSubmit: () -> Void
+    let onBackspaceOnEmpty: () -> Void
+    let onMoveFocusUp: () -> Void
+    let onMoveFocusDown: () -> Void
     let onBack: () -> Void
     let onToggleActions: () -> Void
 
@@ -475,21 +497,27 @@ private struct SearchDock: View {
                     )
                 }
 
-                TextField(placeholder, text: $query)
-                    .focused(focused)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel((actionTitle?.isEmpty ?? true) ? .search : .go)
-                    .onSubmit(onSubmit)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .tint(.accentColor)
+                SearchInputField(
+                    text: query,
+                    placeholder: placeholder,
+                    selectionName: selectionName,
+                    desiredFocus: desiredFocus,
+                    retainFocusWhenBlurred: retainFocusWhenBlurred,
+                    canSubmit: !(actionTitle?.isEmpty ?? true),
+                    onTextChange: onQueryChange,
+                    onSubmit: onSubmit,
+                    onBackspaceOnEmpty: onBackspaceOnEmpty,
+                    onMoveFocusUp: onMoveFocusUp,
+                    onMoveFocusDown: onMoveFocusDown
+                )
+                    .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 30)
+                    .frame(height: 36)
                     .layoutPriority(1)
 
                 SearchInlineActions(
                     title: actionTitle,
+                    showsActionToggle: showsActionToggle,
                     showsActions: showsActions,
                     onSubmit: onSubmit,
                     onToggleActions: onToggleActions
@@ -499,12 +527,6 @@ private struct SearchDock: View {
             .padding(.trailing, 8)
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(Color(uiColor: .separator).opacity(0.22), lineWidth: 1)
-            }
-            .shadow(color: Color(uiColor: .separator).opacity(0.12), radius: 8, y: 2)
             .layoutPriority(1)
         }
         .frame(maxWidth: .infinity)
@@ -512,6 +534,12 @@ private struct SearchDock: View {
         .padding(.trailing, 6)
         .padding(.vertical, 6)
         .frame(minHeight: 48)
+        .background(Color(uiColor: .systemBackground).opacity(0.96), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(Color(uiColor: .separator).opacity(0.4), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(0.14), radius: 16, y: 6)
     }
 }
 
@@ -561,6 +589,7 @@ private struct FullscreenBackButton: View {
 
 private struct SearchInlineActions: View {
     let title: String?
+    let showsActionToggle: Bool
     let showsActions: Bool
     let onSubmit: () -> Void
     let onToggleActions: () -> Void
@@ -568,24 +597,25 @@ private struct SearchInlineActions: View {
     var body: some View {
         HStack(spacing: 8) {
             if let title, !title.isEmpty {
-                Button(action: onSubmit) {
-                    HStack(spacing: 6) {
-                        Text(title)
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .minimumScaleFactor(0.82)
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: 92, alignment: .trailing)
 
-                        Image(systemName: "arrow.turn.down.left")
-                            .font(.system(size: 12, weight: .semibold))
+                    Button(action: onSubmit) {
+                        Image(systemName: "return")
+                            .font(.system(size: 11, weight: .semibold))
+                            .frame(width: 30, height: 30)
                     }
-                    .padding(.horizontal, 12)
-                    .frame(maxWidth: 150)
-                    .frame(height: 36)
+                    .buttonStyle(.raydroidLiquidGlassAccessory)
+                    .accessibilityLabel("Run \(title)")
                 }
-                .buttonStyle(.raydroidLiquidGlassAccessory)
-                .accessibilityLabel("Run \(title)")
+            }
 
+            if showsActionToggle {
                 if showsActions {
                     Button(action: onToggleActions) {
                         Image(systemName: "chevron.down")
@@ -635,16 +665,14 @@ private struct GlassButtonCluster<Content: View>: View {
 #Preview("Search Scene") {
     SearchSceneView(
         model: .preview(state: PreviewData.sceneState),
-        router: AppRouter(),
-        spotlightIndexing: PreviewSpotlightIndexing()
+        router: AppRouter()
     )
 }
 
 #Preview("Fullscreen Scene") {
     SearchSceneView(
         model: .preview(state: PreviewData.fullscreenSceneState),
-        router: AppRouter(),
-        spotlightIndexing: PreviewSpotlightIndexing()
+        router: AppRouter()
     )
 }
 
@@ -682,6 +710,7 @@ private struct GlassButtonCluster<Content: View>: View {
 #Preview("Inline Search Actions") {
     SearchInlineActions(
         title: "Run Command",
+        showsActionToggle: true,
         showsActions: true,
         onSubmit: {},
         onToggleActions: {}
@@ -691,19 +720,23 @@ private struct GlassButtonCluster<Content: View>: View {
 }
 
 private struct PreviewSearchDock: View {
-    @State private var query = "calc"
-    @FocusState private var focused: Bool
-
     var body: some View {
         SearchDock(
-            query: $query,
+            query: "calc",
             placeholder: "Search commands",
-            focused: $focused,
+            selectionName: "cursorAtEnd",
+            desiredFocus: false,
+            retainFocusWhenBlurred: false,
             showsBackButton: true,
             exitBackspaceCount: 1,
             actionTitle: "Run Command",
+            showsActionToggle: true,
             showsActions: true,
+            onQueryChange: { _, _ in },
             onSubmit: {},
+            onBackspaceOnEmpty: {},
+            onMoveFocusUp: {},
+            onMoveFocusDown: {},
             onBack: {},
             onToggleActions: {}
         )

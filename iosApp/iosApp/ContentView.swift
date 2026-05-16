@@ -2,11 +2,13 @@ import SwiftUI
 
 @MainActor
 struct ContentView: View {
+    let container: RaydroidAppContainer
+
     var body: some View {
         if PreviewRuntime.isActive {
             PreviewRootView()
         } else {
-            SearchSceneView(container: .shared)
+            SearchSceneView(container: container)
         }
     }
 }

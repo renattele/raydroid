@@ -332,12 +332,17 @@ private struct DetailMetadataView: View {
 private struct FormNodeView: View {
     let data: FormNodeViewData
 
+    @State private var initializedFormID: String?
     @State private var textValues: [String: String] = [:]
     @State private var booleanValues: [String: Bool] = [:]
     @State private var dateValues: [String: String?] = [:]
-    @State private var activeDateFieldId: String?
+    @State private var activeDateField: ActiveDateField?
 
     var body: some View {
+        let hasChangedValues = hasChangedValues()
+        let submitEnabled = data.isSubmitEnabledByPlugin &&
+            hasValidRequiredValues() &&
+            (!data.requireChanges || hasChangedValues)
         VStack(alignment: .leading, spacing: 12) {
             if data.isLoading {
                 ProgressView()
@@ -351,19 +356,29 @@ private struct FormNodeView: View {
                 fieldView(field)
             }
             if let submitTitle = data.submitTitle {
-                Button {
-                    data.onSubmit?(pluginValues())
-                } label: {
-                    Text(submitTitle)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!data.isSubmitEnabled || data.onSubmit == nil)
+                submitButton(title: submitTitle, enabled: submitEnabled)
+            }
+            if data.requireChanges, !hasChangedValues, let unchangedView = data.unchangedView {
+                EmptyStateView(data: unchangedView)
             }
         }
         .padding(14)
         .raydroidGlassSurface(cornerRadius: 18, interactive: false)
-        .onAppear(perform: initializeDefaults)
+        .task(id: data.id) {
+            initializeDefaults()
+        }
+        .sheet(item: $activeDateField) { field in
+            DatePickerSheet(
+                initialValue: currentDateValue(for: field.id, defaultValue: field.defaultValue),
+                onSave: { selected in
+                    dateValues[field.id] = selected
+                    activeDateField = nil
+                },
+                onCancel: {
+                    activeDateField = nil
+                }
+            )
+        }
     }
 
     @ViewBuilder
@@ -393,18 +408,23 @@ private struct FormNodeView: View {
     private func textFieldView(_ data: TextFormFieldViewData) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             if !data.title.isEmpty {
-                Text(data.title)
+                Text(fieldTitle(data.title, required: data.isRequired))
                     .font(.subheadline.weight(.medium))
             }
             if data.isMultiline {
                 TextEditor(text: bindingText(for: data.id, defaultValue: data.defaultValue))
                     .frame(minHeight: 80)
+                    .foregroundStyle(.primary)
+                    .tint(.accentColor)
+                    .scrollContentBackground(.hidden)
                     .padding(8)
                     .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
             } else if data.isPassword {
                 SecureField(data.placeholder, text: bindingText(for: data.id, defaultValue: data.defaultValue))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .foregroundStyle(.primary)
+                    .tint(.accentColor)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
@@ -412,6 +432,8 @@ private struct FormNodeView: View {
                 TextField(data.placeholder, text: bindingText(for: data.id, defaultValue: data.defaultValue))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .foregroundStyle(.primary)
+                    .tint(.accentColor)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
@@ -427,7 +449,7 @@ private struct FormNodeView: View {
         }
         VStack(alignment: .leading, spacing: 6) {
             if !data.title.isEmpty {
-                Text(data.title)
+                Text(fieldTitle(data.title, required: data.isRequired))
                     .font(.subheadline.weight(.medium))
             }
             Menu {
@@ -460,11 +482,14 @@ private struct FormNodeView: View {
     private func dateFieldView(_ data: DateFormFieldViewData) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             if !data.title.isEmpty {
-                Text(data.title)
+                Text(fieldTitle(data.title, required: data.isRequired))
                     .font(.subheadline.weight(.medium))
             }
             Button {
-                activeDateFieldId = data.id
+                activeDateField = ActiveDateField(
+                    id: data.id,
+                    defaultValue: data.defaultValue
+                )
             } label: {
                 HStack {
                     Text(currentDateValue(for: data.id, defaultValue: data.defaultValue) ?? "Select date")
@@ -478,27 +503,15 @@ private struct FormNodeView: View {
             }
             .buttonStyle(.plain)
         }
-        .sheet(
-            isPresented: Binding(
-                get: { activeDateFieldId == data.id },
-                set: { if !$0 { activeDateFieldId = nil } }
-            )
-        ) {
-            DatePickerSheet(
-                initialValue: currentDateValue(for: data.id, defaultValue: data.defaultValue),
-                onSave: { selected in
-                    dateValues[data.id] = selected
-                    activeDateFieldId = nil
-                },
-                onCancel: {
-                    activeDateFieldId = nil
-                }
-            )
-        }
     }
 
     private func initializeDefaults() {
-        guard textValues.isEmpty, booleanValues.isEmpty, dateValues.isEmpty else { return }
+        guard initializedFormID != data.id else { return }
+        initializedFormID = data.id
+        textValues = [:]
+        booleanValues = [:]
+        dateValues = [:]
+        activeDateField = nil
         for field in data.fields {
             switch field {
             case .text(let data):
@@ -534,6 +547,90 @@ private struct FormNodeView: View {
         return values
     }
 
+    @ViewBuilder
+    private func submitButton(title: String, enabled: Bool) -> some View {
+        let button = Button {
+            if enabled {
+                data.onSubmit?(pluginValues())
+            }
+        } label: {
+            HStack(spacing: 8) {
+                if let iconAsset = data.submitIconAsset {
+                    PluginIconView(
+                        asset: iconAsset,
+                        tint: submitEnabledTint(enabled: enabled),
+                        size: 14
+                    )
+                    .frame(width: 16, height: 16)
+                }
+                Text(title)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .disabled(!enabled || data.onSubmit == nil)
+
+        if data.submitStyle == .tonal {
+            button
+                .buttonStyle(.bordered)
+                .tint(.accentColor)
+        } else {
+            button
+                .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private func hasChangedValues() -> Bool {
+        for field in data.fields {
+            switch field {
+            case .text(let data):
+                if (textValues[data.id] ?? data.defaultValue) != data.defaultValue {
+                    return true
+                }
+            case .checkbox(let data):
+                if (booleanValues[data.id] ?? data.defaultValue) != data.defaultValue {
+                    return true
+                }
+            case .dropdown(let data):
+                if (textValues[data.id] ?? data.defaultValue) != data.defaultValue {
+                    return true
+                }
+            case .date(let data):
+                if currentDateValue(for: data.id, defaultValue: data.defaultValue) != data.defaultValue {
+                    return true
+                }
+            case .description, .separator:
+                break
+            }
+        }
+        return false
+    }
+
+    private func hasValidRequiredValues() -> Bool {
+        for field in data.fields {
+            switch field {
+            case .text(let data):
+                if data.isRequired && (textValues[data.id] ?? data.defaultValue).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return false
+                }
+            case .checkbox(let data):
+                if data.isRequired && (booleanValues[data.id] ?? data.defaultValue) == false {
+                    return false
+                }
+            case .dropdown(let data):
+                if data.isRequired && (textValues[data.id] ?? data.defaultValue).isEmpty {
+                    return false
+                }
+            case .date(let data):
+                if data.isRequired && (currentDateValue(for: data.id, defaultValue: data.defaultValue)?.isEmpty != false) {
+                    return false
+                }
+            case .description, .separator:
+                break
+            }
+        }
+        return true
+    }
+
     private func currentDateValue(for id: String, defaultValue: String?) -> String? {
         flattened(dateValues[id]) ?? defaultValue
     }
@@ -550,6 +647,19 @@ private struct FormNodeView: View {
             get: { booleanValues[id] ?? defaultValue },
             set: { booleanValues[id] = $0 }
         )
+    }
+
+    private func submitEnabledTint(enabled: Bool) -> Color {
+        enabled ? .white : .secondary
+    }
+
+    private struct ActiveDateField: Identifiable {
+        let id: String
+        let defaultValue: String?
+    }
+
+    private func fieldTitle(_ title: String, required: Bool) -> String {
+        required ? "\(title) *" : title
     }
 }
 

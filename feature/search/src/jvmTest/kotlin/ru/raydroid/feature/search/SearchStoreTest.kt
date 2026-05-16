@@ -68,7 +68,7 @@ class SearchStoreTest {
         fixture.store.openSearch("calc")
 
         val state = fixture.store.currentState()
-        assertEquals("calc", state.searchFieldState.text)
+        assertEquals("calc", state.searchFieldState.query)
         assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
     }
 
@@ -78,7 +78,7 @@ class SearchStoreTest {
         fixture.store.openCommand("calculator")
 
         val state = fixture.store.currentState()
-        assertEquals("calculator", state.searchFieldState.text)
+        assertEquals("calculator", state.searchFieldState.query)
         assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
     }
 
@@ -123,6 +123,94 @@ class SearchStoreTest {
         fixture.store.hideToast("toast-1")
         runCurrent()
         assertEquals(emptyList(), fixture.store.currentState().toasts)
+    }
+
+    @Test
+    fun `toast with same id replaces existing toast`() = runTest {
+        val fixture = SearchStoreFixture(this)
+        fixture.store.start()
+        runCurrent()
+
+        val firstToast = NotificationEvent.ShowToast(
+            pluginId = fixture.pluginId,
+            toastId = "toast-1",
+            toast = NotificationEvent.Toast(
+                message = PluginUiText.Plain("Loading"),
+                style = NotificationEvent.Toast.Style.Animated,
+                autoDismissMillis = null
+            )
+        )
+        val secondToast = NotificationEvent.ShowToast(
+            pluginId = fixture.pluginId,
+            toastId = "toast-1",
+            toast = NotificationEvent.Toast(
+                message = PluginUiText.Plain("Done"),
+                style = NotificationEvent.Toast.Style.Success,
+                autoDismissMillis = null
+            )
+        )
+
+        fixture.events.emit(
+            PluginEvent(
+                id = PluginEvent.Id("toast-1"),
+                pluginId = fixture.pluginId,
+                data = firstToast
+            )
+        )
+        fixture.events.emit(
+            PluginEvent(
+                id = PluginEvent.Id("toast-1b"),
+                pluginId = fixture.pluginId,
+                data = secondToast
+            )
+        )
+        runCurrent()
+
+        assertEquals(listOf(secondToast), fixture.store.currentState().toasts)
+    }
+
+    @Test
+    fun `animated toasts with same message collapse to one toast`() = runTest {
+        val fixture = SearchStoreFixture(this)
+        fixture.store.start()
+        runCurrent()
+
+        val firstToast = NotificationEvent.ShowToast(
+            pluginId = fixture.pluginId,
+            toastId = "toast-1",
+            toast = NotificationEvent.Toast(
+                message = PluginUiText.Plain("Loading..."),
+                style = NotificationEvent.Toast.Style.Animated,
+                autoDismissMillis = null
+            )
+        )
+        val secondToast = NotificationEvent.ShowToast(
+            pluginId = fixture.pluginId,
+            toastId = "toast-2",
+            toast = NotificationEvent.Toast(
+                message = PluginUiText.Plain("Loading..."),
+                style = NotificationEvent.Toast.Style.Animated,
+                autoDismissMillis = null
+            )
+        )
+
+        fixture.events.emit(
+            PluginEvent(
+                id = PluginEvent.Id("toast-2a"),
+                pluginId = fixture.pluginId,
+                data = firstToast
+            )
+        )
+        fixture.events.emit(
+            PluginEvent(
+                id = PluginEvent.Id("toast-2b"),
+                pluginId = fixture.pluginId,
+                data = secondToast
+            )
+        )
+        runCurrent()
+
+        assertEquals(listOf(secondToast), fixture.store.currentState().toasts)
     }
 
     @Test

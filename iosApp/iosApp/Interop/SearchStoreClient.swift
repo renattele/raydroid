@@ -1,7 +1,6 @@
 import Foundation
 import RaydroidShared
 
-typealias SearchUiState = SearchScreenState
 typealias ActionUiModel = FocusedCommandAction
 
 enum PluginAsset: Equatable {
@@ -30,14 +29,14 @@ final class SearchStoreObservation {
 }
 
 private final class SearchStoreStateCollector: NSObject, Kotlinx_coroutines_coreFlowCollector {
-    private let onState: @MainActor (SearchScreenState) -> Void
+    private let onState: @MainActor (SearchUiState) -> Void
 
-    init(onState: @escaping @MainActor (SearchScreenState) -> Void) {
+    init(onState: @escaping @MainActor (SearchUiState) -> Void) {
         self.onState = onState
     }
 
     func emit(value: Any?, completionHandler: @escaping (Error?) -> Void) {
-        if let state = value as? SearchScreenState {
+        if let state = value as? SearchUiState {
             Task { @MainActor in
                 onState(state)
             }
@@ -53,16 +52,17 @@ protocol SearchStoreClient {
     func start()
     func stop()
     func watch(_ observer: @escaping (SearchUiState) -> Void) -> SearchStoreObservation
+    func updateQuery(_ query: String, selectionName: String)
     func openSearch(query: String)
     func openCommand(commandId: String)
-    func updateRootQuery(_ query: String)
-    func updateFullscreenQuery(_ query: String)
-    func submit()
+    func submit(resultId: ApiSearchResultId?)
     func submitForm(callback: ApiPluginFormSubmitCallback, values: [String: PluginFormValueDraft])
     func closeFullscreen()
     func toggleActions()
     func hideActions()
     func backspaceOnEmpty()
+    func moveFocusNext()
+    func moveFocusPrevious()
     func enter(_ resultId: ApiSearchResultId?)
     func enterAction(_ action: ActionUiModel)
     func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool)
@@ -117,6 +117,15 @@ final class KmpSearchStoreClient: SearchStoreClient {
         }
     }
 
+    func updateQuery(_ query: String, selectionName: String) {
+        store.send(
+            intent: SearchIntentUpdateQuery(
+                query: query,
+                selection: selection(from: selectionName)
+            )
+        )
+    }
+
     func openSearch(query: String) {
         store.openSearch(query: query)
     }
@@ -125,16 +134,8 @@ final class KmpSearchStoreClient: SearchStoreClient {
         store.openCommand(query: commandId)
     }
 
-    func updateRootQuery(_ query: String) {
-        store.currentState().eventSink(SearchScreenEventQueryChanged(query: query))
-    }
-
-    func updateFullscreenQuery(_ query: String) {
-        store.currentState().eventSink(SearchScreenEventQueryChanged(query: query))
-    }
-
-    func submit() {
-        store.currentState().eventSink(SearchScreenEventEnter(resultId: nil))
+    func submit(resultId: ApiSearchResultId? = nil) {
+        store.send(intent: SearchIntentSubmit(resultId: resultId))
     }
 
     func submitForm(callback: ApiPluginFormSubmitCallback, values: [String: PluginFormValueDraft]) {
@@ -153,32 +154,40 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func closeFullscreen() {
-        store.currentState().eventSink(SearchScreenEventCloseFullscreen.shared)
+        store.send(intent: SearchIntentCloseFullscreen.shared)
     }
 
     func toggleActions() {
-        store.toggleActions()
+        store.send(intent: SearchIntentToggleActions.shared)
     }
 
     func hideActions() {
-        store.hideActions()
+        store.send(intent: SearchIntentHideActions.shared)
     }
 
     func backspaceOnEmpty() {
-        store.currentState().eventSink(SearchScreenEventBackspaceOnEmpty.shared)
+        store.send(intent: SearchIntentBackspaceOnEmpty.shared)
+    }
+
+    func moveFocusNext() {
+        store.send(intent: SearchIntentMoveFocusNext.shared)
+    }
+
+    func moveFocusPrevious() {
+        store.send(intent: SearchIntentMoveFocusPrevious.shared)
     }
 
     func enter(_ resultId: ApiSearchResultId?) {
-        store.currentState().eventSink(SearchScreenEventEnter(resultId: resultId))
+        submit(resultId: resultId)
     }
 
     func enterAction(_ action: ActionUiModel) {
-        store.currentState().eventSink(SearchScreenEventEnterAction(action: action))
+        store.send(intent: SearchIntentEnterAction(action: action))
     }
 
     func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool = false) {
-        store.currentState().eventSink(
-            SearchScreenEventEnterCallback(
+        store.send(
+            intent: SearchIntentEnterCallback(
                 resultId: resultId,
                 callback: callback,
                 updateUsage: updateUsage
@@ -187,16 +196,16 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func focusPluginItem(_ itemId: Any) {
-        store.currentState().eventSink(SearchScreenEventFocusPluginItem(itemId: itemId))
+        store.send(intent: SearchIntentFocusPluginItem(itemId: itemId))
     }
 
     func enterPluginItem(_ itemId: Any) {
-        store.currentState().eventSink(SearchScreenEventEnterPluginItem(itemId: itemId))
+        store.send(intent: SearchIntentEnterPluginItem(itemId: itemId))
     }
 
     func showContextActions(resultId: ApiSearchResultId, actions: [ApiPluginCommandListAction]) {
-        store.currentState().eventSink(
-            SearchScreenEventShowContextActions(
+        store.send(
+            intent: SearchIntentShowContextActions(
                 resultId: resultId,
                 actions: actions
             )
@@ -204,18 +213,15 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func dismissAlert(_ alert: ApiNotificationEventAlert) {
-        store.currentState().eventSink(SearchScreenEventDismissAlert(alert: alert))
+        store.send(intent: SearchIntentDismissAlert(alert: alert))
     }
 
     func confirmAlert(_ alert: ApiNotificationEventAlert) {
-        store.currentState().eventSink(SearchScreenEventConfirmAlert(alert: alert))
+        store.send(intent: SearchIntentConfirmAlert(alert: alert))
     }
 
     func hideToast(_ toastId: String) {
-        guard let toast = store.currentState().toasts.first(where: { $0.toastId == toastId }) else {
-            return
-        }
-        store.currentState().eventSink(SearchScreenEventHideToast(toast: toast))
+        store.send(intent: SearchIntentDismissToast(toastId: toastId))
     }
 
     func resolveText(_ text: ApiPluginUiText?) -> String {
@@ -252,6 +258,17 @@ final class KmpSearchStoreClient: SearchStoreClient {
             return .builtinName(builtin.name)
         default:
             return nil
+        }
+    }
+
+    private func selection(from selectionName: String) -> ApiSearchFieldSelection {
+        switch selectionName.lowercased() {
+        case "cursoratstart":
+            return .cursoratstart
+        case "selectall":
+            return .selectall
+        default:
+            return .cursoratend
         }
     }
 }

@@ -3,12 +3,14 @@ import SwiftUI
 @main
 @MainActor
 struct iOSApp: App {
+    @State private var container = RaydroidAppContainer.shared
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(container: container)
                 .task {
                     guard !PreviewRuntime.isActive else { return }
-                    await RaydroidAppContainer.shared.spotlightIndexing.indexCommands()
+                    await container.spotlightIndexing.indexCommands()
                 }
         }
     }

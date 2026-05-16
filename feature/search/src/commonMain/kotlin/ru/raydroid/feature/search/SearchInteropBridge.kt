@@ -1,6 +1,8 @@
 package ru.raydroid.feature.search
 
 import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
+import ru.raydroid.plugin.host.api.ui.PluginActionPanelHintMode
 import ru.raydroid.plugin.host.api.ui.PluginBoxData
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginDetailData
@@ -30,6 +32,9 @@ import ru.raydroid.plugin.host.api.ui.PluginShapeToken
 import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginTextData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
+import ru.raydroid.plugin.host.api.ui.actionPanelHintMode
+import ru.raydroid.plugin.host.api.ui.pluginFocusModel
+import ru.raydroid.plugin.host.api.ui.suppressesHostActions
 
 object SearchInteropBridge {
     fun nodeKind(node: PluginRayNodeData): String = when (node) {
@@ -268,6 +273,21 @@ object SearchInteropBridge {
         else -> null
     }
 
+    fun formRequireChanges(node: PluginRayNodeData): Boolean = when (node) {
+        is PluginFormData -> node.requireChanges
+        else -> false
+    }
+
+    fun formUnchangedView(node: PluginRayNodeData): Any? = when (node) {
+        is PluginFormData -> node.unchangedView
+        else -> null
+    }
+
+    fun formActionPanelHintMode(node: PluginRayNodeData): String = when (node) {
+        is PluginFormData -> node.actionPanelHintMode.name
+        else -> PluginActionPanelHintMode.Full.name
+    }
+
     fun formNavigationTitle(node: PluginRayNodeData): PluginUiText? = when (node) {
         is PluginFormData -> node.navigationTitle
         else -> null
@@ -276,6 +296,10 @@ object SearchInteropBridge {
     fun formSubmitTitle(submit: Any): PluginUiText? = (submit as? PluginFormSubmitData)?.title
 
     fun formSubmitEnabled(submit: Any): Boolean = (submit as? PluginFormSubmitData)?.enabled ?: true
+
+    fun formSubmitStyle(submit: Any): String = (submit as? PluginFormSubmitData)?.style?.name ?: ""
+
+    fun formSubmitIcon(submit: Any): PluginIcon? = (submit as? PluginFormSubmitData)?.icon
 
     fun formSubmitCallback(submit: Any): PluginFormSubmitCallback? = (submit as? PluginFormSubmitData)?.callback
 
@@ -323,4 +347,36 @@ object SearchInteropBridge {
     fun formOptionTitle(option: Any): PluginUiText? = (option as PluginFormFieldData.Dropdown.Option).title
 
     fun formOptionIcon(option: Any): PluginIcon? = (option as PluginFormFieldData.Dropdown.Option).icon
+
+    fun searchResultTitleMatches(result: SearchResultSet.SearchResult): List<Int> = when (result) {
+        is SearchResultSet.CachedSearchResult -> flattenMatches(result.titleMatches)
+        is SearchResultSet.CommandSearchResult,
+        is SearchResultSet.LiveSearchResult -> emptyList()
+    }
+
+    fun searchResultDescriptionMatches(result: SearchResultSet.SearchResult): List<Int> = when (result) {
+        is SearchResultSet.CachedSearchResult -> flattenMatches(result.descriptionMatches)
+        is SearchResultSet.CommandSearchResult,
+        is SearchResultSet.LiveSearchResult -> emptyList()
+    }
+
+    fun suppressesHostActions(nodes: List<PluginRayNodeData>): Boolean = nodes.suppressesHostActions()
+
+    fun actionPanelHintMode(nodes: List<PluginRayNodeData>): String = nodes.actionPanelHintMode().name
+
+    fun focusedActions(
+        nodes: List<PluginRayNodeData>,
+        focusedItemValue: String?,
+        query: String
+    ): List<PluginCommandListAction> = nodes.pluginFocusModel(
+        focusedItemId = focusedItemValue?.let(::CommandItemId),
+        query = query
+    ).focusedActions
+
+    private fun flattenMatches(ranges: List<IntRange>): List<Int> = buildList(ranges.size * 2) {
+        ranges.forEach { range ->
+            add(range.first)
+            add(range.last)
+        }
+    }
 }
