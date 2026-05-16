@@ -2,11 +2,20 @@ import SwiftUI
 
 struct PluginNodeListView: View {
     let nodes: [PluginNodeViewData]
+    let showsContextButtons: Bool
+
+    init(nodes: [PluginNodeViewData], showsContextButtons: Bool = true) {
+        self.nodes = nodes
+        self.showsContextButtons = showsContextButtons
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(nodes) { node in
-                PluginNodeView(node: node)
+                PluginNodeView(
+                    node: node,
+                    showsContextButtons: showsContextButtons
+                )
             }
         }
     }
@@ -14,6 +23,12 @@ struct PluginNodeListView: View {
 
 struct PluginNodeView: View {
     let node: PluginNodeViewData
+    let showsContextButtons: Bool
+
+    init(node: PluginNodeViewData, showsContextButtons: Bool = true) {
+        self.node = node
+        self.showsContextButtons = showsContextButtons
+    }
 
     var body: some View {
         switch node {
@@ -43,20 +58,29 @@ struct PluginNodeView: View {
                 )
         case .box(let data):
             ZStack(alignment: pluginBoxAlignment(data.alignmentName)) {
-                PluginNodeListView(nodes: data.children)
+                PluginNodeListView(
+                    nodes: data.children,
+                    showsContextButtons: showsContextButtons
+                )
             }
         case .orientedBox(let data):
             if data.orientationName.lowercased().contains("horizontal") {
                 HStack(alignment: .center, spacing: pluginSpacing(data.spacingName)) {
                     ForEach(data.children) { child in
-                        PluginNodeView(node: child)
+                        PluginNodeView(
+                            node: child,
+                            showsContextButtons: showsContextButtons
+                        )
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             } else {
                 VStack(alignment: .leading, spacing: pluginSpacing(data.spacingName)) {
                     ForEach(data.children) { child in
-                        PluginNodeView(node: child)
+                        PluginNodeView(
+                            node: child,
+                            showsContextButtons: showsContextButtons
+                        )
                     }
                 }
             }
@@ -74,7 +98,10 @@ struct PluginNodeView: View {
             .padding(14)
             .raydroidGlassSurface(cornerRadius: 18, interactive: false)
         case .list(let data):
-            ListNodeSectionView(data: data)
+            ListNodeSectionView(
+                data: data,
+                showsContextButtons: showsContextButtons
+            )
         case .grid(let data):
             GridNodeSectionView(data: data)
         case .form(let data):
@@ -87,6 +114,12 @@ struct PluginNodeView: View {
 
 private struct ListNodeSectionView: View {
     let data: ListNodeViewData
+    let showsContextButtons: Bool
+
+    init(data: ListNodeViewData, showsContextButtons: Bool = true) {
+        self.data = data
+        self.showsContextButtons = showsContextButtons
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -97,7 +130,10 @@ private struct ListNodeSectionView: View {
                 EmptyStateView(data: emptyState)
             } else {
                 ForEach(data.sections) { section in
-                    PluginListSectionView(data: section)
+                    PluginListSectionView(
+                        data: section,
+                        showsContextButtons: showsContextButtons
+                    )
                 }
             }
         }
@@ -152,6 +188,12 @@ private struct GridNodeSectionView: View {
 
 private struct PluginListSectionView: View {
     let data: PluginListSectionViewData
+    let showsContextButtons: Bool
+
+    init(data: PluginListSectionViewData, showsContextButtons: Bool = true) {
+        self.data = data
+        self.showsContextButtons = showsContextButtons
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -160,7 +202,10 @@ private struct PluginListSectionView: View {
                     .font(.headline)
             }
             ForEach(data.items) { item in
-                PluginListItemView(data: item)
+                PluginListItemView(
+                    data: item,
+                    showsContextButtons: showsContextButtons
+                )
             }
         }
     }
@@ -168,6 +213,12 @@ private struct PluginListSectionView: View {
 
 private struct PluginListItemView: View {
     let data: PluginListItemViewData
+    let showsContextButtons: Bool
+
+    init(data: PluginListItemViewData, showsContextButtons: Bool = true) {
+        self.data = data
+        self.showsContextButtons = showsContextButtons
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -188,7 +239,7 @@ private struct PluginListItemView: View {
                     }
                 }
                 Spacer()
-                if data.showsContextButton, let onShowContextActions = data.onShowContextActions {
+                if showsContextButtons && data.showsContextButton, let onShowContextActions = data.onShowContextActions {
                     Button(action: onShowContextActions) {
                         Image(systemName: "ellipsis.circle")
                             .font(.system(size: 18))
@@ -199,7 +250,10 @@ private struct PluginListItemView: View {
             }
 
             if !data.content.isEmpty {
-                PluginNodeListView(nodes: data.content)
+                PluginNodeListView(
+                    nodes: data.content,
+                    showsContextButtons: showsContextButtons
+                )
             }
         }
         .padding(12)

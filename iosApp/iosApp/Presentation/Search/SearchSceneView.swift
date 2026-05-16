@@ -260,7 +260,10 @@ private struct FullscreenContentView: View {
 
     var body: some View {
         ScrollView {
-            PluginNodeListView(nodes: fullscreen.nodes)
+            PluginNodeListView(
+                nodes: fullscreen.nodes,
+                showsContextButtons: false
+            )
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 16)
                 .padding(.top, 20)
@@ -489,14 +492,7 @@ private struct SearchDock: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            HStack(spacing: 8) {
-                if showsBackButton {
-                    FullscreenBackButton(
-                        exitBackspaceCount: exitBackspaceCount,
-                        onBack: onBack
-                    )
-                }
-
+            ZStack(alignment: .leading) {
                 SearchInputField(
                     text: query,
                     placeholder: placeholder,
@@ -510,28 +506,39 @@ private struct SearchDock: View {
                     onMoveFocusUp: onMoveFocusUp,
                     onMoveFocusDown: onMoveFocusDown
                 )
-                    .padding(.horizontal, 14)
+                    .padding(.leading, searchFieldLeadingPadding)
+                    .padding(.trailing, 14)
                     .frame(maxWidth: .infinity)
                     .frame(height: 36)
+                    .clipped()
                     .layoutPriority(1)
 
-                SearchInlineActions(
-                    title: actionTitle,
-                    showsActionToggle: showsActionToggle,
-                    showsActions: showsActions,
-                    onSubmit: onSubmit,
-                    onToggleActions: onToggleActions
-                )
+                HStack(spacing: 0) {
+                    FullscreenBackButton(
+                        isVisible: showsBackButton,
+                        exitBackspaceCount: exitBackspaceCount,
+                        onBack: onBack
+                    )
+                    Spacer(minLength: 0)
+                }
             }
-            .padding(.leading, showsBackButton ? 6 : 16)
-            .padding(.trailing, 8)
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .layoutPriority(1)
+            .animation(dockAnimation, value: showsBackButton)
+            .animation(dockAnimation, value: exitBackspaceCount)
+
+            SearchInlineActions(
+                title: actionTitle,
+                showsActionToggle: showsActionToggle,
+                showsActions: showsActions,
+                onSubmit: onSubmit,
+                onToggleActions: onToggleActions
+            )
         }
         .frame(maxWidth: .infinity)
-        .padding(.leading, 8)
-        .padding(.trailing, 6)
+        .padding(.leading, 16)
+        .padding(.trailing, 8)
         .padding(.vertical, 6)
         .frame(minHeight: 48)
         .background(Color(uiColor: .systemBackground).opacity(0.96), in: Capsule())
@@ -541,11 +548,30 @@ private struct SearchDock: View {
         }
         .shadow(color: Color.black.opacity(0.14), radius: 16, y: 6)
     }
+
+    private var dockAnimation: Animation {
+        .bouncy(duration: 0.34, extraBounce: 0.18)
+    }
+
+    private var searchFieldLeadingPadding: CGFloat {
+        14 + backButtonInsetWidth
+    }
+
+    private var backButtonInsetWidth: CGFloat {
+        guard showsBackButton else { return 0 }
+        switch exitBackspaceCount {
+        case 0: return 40
+        case 1: return 32
+        default: return 0
+        }
+    }
 }
 
 private struct FullscreenBackButton: View {
+    let isVisible: Bool
     let exitBackspaceCount: Int
     let onBack: () -> Void
+    @State private var hasAppeared = false
 
     var body: some View {
         Button(action: onBack) {
@@ -553,37 +579,66 @@ private struct FullscreenBackButton: View {
                 .font(.system(size: iconSize, weight: .bold))
                 .foregroundStyle(Color.accentColor)
                 .frame(width: buttonWidth, height: 44)
-                .opacity(exitBackspaceCount >= 2 ? 0 : 1)
+                .opacity(iconOpacity)
+                .offset(x: iconOffsetX)
         }
         .buttonStyle(.raydroidLiquidGlassProminent)
-        .disabled(exitBackspaceCount >= 2)
+        .disabled(!isInteractive)
         .frame(width: slotWidth, height: 44, alignment: .center)
         .clipped()
-        .animation(.easeInOut(duration: 0.18), value: exitBackspaceCount)
+        .onAppear {
+            hasAppeared = true
+        }
+        .animation(animation, value: hasAppeared)
+        .animation(animation, value: isVisible)
+        .animation(animation, value: exitBackspaceCount)
     }
 
     private var slotWidth: CGFloat {
+        guard isExpanded else { return 0 }
         switch exitBackspaceCount {
-        case 0: return 52
-        case 1: return 44
+        case 0: return 48
+        case 1: return 40
         default: return 0
         }
     }
 
     private var buttonWidth: CGFloat {
+        guard isExpanded else { return 0 }
         switch exitBackspaceCount {
-        case 0: return 44
-        case 1: return 36
+        case 0: return 40
+        case 1: return 32
         default: return 0
         }
     }
 
     private var iconSize: CGFloat {
+        guard isExpanded else { return 0 }
         switch exitBackspaceCount {
-        case 0: return 18
-        case 1: return 16
+        case 0: return 22
+        case 1: return 18
         default: return 0
         }
+    }
+
+    private var iconOpacity: Double {
+        isExpanded && isInteractive ? 1 : 0
+    }
+
+    private var iconOffsetX: CGFloat {
+        isExpanded ? 0 : -8
+    }
+
+    private var isExpanded: Bool {
+        hasAppeared && isVisible
+    }
+
+    private var isInteractive: Bool {
+        isVisible && exitBackspaceCount < 2
+    }
+
+    private var animation: Animation {
+        .bouncy(duration: 0.34, extraBounce: 0.18)
     }
 }
 
@@ -700,6 +755,7 @@ private struct GlassButtonCluster<Content: View>: View {
 
 #Preview("Back Button") {
     FullscreenBackButton(
+        isVisible: true,
         exitBackspaceCount: 1,
         onBack: {}
     )
