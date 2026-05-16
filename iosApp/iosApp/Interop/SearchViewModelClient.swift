@@ -16,7 +16,7 @@ enum PluginFormValueDraft: Equatable {
     case date(String?)
 }
 
-final class SearchStoreObservation {
+final class SearchViewModelObservation {
     private let cancelBlock: () -> Void
 
     init(cancelBlock: @escaping () -> Void) {
@@ -28,15 +28,15 @@ final class SearchStoreObservation {
     }
 }
 
-private final class SearchStoreStateCollector: NSObject, Kotlinx_coroutines_coreFlowCollector {
-    private let onState: @MainActor (SearchUiState) -> Void
+private final class SearchViewModelStateCollector: NSObject, Kotlinx_coroutines_coreFlowCollector {
+    private let onState: @MainActor (SearchScreenState) -> Void
 
-    init(onState: @escaping @MainActor (SearchUiState) -> Void) {
+    init(onState: @escaping @MainActor (SearchScreenState) -> Void) {
         self.onState = onState
     }
 
     func emit(value: Any?, completionHandler: @escaping (Error?) -> Void) {
-        if let state = value as? SearchUiState {
+        if let state = value as? SearchScreenState {
             Task { @MainActor in
                 onState(state)
             }
@@ -46,12 +46,12 @@ private final class SearchStoreStateCollector: NSObject, Kotlinx_coroutines_core
 }
 
 @MainActor
-protocol SearchStoreClient {
-    var currentState: SearchUiState { get }
+protocol SearchViewModelClient {
+    var currentState: SearchScreenState { get }
 
     func start()
     func stop()
-    func watch(_ observer: @escaping (SearchUiState) -> Void) -> SearchStoreObservation
+    func watch(_ observer: @escaping (SearchScreenState) -> Void) -> SearchViewModelObservation
     func updateQuery(_ query: String, selectionName: String)
     func openSearch(query: String)
     func openCommand(commandId: String)
@@ -78,20 +78,20 @@ protocol SearchStoreClient {
 }
 
 @MainActor
-final class KmpSearchStoreClient: SearchStoreClient {
-    private let store: SearchStore
+final class KmpSearchViewModelClient: SearchViewModelClient {
+    private let viewModel: SearchViewModel
     private var watchTask: Task<Void, Never>?
 
-    init(store: SearchStore = RaydroidBootstrapKt.CreateSearchStore()) {
-        self.store = store
+    init(viewModel: SearchViewModel = RaydroidBootstrapKt.CreateSearchViewModel()) {
+        self.viewModel = viewModel
     }
 
-    var currentState: SearchUiState {
-        store.currentState()
+    var currentState: SearchScreenState {
+        viewModel.currentState()
     }
 
     func start() {
-        store.start()
+        viewModel.start()
     }
 
     func stop() {
@@ -99,11 +99,11 @@ final class KmpSearchStoreClient: SearchStoreClient {
         watchTask = nil
     }
 
-    func watch(_ observer: @escaping (SearchUiState) -> Void) -> SearchStoreObservation {
+    func watch(_ observer: @escaping (SearchScreenState) -> Void) -> SearchViewModelObservation {
         watchTask?.cancel()
-        observer(store.currentState())
-        let collector = SearchStoreStateCollector(onState: observer)
-        let flow = store.state
+        observer(viewModel.currentState())
+        let collector = SearchViewModelStateCollector(onState: observer)
+        let flow = viewModel.state
         watchTask = Task {
             await withCheckedContinuation { continuation in
                 flow.collect(collector: collector) { _ in
@@ -111,15 +111,15 @@ final class KmpSearchStoreClient: SearchStoreClient {
                 }
             }
         }
-        return SearchStoreObservation { [weak self] in
+        return SearchViewModelObservation { [weak self] in
             self?.watchTask?.cancel()
             self?.watchTask = nil
         }
     }
 
     func updateQuery(_ query: String, selectionName: String) {
-        store.send(
-            intent: SearchIntentUpdateQuery(
+        viewModel.onEvent(
+            event: SearchScreenEventUpdateQuery(
                 query: query,
                 selection: selection(from: selectionName)
             )
@@ -127,15 +127,15 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func openSearch(query: String) {
-        store.openSearch(query: query)
+        viewModel.openSearch(query: query)
     }
 
     func openCommand(commandId: String) {
-        store.openCommand(query: commandId)
+        viewModel.openCommand(query: commandId)
     }
 
     func submit(resultId: ApiSearchResultId? = nil) {
-        store.send(intent: SearchIntentSubmit(resultId: resultId))
+        viewModel.onEvent(event: SearchScreenEventSubmit(resultId: resultId))
     }
 
     func submitForm(callback: ApiPluginFormSubmitCallback, values: [String: PluginFormValueDraft]) {
@@ -154,27 +154,27 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func closeFullscreen() {
-        store.send(intent: SearchIntentCloseFullscreen.shared)
+        viewModel.onEvent(event: SearchScreenEventCloseFullscreen.shared)
     }
 
     func toggleActions() {
-        store.send(intent: SearchIntentToggleActions.shared)
+        viewModel.onEvent(event: SearchScreenEventToggleActions.shared)
     }
 
     func hideActions() {
-        store.send(intent: SearchIntentHideActions.shared)
+        viewModel.onEvent(event: SearchScreenEventHideActions.shared)
     }
 
     func backspaceOnEmpty() {
-        store.send(intent: SearchIntentBackspaceOnEmpty.shared)
+        viewModel.onEvent(event: SearchScreenEventBackspaceOnEmpty.shared)
     }
 
     func moveFocusNext() {
-        store.send(intent: SearchIntentMoveFocusNext.shared)
+        viewModel.onEvent(event: SearchScreenEventMoveFocusNext.shared)
     }
 
     func moveFocusPrevious() {
-        store.send(intent: SearchIntentMoveFocusPrevious.shared)
+        viewModel.onEvent(event: SearchScreenEventMoveFocusPrevious.shared)
     }
 
     func enter(_ resultId: ApiSearchResultId?) {
@@ -182,12 +182,12 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func enterAction(_ action: ActionUiModel) {
-        store.send(intent: SearchIntentEnterAction(action: action))
+        viewModel.onEvent(event: SearchScreenEventEnterAction(action: action))
     }
 
     func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool = false) {
-        store.send(
-            intent: SearchIntentEnterCallback(
+        viewModel.onEvent(
+            event: SearchScreenEventEnterCallback(
                 resultId: resultId,
                 callback: callback,
                 updateUsage: updateUsage
@@ -196,16 +196,16 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func focusPluginItem(_ itemId: Any) {
-        store.send(intent: SearchIntentFocusPluginItem(itemId: itemId))
+        viewModel.onEvent(event: SearchScreenEventFocusPluginItem(itemId: itemId))
     }
 
     func enterPluginItem(_ itemId: Any) {
-        store.send(intent: SearchIntentEnterPluginItem(itemId: itemId))
+        viewModel.onEvent(event: SearchScreenEventEnterPluginItem(itemId: itemId))
     }
 
     func showContextActions(resultId: ApiSearchResultId, actions: [ApiPluginCommandListAction]) {
-        store.send(
-            intent: SearchIntentShowContextActions(
+        viewModel.onEvent(
+            event: SearchScreenEventShowContextActions(
                 resultId: resultId,
                 actions: actions
             )
@@ -213,15 +213,15 @@ final class KmpSearchStoreClient: SearchStoreClient {
     }
 
     func dismissAlert(_ alert: ApiNotificationEventAlert) {
-        store.send(intent: SearchIntentDismissAlert(alert: alert))
+        viewModel.onEvent(event: SearchScreenEventDismissAlert(alert: alert))
     }
 
     func confirmAlert(_ alert: ApiNotificationEventAlert) {
-        store.send(intent: SearchIntentConfirmAlert(alert: alert))
+        viewModel.onEvent(event: SearchScreenEventConfirmAlert(alert: alert))
     }
 
     func hideToast(_ toastId: String) {
-        store.send(intent: SearchIntentDismissToast(toastId: toastId))
+        viewModel.onEvent(event: SearchScreenEventDismissToast(toastId: toastId))
     }
 
     func resolveText(_ text: ApiPluginUiText?) -> String {
@@ -241,7 +241,7 @@ final class KmpSearchStoreClient: SearchStoreClient {
 
     private var resolver: PluginResourceResolver {
         PluginResourceResolver(
-            plugins: store.currentState().plugins,
+            plugins: viewModel.currentState().plugins,
             language: Locale.current.language.languageCode?.identifier ?? "en"
         )
     }

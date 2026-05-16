@@ -8,7 +8,7 @@ final class RaydroidAppContainer {
     let router: AppRouter
     let commandCatalogProvider: any CommandCatalogProviding
     let spotlightIndexing: any SpotlightIndexing
-    let searchStoreClient: SearchStoreClient
+    let searchViewModelClient: SearchViewModelClient
 
     private init() {
         RaydroidBootstrapKt.InitKoin()
@@ -20,6 +20,6 @@ final class RaydroidAppContainer {
         self.spotlightIndexing = SpotlightIndexingService(
             commandCatalogProvider: commandCatalogProvider
         )
-        self.searchStoreClient = KmpSearchStoreClient()
+        self.searchViewModelClient = KmpSearchViewModelClient()
     }
 }

@@ -11,20 +11,20 @@ enum PreviewRuntime {
 }
 
 @MainActor
-final class PreviewSearchStoreClient: SearchStoreClient {
-    var currentState: SearchUiState {
+final class PreviewSearchViewModelClient: SearchViewModelClient {
+    var currentState: SearchScreenState {
         if PreviewRuntime.isActive {
             RaydroidBootstrapKt.InitKoin()
         }
-        return RaydroidBootstrapKt.CreateSearchStore().currentState()
+        return RaydroidBootstrapKt.CreateSearchViewModel().currentState()
     }
 
     func start() {}
     func stop() {}
 
-    func watch(_ observer: @escaping (SearchUiState) -> Void) -> SearchStoreObservation {
+    func watch(_ observer: @escaping (SearchScreenState) -> Void) -> SearchViewModelObservation {
         observer(currentState)
-        return SearchStoreObservation(cancelBlock: {})
+        return SearchViewModelObservation(cancelBlock: {})
     }
 
     func updateQuery(_ query: String, selectionName: String) {}
@@ -414,7 +414,7 @@ enum PreviewData {
 extension SearchSceneModel {
     static func preview(state: SearchSceneState) -> SearchSceneModel {
         let model = SearchSceneModel(
-            storeClient: PreviewSearchStoreClient(),
+            viewModelClient: PreviewSearchViewModelClient(),
             router: AppRouter()
         )
         model.state = state

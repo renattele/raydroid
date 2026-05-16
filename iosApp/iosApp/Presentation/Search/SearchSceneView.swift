@@ -10,7 +10,7 @@ struct SearchSceneView: View {
     init(container: RaydroidAppContainer) {
         _model = State(
             initialValue: SearchSceneViewModel(
-                storeClient: container.searchStoreClient,
+                viewModelClient: container.searchViewModelClient,
                 router: container.router
             )
         )

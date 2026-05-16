@@ -61,43 +61,43 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SearchStoreTest {
+class SearchViewModelTest {
     @Test
     fun `open search updates query state`() = runTest {
-        val fixture = SearchStoreFixture(this)
-        fixture.store.openSearch("calc")
+        val fixture = SearchViewModelFixture(this)
+        fixture.viewModel.openSearch("calc")
 
-        val state = fixture.store.currentState()
+        val state = fixture.viewModel.currentState()
         assertEquals("calc", state.searchFieldState.query)
         assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
     }
 
     @Test
     fun `open command updates query state`() = runTest {
-        val fixture = SearchStoreFixture(this)
-        fixture.store.openCommand("calculator")
+        val fixture = SearchViewModelFixture(this)
+        fixture.viewModel.openCommand("calculator")
 
-        val state = fixture.store.currentState()
+        val state = fixture.viewModel.currentState()
         assertEquals("calculator", state.searchFieldState.query)
         assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
     }
 
     @Test
     fun `toggle actions opens and hide closes overlays`() = runTest {
-        val fixture = SearchStoreFixture(this)
-        fixture.store.toggleActions()
-        assertEquals(true, fixture.store.currentState().showActions)
+        val fixture = SearchViewModelFixture(this)
+        fixture.viewModel.toggleActions()
+        assertEquals(true, fixture.viewModel.currentState().overlayState.showActions)
 
-        fixture.store.hideActions()
-        val state = fixture.store.currentState()
-        assertEquals(false, state.showActions)
-        assertEquals(false, state.showContextActions)
+        fixture.viewModel.hideActions()
+        val state = fixture.viewModel.currentState()
+        assertEquals(false, state.overlayState.showActions)
+        assertEquals(false, state.overlayState.showContextActions)
     }
 
     @Test
     fun `toast events are shown then hidden`() = runTest {
-        val fixture = SearchStoreFixture(this)
-        fixture.store.start()
+        val fixture = SearchViewModelFixture(this)
+        fixture.viewModel.start()
         runCurrent()
 
         val toast = NotificationEvent.ShowToast(
@@ -118,17 +118,17 @@ class SearchStoreTest {
         )
         runCurrent()
 
-        assertEquals(listOf(toast), fixture.store.currentState().toasts)
+        assertEquals(listOf(toast), fixture.viewModel.currentState().toasts)
 
-        fixture.store.hideToast("toast-1")
+        fixture.viewModel.hideToast("toast-1")
         runCurrent()
-        assertEquals(emptyList(), fixture.store.currentState().toasts)
+        assertEquals(emptyList(), fixture.viewModel.currentState().toasts)
     }
 
     @Test
     fun `toast with same id replaces existing toast`() = runTest {
-        val fixture = SearchStoreFixture(this)
-        fixture.store.start()
+        val fixture = SearchViewModelFixture(this)
+        fixture.viewModel.start()
         runCurrent()
 
         val firstToast = NotificationEvent.ShowToast(
@@ -166,13 +166,13 @@ class SearchStoreTest {
         )
         runCurrent()
 
-        assertEquals(listOf(secondToast), fixture.store.currentState().toasts)
+        assertEquals(listOf(secondToast), fixture.viewModel.currentState().toasts)
     }
 
     @Test
     fun `animated toasts with same message collapse to one toast`() = runTest {
-        val fixture = SearchStoreFixture(this)
-        fixture.store.start()
+        val fixture = SearchViewModelFixture(this)
+        fixture.viewModel.start()
         runCurrent()
 
         val firstToast = NotificationEvent.ShowToast(
@@ -210,13 +210,13 @@ class SearchStoreTest {
         )
         runCurrent()
 
-        assertEquals(listOf(secondToast), fixture.store.currentState().toasts)
+        assertEquals(listOf(secondToast), fixture.viewModel.currentState().toasts)
     }
 
     @Test
     fun `confirm alert removes alert and emits confirm event`() = runTest {
-        val fixture = SearchStoreFixture(this)
-        fixture.store.start()
+        val fixture = SearchViewModelFixture(this)
+        fixture.viewModel.start()
         runCurrent()
 
         val alert = NotificationEvent.Alert(
@@ -237,12 +237,12 @@ class SearchStoreTest {
             )
         )
         runCurrent()
-        assertEquals(listOf(alert), fixture.store.currentState().alerts)
+        assertEquals(listOf(alert), fixture.viewModel.currentState().alerts)
 
-        fixture.store.confirmAlert(alert)
+        fixture.viewModel.confirmAlert(alert)
         runCurrent()
 
-        assertEquals(emptyList(), fixture.store.currentState().alerts)
+        assertEquals(emptyList(), fixture.viewModel.currentState().alerts)
         val emitted = fixture.eventGateway.emitted.single()
         assertEquals(fixture.pluginId, emitted.first)
         assertEquals(
@@ -250,9 +250,19 @@ class SearchStoreTest {
             emitted.second
         )
     }
+
+    @Test
+    fun `next focus picks first result when nothing is focused`() {
+        assertEquals(0, nextSearchResultsFocusIndex(currentIndex = null, resultCount = 2))
+    }
+
+    @Test
+    fun `previous focus picks last result when nothing is focused`() {
+        assertEquals(1, previousSearchResultsFocusIndex(currentIndex = null, resultCount = 2))
+    }
 }
 
-private class SearchStoreFixture(testScope: kotlinx.coroutines.test.TestScope) {
+private class SearchViewModelFixture(testScope: kotlinx.coroutines.test.TestScope) {
     val pluginId = PluginId("ru.raydroid.calculator")
     val resultId = SearchResultId(
         pluginId = pluginId,
@@ -284,7 +294,7 @@ private class SearchStoreFixture(testScope: kotlinx.coroutines.test.TestScope) {
     )
     private val registry = FakePluginRuntimeRegistry(coordinator)
 
-    val store = SearchStore(
+    val viewModel = SearchViewModel(
         applicationScope = testScope,
         syncCacheUseCase = SyncCacheUseCase(searchRepository, registry),
         loadRuntimesUseCase = LoadRuntimesUseCase(
@@ -483,7 +493,7 @@ private class EmptyPluginLoader : PluginLoader {
     override suspend fun join(
         plugins: StateFlow<List<PluginRuntime>>
     ): PluginRuntimeCoordinator {
-        error("Not used in SearchStore tests")
+        error("Not used in SearchViewModel tests")
     }
 }
 

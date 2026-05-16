@@ -16,7 +16,7 @@ val raydroidSearchModule = module {
     factoryOf(::GetCommandCatalogUseCase)
     factoryOf(::CommandCatalogProvider)
     factory {
-        SearchStore(
+        SearchViewModel(
             syncCacheUseCase = get(),
             loadRuntimesUseCase = get(),
             searchUseCase = get(),
@@ -48,7 +48,7 @@ object RaydroidBootstrap {
         ru.raydroid.feature.search.initKoin()
     }
 
-    fun createSearchStore(): SearchStore {
+    fun createSearchViewModel(): SearchViewModel {
         return KoinPlatformTools.defaultContext().get().get()
     }
 
@@ -61,8 +61,8 @@ fun InitKoin() {
     RaydroidBootstrap.initKoin()
 }
 
-fun CreateSearchStore(): SearchStore {
-    return RaydroidBootstrap.createSearchStore()
+fun CreateSearchViewModel(): SearchViewModel {
+    return RaydroidBootstrap.createSearchViewModel()
 }
 
 fun CreateCommandCatalogProvider(): CommandCatalogProvider {

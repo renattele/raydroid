@@ -103,7 +103,7 @@ struct AlertModel: Identifiable {
     let dismissButton: AlertDismissButtonModel?
 }
 
-enum SearchSceneIntent {
+enum SearchSceneEvent {
     case appear
     case disappear
     case route(AppRoute?)
@@ -124,22 +124,22 @@ enum SearchSceneIntent {
 final class SearchSceneViewModel {
     var state: SearchSceneState
 
-    private let storeClient: SearchStoreClient
+    private let viewModelClient: SearchViewModelClient
     private let router: AppRouter
-    private var rawState: SearchUiState
-    private var observation: SearchStoreObservation?
+    private var rawState: SearchScreenState
+    private var observation: SearchViewModelObservation?
     private var hasStarted = false
 
-    init(storeClient: SearchStoreClient, router: AppRouter) {
-        self.storeClient = storeClient
+    init(viewModelClient: SearchViewModelClient, router: AppRouter) {
+        self.viewModelClient = viewModelClient
         self.router = router
-        self.rawState = storeClient.currentState
+        self.rawState = viewModelClient.currentState
         self.state = SearchSceneState.empty
         self.state = makeMapper().map(state: rawState)
     }
 
-    func send(_ intent: SearchSceneIntent) {
-        switch intent {
+    func send(_ event: SearchSceneEvent) {
+        switch event {
         case .appear:
             start()
             applyRoute(router.pendingRoute)
@@ -148,43 +148,43 @@ final class SearchSceneViewModel {
         case .route(let route):
             applyRoute(route)
         case .queryChanged(let query, let selectionName):
-            storeClient.updateQuery(query, selectionName: selectionName)
+            viewModelClient.updateQuery(query, selectionName: selectionName)
         case .submit:
-            storeClient.submit(resultId: nil)
+            viewModelClient.submit(resultId: nil)
         case .closeFullscreen:
-            storeClient.closeFullscreen()
+            viewModelClient.closeFullscreen()
         case .backspaceOnEmpty:
-            storeClient.backspaceOnEmpty()
+            viewModelClient.backspaceOnEmpty()
         case .toggleActions:
-            storeClient.toggleActions()
+            viewModelClient.toggleActions()
         case .moveFocusNext:
-            storeClient.moveFocusNext()
+            viewModelClient.moveFocusNext()
         case .moveFocusPrevious:
-            storeClient.moveFocusPrevious()
+            viewModelClient.moveFocusPrevious()
         case .dismissAlert:
             dismissAlert()
         case .confirmAlert:
             confirmAlert()
         case .dismissToast(let toastId):
-            storeClient.hideToast(toastId)
+            viewModelClient.hideToast(toastId)
         }
     }
 
     func dismissAlert() {
         guard let alert = rawState.alerts.first else { return }
-        storeClient.dismissAlert(alert)
+        viewModelClient.dismissAlert(alert)
     }
 
     func confirmAlert() {
         guard let alert = rawState.alerts.first else { return }
-        storeClient.confirmAlert(alert)
+        viewModelClient.confirmAlert(alert)
     }
 
     private func start() {
         guard !hasStarted else { return }
         hasStarted = true
-        storeClient.start()
-        observation = storeClient.watch { [weak self] updated in
+        viewModelClient.start()
+        observation = viewModelClient.watch { [weak self] updated in
             self?.handleStateUpdate(updated)
         }
     }
@@ -193,27 +193,27 @@ final class SearchSceneViewModel {
         observation?.cancel()
         observation = nil
         hasStarted = false
-        storeClient.stop()
+        viewModelClient.stop()
     }
 
     private func applyRoute(_ route: AppRoute?) {
         guard let route else { return }
         switch route {
         case .search(let query):
-            storeClient.openSearch(query: query)
+            viewModelClient.openSearch(query: query)
         case .command(let commandId):
-            storeClient.openCommand(commandId: commandId)
+            viewModelClient.openCommand(commandId: commandId)
         }
         router.clearPendingRoute()
     }
 
-    private func handleStateUpdate(_ updated: SearchUiState) {
+    private func handleStateUpdate(_ updated: SearchScreenState) {
         rawState = updated
         state = makeMapper().map(state: updated)
     }
 
     private func makeMapper() -> SearchSceneStateMapper {
-        SearchSceneStateMapper(client: storeClient)
+        SearchSceneStateMapper(client: viewModelClient)
     }
 }
 
@@ -221,20 +221,20 @@ typealias SearchSceneModel = SearchSceneViewModel
 
 @MainActor
 private struct SearchSceneStateMapper {
-    let client: SearchStoreClient
+    let client: SearchViewModelClient
 
-    func map(state: SearchUiState) -> SearchSceneState {
+    func map(state: SearchScreenState) -> SearchSceneState {
         let loadingToast = state.toasts.last(where: isAnimatedLoadingToast)
-        let fullscreenNodes = state.fullscreen?.content.map { $0 as AnyObject } ?? []
-        let fullscreenFocusedActions = state.fullscreen.map { fullscreen in
+        let fullscreenNodes = state.fullscreenContent?.content.map { $0 as AnyObject } ?? []
+        let fullscreenFocusedActions = state.fullscreenContent.map { fullscreen in
             focusedPluginActions(
                 fullscreenNodes,
                 focusedItemId: fullscreen.focusedItemId,
                 query: fullscreen.searchFieldState.query
             )
         } ?? []
-        let suppressHostActions = state.fullscreen != nil && contentSuppressesHostActions(fullscreenNodes)
-        let actionHintMode = state.fullscreen.map { _ in
+        let suppressHostActions = state.fullscreenContent != nil && contentSuppressesHostActions(fullscreenNodes)
+        let actionHintMode = state.fullscreenContent.map { _ in
             contentActionPanelHintMode(fullscreenNodes)
         } ?? .full
         let dockActions = resolveDockActions(
@@ -247,7 +247,7 @@ private struct SearchSceneStateMapper {
             fullscreenFocusedActions: fullscreenFocusedActions,
             suppressHostActions: suppressHostActions
         )
-        let fullscreen = state.fullscreen.map { fullscreen in
+        let fullscreen = state.fullscreenContent.map { fullscreen in
             FullscreenModel(
                 nodes: PluginNodeMapper(
                     client: client,
@@ -273,9 +273,9 @@ private struct SearchSceneStateMapper {
             actions: overlayActions,
             actionTitle: actionHintMode == .full ? primaryActionTitle(actions: dockActions) : nil,
             showsActionToggle: actionHintMode != .hidden && !dockActions.isEmpty,
-            showsActionsPanel: state.showActions || state.showContextActions,
-            showsBackButton: state.fullscreen != nil,
-            exitBackspaceCount: Int(state.fullscreen?.exitBackspaceCount ?? 0),
+            showsActionsPanel: state.overlayState.showActions || state.overlayState.showContextActions,
+            showsBackButton: state.fullscreenContent != nil,
+            exitBackspaceCount: Int(state.fullscreenContent?.exitBackspaceCount ?? 0),
             toasts: state.toasts
                 .filter { toast in !isAnimatedLoadingToast(toast) }
                 .map { toast in
@@ -313,14 +313,14 @@ private struct SearchSceneStateMapper {
     }
 
     private func resolveDockActions(
-        state: SearchUiState,
+        state: SearchScreenState,
         fullscreenFocusedActions: [ApiPluginCommandListAction],
         suppressHostActions: Bool
     ) -> [OverlayActionModel] {
         if suppressHostActions {
             return []
         }
-        if let fullscreen = state.fullscreen, !fullscreenFocusedActions.isEmpty {
+        if let fullscreen = state.fullscreenContent, !fullscreenFocusedActions.isEmpty {
             return fullscreenFocusedActions.enumerated().map { index, action in
                 overlayAction(
                     id: "fullscreen.action.\(index).\(fullscreen.resultId.commandName)",
@@ -334,7 +334,7 @@ private struct SearchSceneStateMapper {
                 }
             }
         }
-        return state.focusedActions.enumerated().map { index, action in
+        return state.overlayState.focusedActions.enumerated().map { index, action in
             overlayAction(
                 id: "action.\(index).\(action.resultId.commandName)",
                 action: action.action
@@ -345,12 +345,12 @@ private struct SearchSceneStateMapper {
     }
 
     private func resolveOverlayActions(
-        state: SearchUiState,
+        state: SearchScreenState,
         fullscreenFocusedActions: [ApiPluginCommandListAction],
         suppressHostActions: Bool
     ) -> [OverlayActionModel] {
-        if state.showContextActions {
-            return state.contextActions.enumerated().map { index, action in
+        if state.overlayState.showContextActions {
+            return state.overlayState.contextActions.enumerated().map { index, action in
                 overlayAction(
                     id: "context.action.\(index).\(action.resultId.commandName)",
                     action: action.action
@@ -370,21 +370,21 @@ private struct SearchSceneStateMapper {
         enumName(toast.toast.style).lowercased() == "animated"
     }
 
-    private func mapResultsBody(state: SearchUiState) -> SearchResultsBodyState {
-        guard state.fullscreen == nil else { return .empty }
-        if let results = state.searchResults?.results {
+    private func mapResultsBody(state: SearchScreenState) -> SearchResultsBodyState {
+        guard state.fullscreenContent == nil else { return .empty }
+        if let results = state.resultsContent?.searchResults?.results {
             return .results(
                 results.enumerated().map { index, result in
                     mapResult(
                         result,
                         index: index,
                         query: state.searchFieldState.query,
-                        focusedIndex: state.focusedItemIndex?.intValue
+                        focusedIndex: state.resultsContent?.focusedItemIndex?.intValue
                     )
                 }
             )
         }
-        if state.isSearching {
+        if state.resultsContent?.isSearching == true && state.resultsContent?.searchResults == nil {
             return .loading
         }
         return .empty
@@ -444,22 +444,22 @@ private struct SearchSceneStateMapper {
         )
     }
 
-    private func activeQuery(state: SearchUiState) -> String {
-        if let fullscreen = state.fullscreen {
+    private func activeQuery(state: SearchScreenState) -> String {
+        if let fullscreen = state.fullscreenContent {
             return fullscreen.searchFieldState.query
         }
         return state.searchFieldState.query
     }
 
-    private func placeholder(state: SearchUiState) -> String {
-        if let placeholder = state.fullscreen?.placeholder {
+    private func placeholder(state: SearchScreenState) -> String {
+        if let placeholder = state.fullscreenContent?.placeholder {
             return client.resolveText(placeholder)
         }
         return "Search commands"
     }
 
-    private func activeSearchFieldState(state: SearchUiState) -> SearchQueryState {
-        state.fullscreen?.searchFieldState ?? state.searchFieldState
+    private func activeSearchFieldState(state: SearchScreenState) -> SearchQueryState {
+        state.fullscreenContent?.searchFieldState ?? state.searchFieldState
     }
 
     private func primaryActionTitle(actions: [OverlayActionModel]) -> String? {

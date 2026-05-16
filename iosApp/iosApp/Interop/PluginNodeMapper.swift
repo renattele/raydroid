@@ -286,7 +286,7 @@ struct UnsupportedNodeViewData {
 
 @MainActor
 struct PluginNodeMapper {
-    let client: SearchStoreClient
+    let client: SearchViewModelClient
     let query: String
     let resultId: ApiSearchResultId?
     let focusedItemId: Any?
