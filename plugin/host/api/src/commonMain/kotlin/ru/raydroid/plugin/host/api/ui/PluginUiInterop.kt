@@ -8,6 +8,7 @@ object PluginUiBridge {
         is PluginBoxData -> "box"
         is PluginOrientedBoxData -> "orientedBox"
         is PluginDetailData -> "detail"
+        is PluginEditableTextData -> "editableText"
         is PluginFormData -> "form"
         is PluginListData -> "list"
         is PluginGridData -> "grid"

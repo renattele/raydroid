@@ -2,6 +2,7 @@ package ru.raydroid.plugin.api.presentation
 
 import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.ui.Color
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.Modifier
 import ru.raydroid.plugin.api.ui.Ray
@@ -44,6 +45,8 @@ data class CommandListItem(
     val title: UiText?,
     val description: UiText?,
     val enabled: Boolean = true,
+    val iconColor: Color? = null,
+    val trailingText: UiText? = null,
 )
 
 @Serializable
@@ -70,6 +73,8 @@ interface CommandListScope {
         title: UiText? = null,
         description: UiText? = null,
         icon: Icon? = null,
+        iconColor: Color? = null,
+        trailingText: UiText? = null,
         modifier: Modifier = Modifier,
         content: RayScope.() -> Unit = {}
     )

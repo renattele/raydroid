@@ -184,8 +184,18 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
                 val command = commandItem.runtime.manifest.commands
                     .firstOrNull { command -> command.service == commandItem.resultId.commandName }
                     ?: return@mapIndexedNotNull null
+                val commandMatch = command.match
+                val regexBoost = if (commandMatch == null) {
+                    0.0
+                } else {
+                    matchRegexBoost(match = commandMatch, rawQuery = query) ?: 0.0
+                }
                 val resources = commandItem.runtime.manifest.resources
                 val fields = buildList {
+                    commandItem.listEntry.title.resolve(resources).forEach { add(SearchFieldInput(it, FieldWeight.LiveTitle)) }
+                    commandItem.listEntry.description.resolve(resources).forEach {
+                        add(SearchFieldInput(it, FieldWeight.LiveDescription))
+                    }
                     command.title.resolve(resources).forEach { add(SearchFieldInput(it, FieldWeight.CommandTitle)) }
                     command.description.resolve(resources).forEach { add(SearchFieldInput(it, FieldWeight.CommandDescription)) }
                     commandItem.runtime.manifest.title.resolve(resources).forEach { add(SearchFieldInput(it, FieldWeight.PluginTitle)) }
@@ -204,12 +214,32 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
                     val scored = scoreFields(
                         query = normalizedQuery,
                         fields = fields,
-                        usageBoost = COMMAND_SOURCE_BOOST,
+                        usageBoost = COMMAND_SOURCE_BOOST + regexBoost,
                         live = true,
                         stableOrder = index.toLong()
                     )
-                    if (!scored.matched) return@mapIndexedNotNull null
-                    scored.toSearchResultScore(live = true, stableOrder = index.toLong())
+                    if (scored.matched) {
+                        scored.toSearchResultScore(live = true, stableOrder = index.toLong())
+                    } else if (commandItem.listEntry.trailingText != null && regexBoost > 0.0) {
+                        SearchResultScore(
+                            textScore = LIVE_REGEX_BOOST,
+                            usageBoost = COMMAND_SOURCE_BOOST + regexBoost,
+                            live = true,
+                            titleMatch = true,
+                            stableOrder = index.toLong()
+                        )
+                    } else {
+                        return@mapIndexedNotNull null
+                    }
+                }
+                val resultScore = if (commandItem.listEntry.trailingText != null) {
+                    score.copy(
+                        textScore = score.textScore + INLINE_RESULT_BOOST,
+                        prefix = true,
+                        titleMatch = true
+                    )
+                } else {
+                    score
                 }
 
                 RankedSearchResult(
@@ -217,7 +247,7 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
                         resultId = commandItem.resultId,
                         listEntry = commandItem.listEntry
                     ),
-                    score = score
+                    score = resultScore
                 )
             }
             .sortedWith(rankedComparator)
@@ -792,6 +822,7 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
         const val LIVE_EMPTY_QUERY_SCORE = 4.0
         const val COMMAND_SOURCE_BOOST = 0.3
         const val COMMAND_EMPTY_QUERY_SCORE = 6.0
+        const val INLINE_RESULT_BOOST = 96.0
 
         const val DELETE: Byte = 1
         const val INSERT: Byte = 2

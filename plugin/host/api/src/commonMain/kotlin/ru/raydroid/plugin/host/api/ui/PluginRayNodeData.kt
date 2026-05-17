@@ -6,12 +6,17 @@ sealed class PluginRayNodeData {
 
 data class PluginRayModifier(
     val enabled: Boolean = true,
-    val actions: List<PluginCommandListAction> = emptyList()
+    val click: PluginCommandCallback? = null,
+    val actions: List<PluginCommandListAction> = emptyList(),
+    val weight: Float? = null,
+    val fillMaxSize: Boolean = false,
+    val padding: PluginSpacing? = null
 )
 
 data class PluginTextData(
     val text: PluginUiText,
     val fontSize: PluginFontSize = PluginFontSize.Medium,
+    val fontWeight: PluginFontWeight = PluginFontWeight.Normal,
     val color: PluginColor = PluginColor.OnSurface
 ) : PluginRayNodeData()
 
@@ -49,8 +54,28 @@ data class PluginDetailData(
     val markdown: String,
     val metadata: List<PluginDetailMetadataItemData> = emptyList(),
     val isLoading: Boolean = false,
-    val navigationTitle: PluginUiText? = null
+    val navigationTitle: PluginUiText? = null,
+    val autoScrollToEnd: Boolean = false,
+    val showScrollHandle: Boolean = false
 ) : PluginRayNodeData()
+
+data class PluginEditableTextData(
+    val id: String,
+    val value: String,
+    val selection: Int = value.length,
+    val displayValue: String? = null,
+    val displayFormatter: PluginEditableTextDisplayFormatter = PluginEditableTextDisplayFormatter.None,
+    val placeholder: PluginUiText? = null,
+    val multiline: Boolean = true,
+    val maxLines: Int = 8,
+    val autoScrollToEnd: Boolean = false,
+    val onChange: PluginFormSubmitCallback
+) : PluginRayNodeData()
+
+enum class PluginEditableTextDisplayFormatter {
+    None,
+    CalculatorExpression
+}
 
 sealed interface PluginDetailMetadataItemData {
     data class Label(

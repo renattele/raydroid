@@ -59,6 +59,8 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
                     title: UiText?,
                     description: UiText?,
                     icon: Icon?,
+                    iconColor: ru.raydroid.plugin.api.ui.Color?,
+                    trailingText: UiText?,
                     modifier: Modifier,
                     content: RayScope.() -> Unit
                 ) {
@@ -83,6 +85,8 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
                         title = title,
                         description = description,
                         icon = icon,
+                        iconColor = iconColor,
+                        trailingText = trailingText,
                         enabled = entryModifier?.enabled ?: true,
                     )
                     presentations[id] = CommandPresentation(

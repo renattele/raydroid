@@ -14,8 +14,12 @@
       "title": "command.calculator.title",
       "description": "command.calculator.description",
       "placeholder": "command.calculator.placeholder",
+      "icon": {
+        "value": "Calculate",
+        "type": "Builtin"
+      },
       "mode": "Inline",
-      "match": "[0-9].*",
+      "match": ".*([0-9].*[-+*/^%()]|[-+*/^%()].*[0-9]|[0-9A-Za-z]+(ns(\\([0-9]+\\)|[0-9]+)|bin|oct|hex)|ns(\\([0-9]+\\)|[0-9]+)\\(.*\\)|(bin|oct|hex)\\(.*\\)).*",
       "arguments": [],
       "preferences": []
     }
@@ -26,54 +30,23 @@
       "app.main": "Calculator",
       "app.description": "Calculator extension",
       "app.author": "Raydroid",
-      "app.label": "Your results lol:",
       "command.calculator.title": "Calculator",
-      "command.calculator.description": "Calculator extension",
-      "command.calculator.placeholder": "Calculate..."
+      "command.calculator.description": "Type an expression",
+      "command.calculator.placeholder": "Calculate...",
+      "calculator.result.empty": "No result"
     },
     "strings-ru": {
-      "app.description": "Калькулятор"
+      "app.description": "Калькулятор",
+      "calculator.result.empty": "Нет результата"
     }
   },
   "access": {
-    "clipboard": {
-      "permissions": ["read", "write"]
-    },
-    "cache": {
-      "permissions": ["manage"],
-      "requested_size": "1mb"
-    },
-    "environment": {
-      "permissions": ["read"],
-      "access": ["*"]
-    },
-    "filesystem": {
-      "permissions": ["read", "write", "watch"],
-      "allowed_paths": ["/tmp/raydroid-calculator-filesystem-bridge(/.*)?"]
-    },
-    "network": {
-      "permissions": ["manage"],
-      "allowed_urls": ["https://example.com/*", "https://.*"]
-    },
-    "preferences": {
-      "permissions": ["manage"],
-      "requested_size": "1mb"
+    "notification": {
+      "show_alerts": false,
+      "show_toasts": false
     },
     "search_field": {
       "permissions": ["write"]
-    },
-    "storage": {
-      "permissions": ["manage"],
-      "requested_size": "1mb"
-    },
-    "notification": {
-      "show_alerts": true,
-      "show_toasts": true
-    },
-    "system": {
-      "permissions": ["get_apps", "open_resource", "open_app"],
-      "visible_apps": [".*"],
-      "allowed_urls": [".*"]
     },
     "runtime": {
       "requested_stack_size": 1024

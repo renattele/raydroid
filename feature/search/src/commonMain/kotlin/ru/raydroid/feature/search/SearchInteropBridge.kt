@@ -5,6 +5,7 @@ import ru.raydroid.plugin.host.api.ui.PluginBoxData
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginDetailData
 import ru.raydroid.plugin.host.api.ui.PluginDetailMetadataItemData
+import ru.raydroid.plugin.host.api.ui.PluginEditableTextData
 import ru.raydroid.plugin.host.api.ui.PluginEmptyViewData
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginFormData
@@ -39,6 +40,7 @@ object SearchInteropBridge {
         is PluginBoxData -> "box"
         is PluginOrientedBoxData -> "orientedBox"
         is PluginDetailData -> "detail"
+        is PluginEditableTextData -> "editableText"
         is PluginFormData -> "form"
         is PluginListData -> "list"
         is PluginGridData -> "grid"

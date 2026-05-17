@@ -11,10 +11,18 @@ enum class FontSize {
     Large,
     ExtraLarge
 }
+
+@Serializable
+enum class FontWeight {
+    Normal,
+    Bold
+}
+
 @Serializable
 data class TextData(
     val text: UiText,
     val fontSize: FontSize = FontSize.Medium,
+    val fontWeight: FontWeight = FontWeight.Normal,
     val color: Color = Color.OnSurface
 ): RayNodeData()
 
@@ -23,7 +31,8 @@ fun RayScope.Text(
     text: UiText,
     modifier: Modifier = Modifier,
     fontSize: FontSize = FontSize.Medium,
+    fontWeight: FontWeight = FontWeight.Normal,
     color: Color = Color.OnSurface
 ) {
-    add(TextData(text, fontSize, color).withModifier(modifier(modifier)))
+    add(TextData(text, fontSize, fontWeight, color).withModifier(modifier(modifier)))
 }

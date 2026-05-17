@@ -12,6 +12,7 @@ import ru.raydroid.plugin.api.ui.BoxAlignment
 import ru.raydroid.plugin.api.ui.BoxData
 import ru.raydroid.plugin.api.ui.Color
 import ru.raydroid.plugin.api.ui.FontSize
+import ru.raydroid.plugin.api.ui.FontWeight
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.IconData
 import ru.raydroid.plugin.api.ui.IconSize
@@ -28,6 +29,8 @@ import ru.raydroid.plugin.api.ui.TextData
 import ru.raydroid.plugin.api.ui.DetailData
 import ru.raydroid.plugin.api.ui.DetailMetadataItemData
 import ru.raydroid.plugin.api.ui.EmptyViewData
+import ru.raydroid.plugin.api.ui.EditableTextData
+import ru.raydroid.plugin.api.ui.EditableTextDisplayFormatter
 import ru.raydroid.plugin.api.ui.FormData
 import ru.raydroid.plugin.api.ui.FormFieldData
 import ru.raydroid.plugin.api.ui.FormSubmitStyle
@@ -54,6 +57,8 @@ import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
 import ru.raydroid.plugin.host.api.ui.PluginDetailData
 import ru.raydroid.plugin.host.api.ui.PluginDetailMetadataItemData
 import ru.raydroid.plugin.host.api.ui.PluginEmptyViewData
+import ru.raydroid.plugin.host.api.ui.PluginEditableTextData
+import ru.raydroid.plugin.host.api.ui.PluginEditableTextDisplayFormatter
 import ru.raydroid.plugin.host.api.ui.PluginFormData
 import ru.raydroid.plugin.host.api.ui.PluginFormFieldData
 import ru.raydroid.plugin.host.api.ui.PluginFormSubmitCallback
@@ -66,6 +71,7 @@ import ru.raydroid.plugin.host.api.ui.PluginGridData
 import ru.raydroid.plugin.host.api.ui.PluginGridItemData
 import ru.raydroid.plugin.host.api.ui.PluginGridSectionData
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
+import ru.raydroid.plugin.host.api.ui.PluginFontWeight
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
 import ru.raydroid.plugin.host.api.ui.PluginIconSize
@@ -157,6 +163,11 @@ internal fun FontSize.toPluginFontSize(): PluginFontSize = when (this) {
     FontSize.ExtraLarge -> PluginFontSize.ExtraLarge
 }
 
+internal fun FontWeight.toPluginFontWeight(): PluginFontWeight = when (this) {
+    FontWeight.Normal -> PluginFontWeight.Normal
+    FontWeight.Bold -> PluginFontWeight.Bold
+}
+
 internal fun IconSize.toPluginIconSize(): PluginIconSize = when (this) {
     IconSize.ExtraSmall -> PluginIconSize.ExtraSmall
     IconSize.Small -> PluginIconSize.Small
@@ -229,9 +240,11 @@ internal fun CommandListItem.toPluginCommandListItem(pluginId: PluginId): Plugin
     return PluginCommandListItem(
         id = id,
         icon = icon?.toPluginIcon(pluginId),
+        iconColor = iconColor?.toPluginColor(),
         title = title?.toPluginUiText(pluginId),
         description = description?.toPluginUiText(pluginId),
         enabled = enabled,
+        trailingText = trailingText?.toPluginUiText(pluginId),
     )
 }
 
@@ -285,6 +298,7 @@ internal fun RayNodeData.toPluginRayNodeData(
     is TextData -> PluginTextData(
         text = text.toPluginUiText(pluginId),
         fontSize = fontSize.toPluginFontSize(),
+        fontWeight = fontWeight.toPluginFontWeight(),
         color = color.toPluginColor()
     ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is IconData -> PluginIconData(
@@ -300,6 +314,20 @@ internal fun RayNodeData.toPluginRayNodeData(
         shape = shape.toPluginShapeToken()
     ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is DetailData -> toPluginDetailData(pluginId).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
+    is EditableTextData -> PluginEditableTextData(
+        id = id,
+        value = value,
+        selection = selection,
+        displayValue = displayValue,
+        displayFormatter = displayFormatter.toPluginEditableTextDisplayFormatter(),
+        placeholder = placeholder?.toPluginUiText(pluginId),
+        multiline = multiline,
+        maxLines = maxLines,
+        autoScrollToEnd = autoScrollToEnd,
+        onChange = PluginFormSubmitCallback { values ->
+            dispatchFormCallback(onChange, values.toApiFormValues())
+        }
+    ).withModifier(modifier.toPluginRayModifier(pluginId, dispatchCallback))
     is FormData -> PluginFormData(
         isLoading = isLoading,
         navigationTitle = navigationTitle?.toPluginUiText(pluginId),
@@ -344,7 +372,9 @@ private fun DetailData.toPluginDetailData(pluginId: PluginId): PluginDetailData 
     markdown = markdown,
     metadata = metadata.map { it.toPluginDetailMetadataItemData(pluginId) },
     isLoading = isLoading,
-    navigationTitle = navigationTitle?.toPluginUiText(pluginId)
+    navigationTitle = navigationTitle?.toPluginUiText(pluginId),
+    autoScrollToEnd = autoScrollToEnd,
+    showScrollHandle = showScrollHandle
 )
 
 private fun DetailMetadataItemData.toPluginDetailMetadataItemData(pluginId: PluginId): PluginDetailMetadataItemData =
@@ -479,6 +509,12 @@ private fun FormSubmitStyle.toPluginFormSubmitStyle(): PluginFormSubmitStyle = w
     FormSubmitStyle.Tonal -> PluginFormSubmitStyle.Tonal
 }
 
+private fun EditableTextDisplayFormatter.toPluginEditableTextDisplayFormatter(): PluginEditableTextDisplayFormatter =
+    when (this) {
+        EditableTextDisplayFormatter.None -> PluginEditableTextDisplayFormatter.None
+        EditableTextDisplayFormatter.CalculatorExpression -> PluginEditableTextDisplayFormatter.CalculatorExpression
+    }
+
 private fun ActionPanelHintMode.toPluginActionPanelHintMode(): PluginActionPanelHintMode = when (this) {
     ActionPanelHintMode.Full -> PluginActionPanelHintMode.Full
     ActionPanelHintMode.MenuOnly -> PluginActionPanelHintMode.MenuOnly
@@ -507,7 +543,11 @@ private fun RayModifier?.toPluginRayModifier(
     }
     return PluginRayModifier(
         enabled = enabled,
-        actions = actions.map { action -> action.toPluginCommandListAction(pluginId, dispatchCallback) }
+        click = click?.toPluginCommandCallback(dispatchCallback),
+        actions = actions.map { action -> action.toPluginCommandListAction(pluginId, dispatchCallback) },
+        weight = weight,
+        fillMaxSize = fillMaxSize,
+        padding = padding?.toPluginSpacing()
     )
 }
 

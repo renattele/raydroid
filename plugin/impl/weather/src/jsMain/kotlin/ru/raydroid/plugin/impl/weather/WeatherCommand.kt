@@ -62,7 +62,8 @@ class WeatherCommand : CommandService() {
             id = CommandItemId.CommandRoot,
             title = state.city?.displayName()?.let(UiText::Plain) ?: UiText.Resource("command.weather.title"),
             description = weather?.summary()?.let(UiText::Plain) ?: UiText.Resource("weather.chooseCity"),
-            icon = weather?.icon() ?: WeatherIcon
+            icon = weather?.icon() ?: WeatherIcon,
+            iconColor = WeatherIconColor
         )
     }
 

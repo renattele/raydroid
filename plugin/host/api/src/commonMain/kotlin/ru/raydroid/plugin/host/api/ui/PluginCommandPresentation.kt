@@ -30,6 +30,8 @@ data class PluginCommandListItem(
     val title: PluginUiText?,
     val description: PluginUiText?,
     val enabled: Boolean = true,
+    val iconColor: PluginColor? = null,
+    val trailingText: PluginUiText? = null,
 )
 
 data class PluginCommandListAction(

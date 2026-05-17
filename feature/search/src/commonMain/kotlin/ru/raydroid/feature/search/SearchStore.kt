@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.raydroid.plugin.api.manifest.Command
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
@@ -362,6 +363,10 @@ class SearchStore(
                             openCommandUseCase(openResultId)
                         }
                         is SearchResultSet.CachedSearchResult -> {
+                            if (openResult.isNoViewCommand(state)) {
+                                enterItemUseCase(openResultId)
+                                return@launch
+                            }
                             collectFullscreen(
                                 result = openResult,
                                 fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
@@ -520,6 +525,12 @@ class SearchStore(
                         callback = event.action.action.callback,
                         updateUsage = event.action.updateUsage
                     )
+                    _state.update { state ->
+                        state.copy(
+                            showActions = false,
+                            showContextActions = false
+                        )
+                    }
                 }
 
                 is SearchScreenEvent.EnterCallback -> {
@@ -877,6 +888,14 @@ private fun SearchScreenState.focusedResultId(): SearchResultId? =
     focusedItemIndex?.let { itemIndex ->
         searchResults?.results?.getOrNull(itemIndex)?.resultId
     }
+
+private fun SearchResultSet.SearchResult.isNoViewCommand(state: SearchScreenState): Boolean {
+    val command = state.plugins[resultId.pluginId]
+        ?.manifest
+        ?.commands
+        ?.firstOrNull { command -> command.service == resultId.commandName }
+    return command?.mode == Command.Mode.NoView
+}
 
 private suspend fun SearchResultSet?.actionsForFocused(
     index: Int?,

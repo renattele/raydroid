@@ -10,8 +10,30 @@ data class DetailData(
     val markdown: String,
     val metadata: List<DetailMetadataItemData> = emptyList(),
     val isLoading: Boolean = false,
-    val navigationTitle: UiText? = null
+    val navigationTitle: UiText? = null,
+    val autoScrollToEnd: Boolean = false,
+    val showScrollHandle: Boolean = false
 ) : RayNodeData()
+
+@Serializable
+data class EditableTextData(
+    val id: String,
+    val value: String,
+    val selection: Int = value.length,
+    val displayValue: String? = null,
+    val displayFormatter: EditableTextDisplayFormatter = EditableTextDisplayFormatter.None,
+    val placeholder: UiText? = null,
+    val multiline: Boolean = true,
+    val maxLines: Int = 8,
+    val autoScrollToEnd: Boolean = false,
+    val onChange: CommandCallbackRef
+) : RayNodeData()
+
+@Serializable
+enum class EditableTextDisplayFormatter {
+    None,
+    CalculatorExpression
+}
 
 @Serializable
 sealed interface DetailMetadataItemData {
@@ -83,6 +105,8 @@ fun RayScope.Detail(
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     navigationTitle: UiText? = null,
+    autoScrollToEnd: Boolean = false,
+    showScrollHandle: Boolean = false,
     metadata: DetailMetadataScope.() -> Unit = {}
 ) {
     val metadataScope = DetailMetadataScope()
@@ -92,7 +116,46 @@ fun RayScope.Detail(
             markdown = markdown,
             metadata = metadataScope.items,
             isLoading = isLoading,
-            navigationTitle = navigationTitle
+            navigationTitle = navigationTitle,
+            autoScrollToEnd = autoScrollToEnd,
+            showScrollHandle = showScrollHandle
+        ).withModifier(modifier(modifier))
+    )
+}
+
+@Ray
+fun RayScope.EditableText(
+    id: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    selection: Int = value.length,
+    displayValue: String? = null,
+    displayFormatter: EditableTextDisplayFormatter = EditableTextDisplayFormatter.None,
+    placeholder: UiText? = null,
+    multiline: Boolean = true,
+    maxLines: Int = 8,
+    autoScrollToEnd: Boolean = false,
+    onChange: suspend (String, Int) -> Unit
+) {
+    add(
+        EditableTextData(
+            id = id,
+            value = value,
+            selection = selection,
+            displayValue = displayValue,
+            displayFormatter = displayFormatter,
+            placeholder = placeholder,
+            multiline = multiline,
+            maxLines = maxLines,
+            autoScrollToEnd = autoScrollToEnd,
+            onChange = registerFormCallback("editable-text-$id") { values ->
+                val text = (values[id] as? FormValue.Text)?.value.orEmpty()
+                val selection = (values["$id:selection"] as? FormValue.Text)
+                    ?.value
+                    ?.toIntOrNull()
+                    ?: text.length
+                onChange(text, selection)
+            }
         ).withModifier(modifier(modifier))
     )
 }
