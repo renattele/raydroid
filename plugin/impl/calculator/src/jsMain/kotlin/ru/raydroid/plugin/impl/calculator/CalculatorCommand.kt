@@ -31,7 +31,6 @@ import ru.raydroid.plugin.api.ui.Spacing
 import ru.raydroid.plugin.api.ui.Text
 import ru.raydroid.plugin.api.ui.fillMaxSize
 import ru.raydroid.plugin.api.ui.onClick
-import ru.raydroid.plugin.api.ui.padding
 import ru.raydroid.plugin.api.ui.weight
 
 class CalculatorCommand : CommandService() {
@@ -120,7 +119,6 @@ class CalculatorCommand : CommandService() {
                     alignment = BoxAlignment.Center
                 ) {
                     Column(
-                        modifier = Modifier.padding(Spacing.Medium),
                         spacing = Spacing.Small,
                         shape = ShapeToken.Medium
                     ) {
