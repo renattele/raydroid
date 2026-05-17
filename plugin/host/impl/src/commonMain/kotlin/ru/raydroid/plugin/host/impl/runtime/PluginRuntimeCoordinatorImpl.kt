@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.api.manifest.Command
@@ -20,6 +21,7 @@ import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
+import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.impl.ui.toPluginIcon
 import ru.raydroid.plugin.host.impl.ui.toPluginUiText
 
@@ -132,12 +134,26 @@ internal class PluginRuntimeCoordinatorImpl(
         runtime: PluginRuntime,
         command: Command,
         override: PluginCommandPresentation?
-    ): PluginCommandListItem =
-        PluginCommandListItem(
+    ): PluginCommandListItem {
+        val isResult = override?.listEntry?.trailingText != null
+        return PluginCommandListItem(
             id = CommandItemId.CommandRoot,
-            icon = override?.listEntry?.icon ?: command.icon?.toPluginIcon(runtime.pluginId),
+            icon = if (isResult) {
+                override.listEntry.icon
+            } else {
+                override?.listEntry?.icon ?: command.icon?.toPluginIcon(runtime.pluginId)
+            },
             title = override?.listEntry?.title ?: command.title.toPluginUiText(runtime.pluginId),
-            description = override?.listEntry?.description ?: command.description.toPluginUiText(runtime.pluginId),
-            enabled = override?.listEntry?.enabled ?: true
+            description = if (isResult) {
+                override.listEntry.description
+            } else {
+                override?.listEntry?.description ?: command.description.toPluginUiText(runtime.pluginId)
+            },
+            enabled = override?.listEntry?.enabled ?: true,
+            iconColor = override?.listEntry?.iconColor ?: command.icon
+                ?.takeIf { icon -> icon.type == Icon.Type.Builtin }
+                ?.let { PluginColor.OnSurfaceVariant },
+            trailingText = override?.listEntry?.trailingText
         )
+    }
 }

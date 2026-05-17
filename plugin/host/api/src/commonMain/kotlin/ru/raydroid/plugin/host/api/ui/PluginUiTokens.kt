@@ -68,6 +68,11 @@ enum class PluginFontSize {
     ExtraLarge
 }
 
+enum class PluginFontWeight {
+    Normal,
+    Bold
+}
+
 enum class PluginIconSize {
     ExtraSmall,
     Small,

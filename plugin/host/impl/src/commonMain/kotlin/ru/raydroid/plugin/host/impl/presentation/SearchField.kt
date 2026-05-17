@@ -67,7 +67,7 @@ fun SearchField(
             keyboardOptions = KeyboardOptions(
                 autoCorrectEnabled = false,
                 showKeyboardOnFocus = true,
-                imeAction = if (state.canGoOnEnter) ImeAction.Go else ImeAction.None
+                imeAction = ImeAction.Go
             ),
             onKeyboardAction = {
                 onEvent(SearchFieldEvent.Enter)

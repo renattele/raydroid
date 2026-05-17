@@ -10,9 +10,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -20,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
@@ -37,14 +42,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import ru.raydroid.core.designsystem.RaydroidShapeToken
@@ -60,6 +69,8 @@ import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginDetailData
 import ru.raydroid.plugin.host.api.ui.PluginDetailMetadataItemData
+import ru.raydroid.plugin.host.api.ui.PluginEditableTextDisplayFormatter
+import ru.raydroid.plugin.host.api.ui.PluginEditableTextData
 import ru.raydroid.plugin.host.api.ui.PluginEmptyViewData
 import ru.raydroid.plugin.host.api.ui.PluginFormData
 import ru.raydroid.plugin.host.api.ui.PluginFormFieldData
@@ -83,22 +94,121 @@ import ru.raydroid.plugin.host.api.ui.PluginUiText
 @Composable
 internal fun DetailRenderer(data: PluginDetailData, modifier: Modifier = Modifier) {
     val spacing = RaydroidTheme.spacing
+    val scrollState = rememberScrollState()
+    LaunchedEffect(data.markdown, data.metadata, data.isLoading, scrollState.maxValue) {
+        if (data.autoScrollToEnd) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val containerHeight = maxHeight
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
+            if (data.isLoading) {
+                CircularProgressIndicator()
+            }
+            data.navigationTitle?.let { title -> RText(title.asText(), fontSize = pluginFontSizeLarge()) }
+            RText(data.markdown)
+            if (data.metadata.isNotEmpty()) {
+                RDivider()
+                MetadataRenderer(data.metadata)
+            }
+        }
+        if (data.showScrollHandle && scrollState.maxValue > 0) {
+            val handleHeight = 52.dp
+            val travel = (containerHeight - handleHeight).coerceAtLeast(Dp.Hairline)
+            val progress = scrollState.value.toFloat() / scrollState.maxValue.toFloat()
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(y = travel * progress)
+                    .padding(end = spacing.extraSmall)
+                    .width(3.dp)
+                    .height(handleHeight)
+                    .clip(RaydroidTheme.shapes.shape(RaydroidShapeToken.Full))
+                    .background(RaydroidTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f))
+            )
+        }
+    }
+}
+
+@Composable
+internal fun EditableTextRenderer(data: PluginEditableTextData, modifier: Modifier = Modifier) {
+    val spacing = RaydroidTheme.spacing
+    val state = remember(data.id) { TextFieldState(data.value) }
+    val scrollState = rememberScrollState()
+    val latestData by rememberUpdatedState(data)
+    val outputTransformation = remember(data.displayFormatter, data.value, data.displayValue) {
+        when (data.displayFormatter) {
+            PluginEditableTextDisplayFormatter.CalculatorExpression -> calculatorExpressionOutputTransformation()
+            PluginEditableTextDisplayFormatter.None -> data.displayValue
+                ?.takeIf { displayValue -> displayValue.isNotBlank() && displayValue != data.value }
+                ?.let { displayValue -> staticOutputTransformation(data.value, displayValue) }
+        }
+    }
+    LaunchedEffect(data.value, data.selection) {
+        val selection = data.selection.coerceIn(0, data.value.length)
+        if (state.text.toString() != data.value || state.selection.end != selection) {
+            state.edit {
+                replace(0, length, data.value)
+                this.selection = TextRange(selection)
+            }
+        }
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.text.toString() to state.selection.end }
+            .collect { (text, selection) ->
+                val currentData = latestData
+                val currentSelection = currentData.selection.coerceIn(0, currentData.value.length)
+                if (text == currentData.value && selection == currentSelection) return@collect
+                currentData.onChange(
+                    mapOf(
+                        currentData.id to PluginFormValue.Text(text),
+                        "${currentData.id}:selection" to PluginFormValue.Text(selection.toString())
+                    )
+                )
+            }
+    }
+    LaunchedEffect(state, scrollState, data.autoScrollToEnd) {
+        if (!data.autoScrollToEnd) return@LaunchedEffect
+        snapshotFlow { Triple(state.text.length, state.selection.end, scrollState.maxValue) }
+            .collect {
+                scrollState.scrollTo(scrollState.maxValue)
+            }
+    }
     Column(
-        modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
     ) {
-        if (data.isLoading) {
-            CircularProgressIndicator()
-        }
-        data.navigationTitle?.let { title -> RText(title.asText(), fontSize = pluginFontSizeLarge()) }
-        RText(data.markdown)
-        if (data.metadata.isNotEmpty()) {
-            RDivider()
-            MetadataRenderer(data.metadata)
-        }
+        RTextField(
+            state = state,
+            textStyle = TextStyle(
+                color = RaydroidTheme.colorScheme.onSurface,
+                fontSize = when {
+                    data.value.length > 72 -> RaydroidTheme.typographyScale.medium
+                    else -> RaydroidTheme.typographyScale.large
+                }
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            lineLimits = if (data.multiline) {
+                TextFieldLineLimits.MultiLine(2, data.maxLines.coerceAtLeast(2))
+            } else {
+                TextFieldLineLimits.SingleLine
+            },
+            placeholder = data.placeholder?.let { placeholder -> { RText(placeholder.asText()) } },
+            outputTransformation = outputTransformation,
+            scrollState = scrollState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RaydroidTheme.shapes.small)
+                .background(RaydroidTheme.colorScheme.surfaceContainer)
+                .padding(spacing.extraSmall)
+        )
     }
 }
 
@@ -741,6 +851,7 @@ private fun Modifier.componentInteractive(
         val primaryAction = remember(actions) {
             modifier?.actions?.find { it.primary } ?: modifier?.actions?.firstOrNull()
         }
+        val click = modifier?.click
         combinedClickable(
             interactionSource = interactionSource,
             indication = null,
@@ -752,7 +863,9 @@ private fun Modifier.componentInteractive(
             },
             onClick = {
                 onFocus(itemId)
-                if (primaryAction != null) {
+                if (click != null) {
+                    onClick(click)
+                } else if (primaryAction != null) {
                     onClick(primaryAction.callback)
                 } else {
                     onItemEnter(itemId)

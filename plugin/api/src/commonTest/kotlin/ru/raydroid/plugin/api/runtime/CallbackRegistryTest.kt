@@ -95,8 +95,9 @@ class CallbackRegistryTest {
         val staleCallback = registry.beginFrame().register("click") {
             error("stale callback should not be invoked")
         }
-        registry.beginFrame()
-        registry.beginFrame()
+        repeat(32) {
+            registry.beginFrame()
+        }
 
         assertFalse(registry.invoke(staleCallback))
     }

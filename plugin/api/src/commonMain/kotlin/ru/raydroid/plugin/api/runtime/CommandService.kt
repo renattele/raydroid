@@ -234,6 +234,6 @@ internal class CallbackRegistry {
     )
 
     private companion object {
-        const val RETAINED_GENERATIONS = 2
+        const val RETAINED_GENERATIONS = 32
     }
 }

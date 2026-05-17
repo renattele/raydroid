@@ -1,9 +1,12 @@
 package ru.raydroid.plugin.host.impl.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.Locale
 import coil3.compose.AsyncImage
+import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.RIcon
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.plugin.api.presentation.CommandItemId
@@ -30,6 +35,7 @@ import ru.raydroid.plugin.host.api.ui.PluginBoxData
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginDetailData
+import ru.raydroid.plugin.host.api.ui.PluginEditableTextData
 import ru.raydroid.plugin.host.api.ui.PluginFormData
 import ru.raydroid.plugin.host.api.ui.PluginGridData
 import ru.raydroid.plugin.host.api.ui.PluginIcon
@@ -41,8 +47,10 @@ import ru.raydroid.plugin.host.api.ui.PluginOrientation
 import ru.raydroid.plugin.host.api.ui.PluginOrientedBoxData
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 import ru.raydroid.plugin.host.api.ui.PluginRayModifier
+import ru.raydroid.plugin.host.api.ui.PluginShapeToken
 import ru.raydroid.plugin.host.api.ui.PluginSpacing
 import ru.raydroid.plugin.host.api.ui.PluginTextData
+import ru.raydroid.plugin.host.api.ui.PluginFontWeight
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.resource.readBinaryResource
 import ru.raydroid.plugin.host.impl.resource.resolveLocalizedString
@@ -152,7 +160,9 @@ fun ComposeRayItemRenderer(
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
     data.forEach { node ->
-        val nodeModifier = modifier.interactive(node.modifier, onClick, onActions)
+        val nodeModifier = modifier
+            .pluginLayout(node.modifier)
+            .interactive(node.modifier, onClick, onActions)
         when (node) {
             is PluginBoxData -> BoxRenderer(node, nodeModifier, query, focusedItemId, onClick, onItemEnter, onFocus, onActions)
             is PluginOrientedBoxData -> OrientedBoxRenderer(node, nodeModifier, query, focusedItemId, onClick, onItemEnter, onFocus, onActions)
@@ -160,6 +170,7 @@ fun ComposeRayItemRenderer(
             is PluginIconData -> IconRenderer(node, nodeModifier)
             is PluginImageData -> ImageRenderer(node, nodeModifier)
             is PluginDetailData -> DetailRenderer(node, nodeModifier)
+            is PluginEditableTextData -> EditableTextRenderer(node, nodeModifier)
             is PluginFormData -> FormRenderer(node, nodeModifier)
             is PluginListData -> ListRenderer(node, query, focusedItemId, nodeModifier, onClick, onItemEnter, onFocus, onActions)
             is PluginGridData -> GridRenderer(node, query, focusedItemId, nodeModifier, onClick, onItemEnter, onFocus, onActions)
@@ -215,7 +226,9 @@ internal fun BoxRenderer(
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
     Box(
-        modifier.clip(data.shape.toShape()),
+        modifier
+            .clip(data.shape.toShape())
+            .surfaceBackground(data.shape),
         contentAlignment = data.alignment.toComposeAlignment()
     ) {
         ComposeRayItemRenderer(
@@ -253,7 +266,9 @@ private fun OrientedBoxRenderer(
     onFocus: (CommandItemId) -> Unit = {},
     onActions: (List<PluginCommandListAction>) -> Unit = {}
 ) {
-    val containerModifier = modifier.clip(data.shape.toShape())
+    val containerModifier = modifier
+        .clip(data.shape.toShape())
+        .surfaceBackground(data.shape)
     if (data.orientation == PluginOrientation.Vertical) {
         Column(
             containerModifier,
@@ -264,15 +279,22 @@ private fun OrientedBoxRenderer(
                 data.arrangement.toComposeVerticalArrangement()
             },
         ) {
-            ComposeRayItemRenderer(
-                data.children,
-                query = query,
-                focusedItemId = focusedItemId,
-                onClick = onClick,
-                onItemEnter = onItemEnter,
-                onFocus = onFocus,
-                onActions = onActions
-            )
+            data.children.forEach { child ->
+                val childModifier = child.modifier
+                    ?.weight
+                    ?.let { weight -> Modifier.weight(weight) }
+                    ?: Modifier
+                ComposeRayItemRenderer(
+                    listOf(child),
+                    modifier = childModifier,
+                    query = query,
+                    focusedItemId = focusedItemId,
+                    onClick = onClick,
+                    onItemEnter = onItemEnter,
+                    onFocus = onFocus,
+                    onActions = onActions
+                )
+            }
         }
     } else {
         Row(
@@ -285,9 +307,10 @@ private fun OrientedBoxRenderer(
             verticalAlignment = data.alignment.toComposeVerticalAlignment()
         ) {
             data.children.forEach { child ->
+                val childModifier = Modifier.weight(child.modifier?.weight ?: 1f)
                 ComposeRayItemRenderer(
                     listOf(child),
-                    modifier = Modifier.weight(1f),
+                    modifier = childModifier,
                     query = query,
                     focusedItemId = focusedItemId,
                     onClick = onClick,
@@ -298,6 +321,18 @@ private fun OrientedBoxRenderer(
             }
         }
     }
+}
+
+@Composable
+private fun Modifier.pluginLayout(modifier: PluginRayModifier?): Modifier {
+    var result = this
+    if (modifier?.fillMaxSize == true) {
+        result = result.fillMaxSize()
+    }
+    modifier?.padding?.let { padding ->
+        result = result.padding(padding.toDp())
+    }
+    return result
 }
 
 private fun PluginAlignment.toComposeHorizontalAlignment() = when (this) {
@@ -336,8 +371,14 @@ internal fun TextRenderer(data: PluginTextData, modifier: Modifier = Modifier) {
         text = data.text.asText(),
         modifier = modifier,
         fontSize = data.fontSize.toTextUnit(),
+        fontWeight = data.fontWeight.toComposeFontWeight(),
         color = data.color.toColor()
     )
+}
+
+private fun PluginFontWeight.toComposeFontWeight(): FontWeight? = when (this) {
+    PluginFontWeight.Normal -> null
+    PluginFontWeight.Bold -> FontWeight.Bold
 }
 
 @Composable
@@ -348,13 +389,13 @@ private fun Modifier.interactive(
     onClick: (PluginCommandCallback) -> Unit,
     onActions: (List<PluginCommandListAction>) -> Unit
 ): Modifier {
-    if (modifier == null || modifier.actions.isEmpty()) {
+    if (modifier == null || (modifier.click == null && modifier.actions.isEmpty())) {
         return this
     }
     return composed {
         val interactionSource = remember { MutableInteractionSource() }
         val primaryAction = remember(modifier.actions) {
-            modifier.actions.find { it.primary } ?: modifier.actions.first()
+            modifier.actions.find { it.primary } ?: modifier.actions.firstOrNull()
         }
         combinedClickable(
             interactionSource = interactionSource,
@@ -366,8 +407,19 @@ private fun Modifier.interactive(
                 }
             },
             onClick = {
-                onClick(primaryAction.callback)
+                val click = modifier.click
+                if (click != null) {
+                    onClick(click)
+                } else if (primaryAction != null) {
+                    onClick(primaryAction.callback)
+                }
             }
         )
     }
+}
+
+@Composable
+private fun Modifier.surfaceBackground(shape: PluginShapeToken): Modifier {
+    if (shape == PluginShapeToken.None) return this
+    return background(RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))
 }

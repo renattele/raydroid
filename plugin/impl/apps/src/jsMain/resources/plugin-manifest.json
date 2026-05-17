@@ -1,0 +1,42 @@
+{
+  "$schema": "../../../../../api/plugin-manifest.schema.json",
+  "name": "ru.raydroid.plugin.impl.apps",
+  "title": "app.name",
+  "description": "app.description",
+  "author": "app.author",
+  "version": -1,
+  "platforms": [],
+  "categories": [],
+  "license": "",
+  "commands": [
+    {
+      "service": "AppsCommand",
+      "title": "command.apps.title",
+      "description": "command.apps.description",
+      "placeholder": null,
+      "mode": "NoView",
+      "match": null,
+      "searchable": false,
+      "arguments": [],
+      "preferences": []
+    }
+  ],
+  "resources": {
+    "strings": {
+      "app.name": "Apps",
+      "app.description": "Installed applications index",
+      "app.author": "Raydroid",
+      "command.apps.title": "Apps",
+      "command.apps.description": "Installed applications"
+    }
+  },
+  "access": {
+    "system": {
+      "permissions": ["get_apps", "open_app"],
+      "visible_apps": [".*"]
+    },
+    "runtime": {
+      "requested_stack_size": 1024
+    }
+  }
+}

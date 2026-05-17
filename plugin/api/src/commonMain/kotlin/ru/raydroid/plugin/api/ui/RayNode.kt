@@ -21,7 +21,11 @@ sealed class RayNodeData {
 @Serializable
 data class RayModifier(
     val enabled: Boolean = true,
-    val actions: List<CommandListAction> = emptyList()
+    val click: CommandCallbackRef? = null,
+    val actions: List<CommandListAction> = emptyList(),
+    val weight: Float? = null,
+    val fillMaxSize: Boolean = false,
+    val padding: Spacing? = null
 )
 
 @Ray
@@ -55,16 +59,46 @@ private data class EnabledElement(
     val enabled: Boolean
 ) : Modifier.Element
 
+private data class ClickElement(
+    val onClick: suspend () -> Unit
+) : Modifier.Element
+
 private data class ActionsElement(
     val actions: CommandActionScope.() -> Unit
+) : Modifier.Element
+
+private data class WeightElement(
+    val weight: Float
+) : Modifier.Element
+
+private data object FillMaxSizeElement : Modifier.Element
+
+private data class PaddingElement(
+    val spacing: Spacing
 ) : Modifier.Element
 
 fun Modifier.enabled(enabled: Boolean): Modifier {
     return then(EnabledElement(enabled))
 }
 
+fun Modifier.onClick(onClick: suspend () -> Unit): Modifier {
+    return then(ClickElement(onClick))
+}
+
 fun Modifier.actions(actions: CommandActionScope.() -> Unit): Modifier {
     return then(ActionsElement(actions))
+}
+
+fun Modifier.weight(weight: Float): Modifier {
+    return then(WeightElement(weight))
+}
+
+fun Modifier.fillMaxSize(): Modifier {
+    return then(FillMaxSizeElement)
+}
+
+fun Modifier.padding(spacing: Spacing): Modifier {
+    return then(PaddingElement(spacing))
 }
 
 @Ray
@@ -152,12 +186,18 @@ internal fun Modifier.toRayModifier(
     val actions = elements.filterIsInstance<ActionsElement>()
     return RayModifier(
         enabled = elements.filterIsInstance<EnabledElement>().lastOrNull()?.enabled ?: true,
+        click = elements.filterIsInstance<ClickElement>().lastOrNull()?.let { element ->
+            registerCallback("$path:click", element.onClick)
+        },
         actions = actions.flatMapIndexed { index, element ->
             buildCommandActions(
                 path = "$path:actions:$index",
                 registerCallback = registerCallback,
                 content = element.actions
             )
-        }
+        },
+        weight = elements.filterIsInstance<WeightElement>().lastOrNull()?.weight,
+        fillMaxSize = elements.any { element -> element is FillMaxSizeElement },
+        padding = elements.filterIsInstance<PaddingElement>().lastOrNull()?.spacing
     )
 }

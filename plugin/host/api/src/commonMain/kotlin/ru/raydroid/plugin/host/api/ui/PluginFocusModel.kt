@@ -68,6 +68,7 @@ private fun PluginRayNodeData.pluginFocusableItems(query: String): List<PluginFo
         is PluginBoxData -> children.pluginFocusableItems(query)
         is PluginOrientedBoxData -> children.pluginFocusableItems(query)
         is PluginDetailData,
+        is PluginEditableTextData,
         is PluginFormData,
         is PluginIconData,
         is PluginImageData,
@@ -80,6 +81,7 @@ private fun PluginRayNodeData.suppressesHostActions(): Boolean =
         is PluginBoxData -> children.suppressesHostActions()
         is PluginOrientedBoxData -> children.suppressesHostActions()
         is PluginDetailData,
+        is PluginEditableTextData,
         is PluginGridData,
         is PluginIconData,
         is PluginImageData,
@@ -93,6 +95,7 @@ private fun PluginRayNodeData.actionPanelHintModeOrNull(): PluginActionPanelHint
         is PluginBoxData -> children.firstNotNullOfOrNull { node -> node.actionPanelHintModeOrNull() }
         is PluginOrientedBoxData -> children.firstNotNullOfOrNull { node -> node.actionPanelHintModeOrNull() }
         is PluginDetailData,
+        is PluginEditableTextData,
         is PluginGridData,
         is PluginIconData,
         is PluginImageData,
