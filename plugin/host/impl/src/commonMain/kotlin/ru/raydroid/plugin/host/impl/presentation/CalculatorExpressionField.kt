@@ -45,7 +45,7 @@ private fun androidx.compose.foundation.text.input.TextFieldBuffer.replaceWithCo
 }
 
 private fun String.toCalculatorDisplayExpression(): String =
-    formatPowers().formatSquareRoots().formatLogarithms().formatNumberSystemLiterals().formatDegrees()
+    formatPowers().formatSquareRoots().formatLogarithms().formatNumberSystemLiterals().formatConstants().formatDegrees()
 
 private fun String.formatPowers(): String {
     val result = StringBuilder(length)
@@ -56,7 +56,11 @@ private fun String.formatPowers(): String {
             if (exponent != null) {
                 val exponentText = substring(exponent.range)
                 val superscript = exponentText.toSuperscript()
-                if (superscript != null) {
+                if (superscript != null && exponent.openParenthesisUnclosed) {
+                    result.append(SuperscriptOpenParenthesis).append(superscript)
+                    index = exponent.nextIndex
+                    continue
+                } else if (superscript != null) {
                     result.append(superscript)
                     index = exponent.nextIndex
                     continue
@@ -79,7 +83,8 @@ private fun String.exponentAfter(powerIndex: Int): FormattedRange? {
         val end = findMatchingParenthesis(start) ?: length
         FormattedRange(
             range = (start + 1) until end,
-            nextIndex = if (end < length) end + 1 else end
+            nextIndex = if (end < length) end + 1 else end,
+            openParenthesisUnclosed = end == length
         )
     } else {
         var index = start
@@ -108,15 +113,14 @@ private fun String.formatSquareRoots(): String {
             val radicandEnd = end ?: length
             val radicand = substring(openIndex + 1, radicandEnd).toCalculatorDisplayExpression()
             result.append(RootSymbol)
-            if (radicand.isEmpty()) {
+            if (end == null) {
+                result.append('(').append(radicand)
+            } else if (radicand.isEmpty()) {
                 result.append('(')
             } else if (radicand.isSimpleRadicand()) {
                 result.append(radicand)
             } else {
-                result.append('(').append(radicand)
-                if (end != null) {
-                    result.append(')')
-                }
+                result.append('(').append(radicand).append(')')
             }
             index = if (end != null) end + 1 else length
             continue
@@ -163,6 +167,21 @@ private fun String.formatDegrees(): String {
         if (index > 0 && startsWith(DegreesSuffix, startIndex = index, ignoreCase = true) && this[index - 1].isDigit()) {
             result.append(DegreeSymbol)
             index += DegreesSuffix.length
+        } else {
+            result.append(this[index])
+            index++
+        }
+    }
+    return result.toString()
+}
+
+private fun String.formatConstants(): String {
+    val result = StringBuilder(length)
+    var index = 0
+    while (index < length) {
+        if (startsWith(PiConstant, startIndex = index, ignoreCase = true)) {
+            result.append(PiSymbol)
+            index += PiConstant.length
         } else {
             result.append(this[index])
             index++
@@ -301,7 +320,8 @@ private fun String.isSimpleRadicand(): Boolean =
 
 private data class FormattedRange(
     val range: IntRange,
-    val nextIndex: Int
+    val nextIndex: Int,
+    val openParenthesisUnclosed: Boolean = false
 )
 
 private data class NumberSystemLiteral(
@@ -322,6 +342,7 @@ private const val BinFunction = "bin"
 private const val OctFunction = "oct"
 private const val HexFunction = "hex"
 private const val NumberSystemFunction = "ns"
+private const val PiConstant = "pi"
 private const val BinaryBase = 2
 private const val OctalBase = 8
 private const val HexBase = 16
@@ -329,6 +350,7 @@ private const val MinBase = 2
 private const val MaxBase = 36
 private const val RootSymbol = '\u221A'
 private const val DegreeSymbol = '\u00B0'
+private const val PiSymbol = '\u03C0'
 private const val SuperscriptOpenParenthesis = '\u207D'
 private val SuperscriptChars = mapOf(
     '0' to '\u2070',

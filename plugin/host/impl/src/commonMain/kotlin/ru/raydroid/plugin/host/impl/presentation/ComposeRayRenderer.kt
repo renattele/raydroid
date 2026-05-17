@@ -422,4 +422,5 @@ private fun Modifier.interactive(
 private fun Modifier.surfaceBackground(shape: PluginShapeToken): Modifier {
     if (shape == PluginShapeToken.None) return this
     return background(RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))
+        .padding(RaydroidTheme.spacing.large)
 }
