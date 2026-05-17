@@ -45,7 +45,7 @@ private fun androidx.compose.foundation.text.input.TextFieldBuffer.replaceWithCo
 }
 
 private fun String.toCalculatorDisplayExpression(): String =
-    formatPowers().formatSquareRoots().formatLogarithms().formatNumberSystemLiterals().formatDegrees()
+    formatPowers().formatSquareRoots().formatLogarithms().formatNumberSystemLiterals().formatConstants().formatDegrees()
 
 private fun String.formatPowers(): String {
     val result = StringBuilder(length)
@@ -167,6 +167,21 @@ private fun String.formatDegrees(): String {
         if (index > 0 && startsWith(DegreesSuffix, startIndex = index, ignoreCase = true) && this[index - 1].isDigit()) {
             result.append(DegreeSymbol)
             index += DegreesSuffix.length
+        } else {
+            result.append(this[index])
+            index++
+        }
+    }
+    return result.toString()
+}
+
+private fun String.formatConstants(): String {
+    val result = StringBuilder(length)
+    var index = 0
+    while (index < length) {
+        if (startsWith(PiConstant, startIndex = index, ignoreCase = true)) {
+            result.append(PiSymbol)
+            index += PiConstant.length
         } else {
             result.append(this[index])
             index++
@@ -327,6 +342,7 @@ private const val BinFunction = "bin"
 private const val OctFunction = "oct"
 private const val HexFunction = "hex"
 private const val NumberSystemFunction = "ns"
+private const val PiConstant = "pi"
 private const val BinaryBase = 2
 private const val OctalBase = 8
 private const val HexBase = 16
@@ -334,6 +350,7 @@ private const val MinBase = 2
 private const val MaxBase = 36
 private const val RootSymbol = '\u221A'
 private const val DegreeSymbol = '\u00B0'
+private const val PiSymbol = '\u03C0'
 private const val SuperscriptOpenParenthesis = '\u207D'
 private val SuperscriptChars = mapOf(
     '0' to '\u2070',

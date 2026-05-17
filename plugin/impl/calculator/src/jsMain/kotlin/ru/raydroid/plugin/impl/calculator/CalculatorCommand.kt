@@ -397,7 +397,7 @@ class CalculatorCommand : CommandService() {
         const val CalculatorExpressionMaxLines = 16
         const val ErrorText = "Error"
         val IncompleteTrailingCharacters = setOf('+', '-', '*', '/', '^', '%', '(')
-        val SupportedExpressionSymbols = setOf('+', '-', '*', '/', '^', '%', '(', ')', '.', ',')
+        val SupportedExpressionSymbols = setOf('+', '-', '*', '/', '^', '%', '!', '(', ')', '.', ',')
         val NonUnaryOperators = setOf('*', '/', '^', '%')
         val ExpressionSeparatorButtons = setOf("+", "-", "*", "/", "%")
         val LogBaseShortcutButtons = setOf("bin", "oct", "hex")
@@ -409,6 +409,7 @@ class CalculatorCommand : CommandService() {
             CommandHelpRow("sin, cos, tg, ctg", "trigonometry"),
             CommandHelpRow("arcsin, arccos, arctg, arcctg", "inverse trigonometric functions"),
             CommandHelpRow("gr", "degrees inside a function: sin(30gr)"),
+            CommandHelpRow("!, pi, e", "factorial and constants: 5!, pi, e"),
             CommandHelpRow("bin, oct, hex", "number in binary, octal, or hexadecimal"),
             CommandHelpRow("ns", "convert to a number system: ns2(10), ns16(1010bin)"),
             CommandHelpRow("Backspace, C", "delete one character or clear the expression")
@@ -447,6 +448,9 @@ class CalculatorCommand : CommandService() {
             CalculatorButton.Insert(")", ")"),
             CalculatorButton.Insert("+", "+"),
             CalculatorButton.Insert("%", "%"),
+            CalculatorButton.Insert("!", "!"),
+            CalculatorButton.Insert("\u03C0", "pi"),
+            CalculatorButton.Insert("e", "e"),
             CalculatorButton.Insert("\u221Ax", "sqrt("),
             CalculatorButton.Insert("x\u02B8", "^("),
             CalculatorButton.Insert("log\u2090", "log("),

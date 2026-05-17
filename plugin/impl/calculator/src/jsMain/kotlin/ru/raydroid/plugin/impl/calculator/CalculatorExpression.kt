@@ -1,6 +1,7 @@
 package ru.raydroid.plugin.impl.calculator
 
 import kotlin.math.abs
+import kotlin.math.E
 import kotlin.math.PI
 import kotlin.math.acos
 import kotlin.math.asin
@@ -116,14 +117,19 @@ private data class NumberSystemConversion(
 )
 
 private fun String.looksLikeExpression(): Boolean {
-    if (none { it.isDigit() }) return false
+    if (none { it.isDigit() } && !hasConstant()) return false
     val normalized = normalizedExpression()
     return normalized.any { it in "+*/^%" } ||
         normalized.drop(1).any { it == '-' } ||
+        '!' in normalized ||
         '(' in normalized ||
         ')' in normalized ||
-        normalized.hasNumberSystemLiteral()
+        normalized.hasNumberSystemLiteral() ||
+        normalized.hasConstant()
 }
+
+private fun String.hasConstant(): Boolean =
+    contains(PI_CONSTANT, ignoreCase = true) || contains(E_CONSTANT, ignoreCase = true)
 
 private fun Double.toIntegerOrNull(): Long? {
     val integer = roundToLong()
@@ -148,6 +154,17 @@ private fun Long.toBaseString(base: Int): String {
         result.append('-')
     }
     return result.reverse().toString()
+}
+
+private fun Double.factorial(): Double {
+    val integer = toIntegerOrNull() ?: error("Factorial requires integer")
+    if (integer < 0) error("Factorial requires non-negative integer")
+    if (integer > MAX_FACTORIAL) error("Factorial is too large")
+    var result = 1.0
+    for (value in 2..integer) {
+        result *= value
+    }
+    return result
 }
 
 private fun String.parseBaseInteger(base: Int): Long {
@@ -238,7 +255,7 @@ private class ExpressionParser(
     }
 
     private fun parsePower(): Double {
-        val value = parseUnary()
+        val value = parsePostfix()
         skipSpaces()
         return if (consume('^')) {
             value.pow(parsePower())
@@ -253,6 +270,17 @@ private class ExpressionParser(
             consume('+') -> parseUnary()
             consume('-') -> -parseUnary()
             else -> parsePrimary()
+        }
+    }
+
+    private fun parsePostfix(): Double {
+        var value = parseUnary()
+        while (true) {
+            skipSpaces()
+            value = when {
+                consume('!') -> value.factorial()
+                else -> return value
+            }
         }
     }
 
@@ -298,8 +326,18 @@ private class ExpressionParser(
             if (!consume(')')) error("Missing closing parenthesis")
             return value
         }
+        parseConstant()?.let { return it }
         parseNumberSystemLiteral()?.let { return it.toDouble() }
         return parseNumber()
+    }
+
+    private fun parseConstant(): Double? {
+        skipSpaces()
+        return when {
+            consumeIdentifier(PI_CONSTANT) -> PI
+            consumeIdentifier(E_CONSTANT) -> E
+            else -> null
+        }
     }
 
     private fun parseNumberSystemLiteral(): Long? {
@@ -370,7 +408,10 @@ private class ExpressionParser(
     }
 
     private fun startsImplicitMultiplier(): Boolean =
-        source.startsWith(SQRT_FUNCTION, startIndex = index, ignoreCase = true) ||
+        source.getOrNull(index) == '(' ||
+            source.startsWith(PI_CONSTANT, startIndex = index, ignoreCase = true) ||
+            source.startsWith(E_CONSTANT, startIndex = index, ignoreCase = true) ||
+            source.startsWith(SQRT_FUNCTION, startIndex = index, ignoreCase = true) ||
             source.startsWith(LOG_FUNCTION, startIndex = index, ignoreCase = true) ||
             source.startsWith(LN_FUNCTION, startIndex = index, ignoreCase = true) ||
             source.startsWith(LG_FUNCTION, startIndex = index, ignoreCase = true) ||
@@ -392,7 +433,7 @@ private class ExpressionParser(
 }
 
 private fun String.toDisplayExpression(): String =
-    formatPowers().formatSquareRoots().formatLogarithms().formatNumberSystemLiterals().formatDegrees()
+    formatPowers().formatSquareRoots().formatLogarithms().formatNumberSystemLiterals().formatConstants().formatDegrees()
 
 private fun String.formatPowers(): String {
     val result = StringBuilder(length)
@@ -497,6 +538,21 @@ private fun String.formatNumberSystemLiterals(): String {
             result.append(literal.digits)
                 .append(literal.base.toString().toSubscript().orEmpty())
             index = literal.nextIndex
+        } else {
+            result.append(this[index])
+            index++
+        }
+    }
+    return result.toString()
+}
+
+private fun String.formatConstants(): String {
+    val result = StringBuilder(length)
+    var index = 0
+    while (index < length) {
+        if (startsWith(PI_CONSTANT, startIndex = index, ignoreCase = true)) {
+            result.append(PI_SYMBOL)
+            index += PI_CONSTANT.length
         } else {
             result.append(this[index])
             index++
@@ -664,15 +720,19 @@ private const val ACOS_FUNCTION = "acos"
 private const val ATAN_FUNCTION = "atan"
 private const val ACOT_FUNCTION = "acot"
 private const val DEGREES_SUFFIX = "gr"
+private const val PI_CONSTANT = "pi"
+private const val E_CONSTANT = "e"
 private const val RootSymbol = '√'
 private const val DegreeSymbol = '°'
 private const val BINARY_BASE = 2
+private const val PI_SYMBOL = '\u03C0'
 private const val OCTAL_BASE = 8
 private const val HEX_BASE = 16
 private const val MIN_BASE = 2
 private const val MAX_BASE = 36
 private const val INTEGER_EPSILON = 1e-10
 private const val FRACTION_SCALE = 1_000_000_000_000.0
+private const val MAX_FACTORIAL = 170L
 private const val BaseDigits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 private val SuperscriptChars = mapOf(
     '0' to '⁰',
