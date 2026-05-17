@@ -337,6 +337,9 @@ class CalculatorCommand : CommandService() {
     private fun String.isInvalidCompleteExpression(): Boolean {
         val text = trim()
         if (text.isBlank()) return false
+        if (text.isPlainNumberInput()) return false
+        if (text.hasUnsupportedCharacters()) return true
+        if (text.hasExplicitOperatorError()) return true
         var balance = 0
         text.forEach { char ->
             when (char) {
@@ -352,8 +355,22 @@ class CalculatorCommand : CommandService() {
         if (last in IncompleteTrailingCharacters) return false
         val lower = text.lowercase()
         if (IncompleteFunctionTails.any { tail -> lower.endsWith(tail) }) return false
-        return calculation == null
+        return calculation == null && text.isClearlyClosedExpression()
     }
+
+    private fun String.hasUnsupportedCharacters(): Boolean =
+        any { char -> !char.isLetterOrDigit() && !char.isWhitespace() && char !in SupportedExpressionSymbols }
+
+    private fun String.isPlainNumberInput(): Boolean =
+        all { char -> char.isDigit() || char.isWhitespace() || char == '.' || char == ',' }
+
+    private fun String.hasExplicitOperatorError(): Boolean =
+        zipWithNext().any { (left, right) ->
+            left in NonUnaryOperators && right in NonUnaryOperators
+        }
+
+    private fun String.isClearlyClosedExpression(): Boolean =
+        lastOrNull()?.let { last -> last.isDigit() || last == ')' || last.isLetter() } == true
 
     private sealed interface CalculatorButton {
         val title: String
@@ -380,6 +397,8 @@ class CalculatorCommand : CommandService() {
         const val CalculatorExpressionMaxLines = 16
         const val ErrorText = "Error"
         val IncompleteTrailingCharacters = setOf('+', '-', '*', '/', '^', '%', '(')
+        val SupportedExpressionSymbols = setOf('+', '-', '*', '/', '^', '%', '(', ')', '.', ',')
+        val NonUnaryOperators = setOf('*', '/', '^', '%')
         val ExpressionSeparatorButtons = setOf("+", "-", "*", "/", "%")
         val LogBaseShortcutButtons = setOf("bin", "oct", "hex")
         val CommandHelpRows = listOf(
