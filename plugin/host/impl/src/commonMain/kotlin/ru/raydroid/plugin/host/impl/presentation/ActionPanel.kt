@@ -127,7 +127,7 @@ private fun Action(
             actions.find { it.primary } ?: actions.firstOrNull()
         }
         if (primaryAction != null) {
-            if (showPrimaryHint) {
+            if (showPrimaryHint && primaryAction.showPrimaryHint) {
                 TextRenderer(
                     PluginTextData(
                         text = primaryAction.title,

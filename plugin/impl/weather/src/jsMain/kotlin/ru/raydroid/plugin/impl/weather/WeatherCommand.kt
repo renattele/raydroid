@@ -114,7 +114,8 @@ class WeatherCommand : CommandService() {
         action(
             title = UiText.Resource("weather.action.clear"),
             icon = Icon.Builtin("Clear"),
-            style = CommandListAction.Style.Destructive
+            style = CommandListAction.Style.Destructive,
+            showPrimaryHint = false
         ) {
             clearSelection()
         }

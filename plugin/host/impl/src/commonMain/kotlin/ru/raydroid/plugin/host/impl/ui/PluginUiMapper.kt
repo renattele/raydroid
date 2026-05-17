@@ -260,6 +260,7 @@ internal fun CommandListAction.toPluginCommandListAction(
         group = group?.toPluginUiText(pluginId),
         style = style.toPluginStyle(),
         primary = primary,
+        showPrimaryHint = showPrimaryHint,
         enabled = enabled,
     )
 }

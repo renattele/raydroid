@@ -42,6 +42,7 @@ data class PluginCommandListAction(
     val group: PluginUiText? = null,
     val style: Style = Style.Default,
     val primary: Boolean = false,
+    val showPrimaryHint: Boolean = true,
     val enabled: Boolean = true,
 ) {
     enum class Style {
