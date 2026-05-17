@@ -106,11 +106,27 @@ internal class PluginRuntimeImpl(
                         it.service == command.getServiceName()
                     }
                 }?.service ?: return@launch
+                send(
+                    listOf(
+                        SearchIndexMutation.MarkAllAsOutdated(
+                            pluginId = PluginId(manifest.name),
+                            commandName = commandName
+                        )
+                    )
+                )
                 withContext(pluginRuntimeDispatcher) {
                     command.cachedItems(chunkSize = chunkSize).collectLatest { chunk ->
                         send(chunk.map { it.toMutation(commandName) })
                     }
                 }
+                send(
+                    listOf(
+                        SearchIndexMutation.ClearOutdated(
+                            pluginId = PluginId(manifest.name),
+                            commandName = commandName
+                        )
+                    )
+                )
                 invalidationChannel.collectLatest { invalidationRequest ->
                     if (invalidationRequest.commandName != commandName) return@collectLatest
                     if (invalidationRequest.invalidatedIds != null) {

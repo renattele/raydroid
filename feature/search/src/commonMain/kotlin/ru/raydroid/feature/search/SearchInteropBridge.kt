@@ -135,6 +135,32 @@ object SearchInteropBridge {
         else -> emptyList()
     }
 
+    fun editableTextId(node: PluginRayNodeData): String = (node as? PluginEditableTextData)?.id.orEmpty()
+
+    fun editableTextValue(node: PluginRayNodeData): String = (node as? PluginEditableTextData)?.value.orEmpty()
+
+    fun editableTextSelection(node: PluginRayNodeData): Int = (node as? PluginEditableTextData)?.selection ?: 0
+
+    fun editableTextDisplayValue(node: PluginRayNodeData): String? = (node as? PluginEditableTextData)?.displayValue
+
+    fun editableTextDisplayFormatter(node: PluginRayNodeData): String =
+        (node as? PluginEditableTextData)?.displayFormatter?.name.orEmpty()
+
+    fun editableTextPlaceholder(node: PluginRayNodeData): PluginUiText? =
+        (node as? PluginEditableTextData)?.placeholder
+
+    fun editableTextMultiline(node: PluginRayNodeData): Boolean =
+        (node as? PluginEditableTextData)?.multiline ?: true
+
+    fun editableTextMaxLines(node: PluginRayNodeData): Int =
+        (node as? PluginEditableTextData)?.maxLines ?: 8
+
+    fun editableTextAutoScrollToEnd(node: PluginRayNodeData): Boolean =
+        (node as? PluginEditableTextData)?.autoScrollToEnd ?: false
+
+    fun editableTextOnChange(node: PluginRayNodeData): PluginFormSubmitCallback? =
+        (node as? PluginEditableTextData)?.onChange
+
     fun detailMetadataKind(item: Any): String = when (item as PluginDetailMetadataItemData) {
         is PluginDetailMetadataItemData.Label -> "label"
         is PluginDetailMetadataItemData.Link -> "link"
@@ -360,6 +386,15 @@ object SearchInteropBridge {
         is SearchResultSet.CachedSearchResult -> flattenMatches(result.descriptionMatches)
         is SearchResultSet.CommandSearchResult,
         is SearchResultSet.LiveSearchResult -> emptyList()
+    }
+
+    fun searchResultIsLive(result: SearchResultSet.SearchResult): Boolean =
+        result is SearchResultSet.LiveSearchResult
+
+    fun searchResultContent(result: SearchResultSet.SearchResult): List<PluginRayNodeData> = when (result) {
+        is SearchResultSet.LiveSearchResult -> result.presentation.content
+        is SearchResultSet.CachedSearchResult,
+        is SearchResultSet.CommandSearchResult -> emptyList()
     }
 
     fun suppressesHostActions(nodes: List<PluginRayNodeData>): Boolean = nodes.suppressesHostActions()

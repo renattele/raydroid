@@ -207,13 +207,16 @@ private struct SearchResultRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ResultListRow(
-                icon: result.iconAsset,
-                title: result.title,
-                subtitle: result.subtitle,
-                titleMatches: result.titleMatches,
-                subtitleMatches: result.subtitleMatches
-            )
+            if result.showsListEntry {
+                ResultListRow(
+                    icon: result.iconAsset,
+                    title: result.title,
+                    subtitle: result.subtitle,
+                    trailingText: result.trailingText,
+                    titleMatches: result.titleMatches,
+                    subtitleMatches: result.subtitleMatches
+                )
+            }
 
             if !result.detailNodes.isEmpty {
                 PluginNodeListView(nodes: result.detailNodes)
@@ -235,6 +238,7 @@ private struct ResultListRow: View {
     let icon: PluginAsset?
     let title: String
     let subtitle: String
+    let trailingText: String
     let titleMatches: [HighlightMatch]
     let subtitleMatches: [HighlightMatch]
 
@@ -243,8 +247,16 @@ private struct ResultListRow: View {
             PluginIconView(asset: icon, tint: .primary, size: 20)
                 .frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 4) {
-                HighlightedText(text: title, matches: titleMatches)
-                    .font(.headline)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    HighlightedText(text: title, matches: titleMatches)
+                        .font(.headline)
+                    Spacer(minLength: 0)
+                    if !trailingText.isEmpty {
+                        Text(trailingText)
+                            .font(.headline.monospacedDigit())
+                            .foregroundStyle(.primary)
+                    }
+                }
                 if !subtitle.isEmpty {
                     HighlightedText(text: subtitle, matches: subtitleMatches)
                         .font(.subheadline)

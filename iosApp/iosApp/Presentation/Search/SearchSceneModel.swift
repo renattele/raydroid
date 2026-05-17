@@ -50,6 +50,8 @@ struct SearchResultRowModel: Identifiable {
     let iconAsset: PluginAsset?
     let title: String
     let subtitle: String
+    let trailingText: String
+    let showsListEntry: Bool
     let titleMatches: [HighlightMatch]
     let subtitleMatches: [HighlightMatch]
     let detailNodes: [PluginNodeViewData]
@@ -396,30 +398,51 @@ private struct SearchSceneStateMapper {
         query: String,
         focusedIndex: Int?
     ) -> SearchResultRowModel {
+        let liveContent = searchResultContent(result)
+        let isLiveResult = SearchInteropBridge.shared.searchResultIsLive(result: result)
         let detailNodes: [PluginNodeViewData]
-        let resultKind: String
-
-        if let live = result as? ApiPluginRuntimeCoordinatorContentItem {
-            resultKind = "live"
+        if !liveContent.isEmpty {
             detailNodes = PluginNodeMapper(
                 client: client,
                 query: query,
-                resultId: live.resultId,
+                resultId: result.resultId,
                 focusedItemId: nil
             ).mapNodes(
-                live.presentation.content.map { $0 as AnyObject },
+                liveContent.map { $0 as AnyObject },
                 path: "live.\(index)"
             )
         } else {
-            resultKind = "result"
             detailNodes = []
         }
 
+        let resolvedTitle = client.resolveText(result.listEntry.title)
+        let resolvedSubtitle = client.resolveText(result.listEntry.description_)
+        let resolvedTrailingText = client.resolveText(result.listEntry.trailingText)
+        let commandName = result.resultId.commandName
+        let title: String
+        let subtitle: String
+        let trailingText: String
+
+        if !isLiveResult {
+            title = resolvedTitle.isEmpty ? fallbackTitle(for: commandName) : resolvedTitle
+            subtitle = resolvedSubtitle.isEmpty ? fallbackSubtitle(for: commandName) : resolvedSubtitle
+            trailingText = resolvedTrailingText
+        } else {
+            title = resolvedTitle
+            subtitle = resolvedSubtitle
+            trailingText = resolvedTrailingText
+        }
+
+        let iconAsset = client.resolveIcon(result.listEntry.icon) ?? (isLiveResult ? nil : fallbackIcon(for: commandName))
+        let showsListEntry = iconAsset != nil || !title.isEmpty || !subtitle.isEmpty || !trailingText.isEmpty
+
         return SearchResultRowModel(
-            id: "\(resultKind).\(index).\(result.resultId.commandName)",
-            iconAsset: client.resolveIcon(result.listEntry.icon),
-            title: client.resolveText(result.listEntry.title),
-            subtitle: client.resolveText(result.listEntry.description_),
+            id: "\(isLiveResult ? "live" : "result").\(index).\(result.resultId.commandName)",
+            iconAsset: iconAsset,
+            title: title,
+            subtitle: subtitle,
+            trailingText: trailingText,
+            showsListEntry: showsListEntry,
             titleMatches: searchResultTitleMatches(result),
             subtitleMatches: searchResultDescriptionMatches(result),
             detailNodes: detailNodes,
@@ -428,6 +451,33 @@ private struct SearchSceneStateMapper {
                 client.enter(result.resultId)
             }
         )
+    }
+
+    private func fallbackTitle(for commandName: String) -> String {
+        switch commandName {
+        case "CalculatorCommand":
+            return "Calculator"
+        default:
+            return ""
+        }
+    }
+
+    private func fallbackSubtitle(for commandName: String) -> String {
+        switch commandName {
+        case "CalculatorCommand":
+            return "Type an expression"
+        default:
+            return ""
+        }
+    }
+
+    private func fallbackIcon(for commandName: String) -> PluginAsset? {
+        switch commandName {
+        case "CalculatorCommand":
+            return .builtinName("Calculate")
+        default:
+            return nil
+        }
     }
 
     private func overlayAction(
@@ -556,6 +606,10 @@ private func searchResultTitleMatches(_ result: any ApiSearchResultSetSearchResu
 
 private func searchResultDescriptionMatches(_ result: any ApiSearchResultSetSearchResult) -> [HighlightMatch] {
     buildHighlightMatches(SearchInteropBridge.shared.searchResultDescriptionMatches(result: result))
+}
+
+private func searchResultContent(_ result: any ApiSearchResultSetSearchResult) -> [ApiPluginRayNodeData] {
+    SearchInteropBridge.shared.searchResultContent(result: result)
 }
 
 private func buildHighlightMatches(_ rawMatches: [NSNumber]) -> [HighlightMatch] {

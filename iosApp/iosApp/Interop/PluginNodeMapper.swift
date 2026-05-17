@@ -20,6 +20,7 @@ enum PluginNodeViewData: Identifiable {
     case box(BoxNodeViewData)
     case orientedBox(OrientedBoxNodeViewData)
     case detail(DetailNodeViewData)
+    case editableText(EditableTextNodeViewData)
     case list(ListNodeViewData)
     case grid(GridNodeViewData)
     case form(FormNodeViewData)
@@ -33,6 +34,7 @@ enum PluginNodeViewData: Identifiable {
         case .box(let data): data.id
         case .orientedBox(let data): data.id
         case .detail(let data): data.id
+        case .editableText(let data): data.id
         case .list(let data): data.id
         case .grid(let data): data.id
         case .form(let data): data.id
@@ -81,6 +83,20 @@ struct DetailNodeViewData {
     let title: String
     let markdown: String
     let metadata: [DetailMetadataViewData]
+}
+
+struct EditableTextNodeViewData {
+    let id: String
+    let fieldId: String
+    let value: String
+    let selection: Int
+    let displayValue: String
+    let displayFormatterName: String
+    let placeholder: String
+    let isMultiline: Bool
+    let maxLines: Int
+    let autoScrollToEnd: Bool
+    let onChange: ((String, Int) -> Void)?
 }
 
 enum DetailMetadataViewData: Identifiable {
@@ -352,6 +368,32 @@ struct PluginNodeMapper {
                     markdown: detailMarkdown(node),
                     metadata: detailMetadata(node).enumerated().map { index, item in
                         mapMetadata(item, path: "\(path).metadata.\(index)")
+                    }
+                )
+            )
+        case "editableText":
+            return .editableText(
+                EditableTextNodeViewData(
+                    id: path,
+                    fieldId: editableTextId(node),
+                    value: editableTextValue(node),
+                    selection: editableTextSelection(node),
+                    displayValue: editableTextDisplayValue(node),
+                    displayFormatterName: editableTextDisplayFormatter(node),
+                    placeholder: client.resolveText(editableTextPlaceholder(node)),
+                    isMultiline: editableTextMultiline(node),
+                    maxLines: editableTextMaxLines(node),
+                    autoScrollToEnd: editableTextAutoScrollToEnd(node),
+                    onChange: editableTextOnChange(node).map { callback in
+                        { value, selection in
+                            client.submitForm(
+                                callback: callback,
+                                values: [
+                                    editableTextId(node): .text(value),
+                                    "\(editableTextId(node)):selection": .text(String(selection))
+                                ]
+                            )
+                        }
                     }
                 )
             )
@@ -743,6 +785,56 @@ private func detailNavigationTitle(_ object: AnyObject) -> ApiPluginUiText? {
 private func detailMetadata(_ object: AnyObject) -> [AnyObject] {
     guard let node = object as? ApiPluginRayNodeData else { return [] }
     return SearchInteropBridge.shared.detailMetadata(node: node).map { $0 as AnyObject }
+}
+
+private func editableTextId(_ object: AnyObject) -> String {
+    guard let node = object as? ApiPluginRayNodeData else { return "" }
+    return SearchInteropBridge.shared.editableTextId(node: node)
+}
+
+private func editableTextValue(_ object: AnyObject) -> String {
+    guard let node = object as? ApiPluginRayNodeData else { return "" }
+    return SearchInteropBridge.shared.editableTextValue(node: node)
+}
+
+private func editableTextSelection(_ object: AnyObject) -> Int {
+    guard let node = object as? ApiPluginRayNodeData else { return 0 }
+    return Int(SearchInteropBridge.shared.editableTextSelection(node: node))
+}
+
+private func editableTextDisplayValue(_ object: AnyObject) -> String {
+    guard let node = object as? ApiPluginRayNodeData else { return "" }
+    return SearchInteropBridge.shared.editableTextDisplayValue(node: node) ?? ""
+}
+
+private func editableTextDisplayFormatter(_ object: AnyObject) -> String {
+    guard let node = object as? ApiPluginRayNodeData else { return "" }
+    return SearchInteropBridge.shared.editableTextDisplayFormatter(node: node)
+}
+
+private func editableTextPlaceholder(_ object: AnyObject) -> ApiPluginUiText? {
+    guard let node = object as? ApiPluginRayNodeData else { return nil }
+    return SearchInteropBridge.shared.editableTextPlaceholder(node: node)
+}
+
+private func editableTextMultiline(_ object: AnyObject) -> Bool {
+    guard let node = object as? ApiPluginRayNodeData else { return true }
+    return SearchInteropBridge.shared.editableTextMultiline(node: node)
+}
+
+private func editableTextMaxLines(_ object: AnyObject) -> Int {
+    guard let node = object as? ApiPluginRayNodeData else { return 8 }
+    return Int(SearchInteropBridge.shared.editableTextMaxLines(node: node))
+}
+
+private func editableTextAutoScrollToEnd(_ object: AnyObject) -> Bool {
+    guard let node = object as? ApiPluginRayNodeData else { return false }
+    return SearchInteropBridge.shared.editableTextAutoScrollToEnd(node: node)
+}
+
+private func editableTextOnChange(_ object: AnyObject) -> ApiPluginFormSubmitCallback? {
+    guard let node = object as? ApiPluginRayNodeData else { return nil }
+    return SearchInteropBridge.shared.editableTextOnChange(node: node)
 }
 
 private func detailMetadataKind(_ object: AnyObject) -> String {

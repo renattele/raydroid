@@ -116,6 +116,16 @@ private fun Project.configurePluginRextComposeResources() {
         )
     }
 
+    tasks.configureEach {
+        val shouldTrackGeneratedPluginResources = name.startsWith("prepareComposeResourcesTaskFor") ||
+            name.endsWith("ProcessResources")
+        if (!shouldTrackGeneratedPluginResources) return@configureEach
+
+        dependsOn(preparePluginComposeResources)
+        inputs.dir(preparePluginComposeResources.flatMap { it.outputDir })
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+    }
+
     tasks.named("build").configure {
         dependsOn(preparePluginComposeResources)
     }

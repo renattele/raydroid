@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct PluginNodeListView: View {
     let nodes: [PluginNodeViewData]
@@ -97,6 +98,8 @@ struct PluginNodeView: View {
             }
             .padding(14)
             .raydroidGlassSurface(cornerRadius: 18, interactive: false)
+        case .editableText(let data):
+            EditableTextNodeView(data: data)
         case .list(let data):
             ListNodeSectionView(
                 data: data,
@@ -108,6 +111,134 @@ struct PluginNodeView: View {
             FormNodeView(data: data)
         case .unsupported(let data):
             UnsupportedNodeView(data: data)
+        }
+    }
+}
+
+private struct EditableTextNodeView: View {
+    let data: EditableTextNodeViewData
+
+    var body: some View {
+        EditablePluginTextInput(data: data)
+            .frame(minHeight: minHeight)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                Color(uiColor: .secondarySystemBackground),
+                in: RoundedRectangle(cornerRadius: 16)
+            )
+    }
+
+    private var minHeight: CGFloat {
+        if data.isMultiline {
+            return CGFloat(max(min(data.maxLines, 6), 2)) * 24 + 12
+        }
+        return 44
+    }
+}
+
+private struct EditablePluginTextInput: UIViewRepresentable {
+    let data: EditableTextNodeViewData
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onChange: data.onChange, isMultiline: data.isMultiline)
+    }
+
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.delegate = context.coordinator
+        textView.backgroundColor = .clear
+        textView.autocapitalizationType = .none
+        textView.autocorrectionType = .no
+        textView.spellCheckingType = .no
+        textView.smartDashesType = .no
+        textView.smartQuotesType = .no
+        textView.keyboardType = .default
+        textView.textContainerInset = .zero
+        textView.textContainer.lineFragmentPadding = 0
+        textView.adjustsFontForContentSizeCategory = true
+        textView.isScrollEnabled = data.isMultiline
+        return textView
+    }
+
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        context.coordinator.onChange = data.onChange
+        context.coordinator.isMultiline = data.isMultiline
+        let font = preferredFont(for: data)
+        if uiView.font != font {
+            uiView.font = font
+        }
+        uiView.textColor = .label
+        uiView.tintColor = .systemBlue
+
+        if uiView.text != data.value {
+            context.coordinator.isApplyingUpdate = true
+            uiView.text = data.value
+            context.coordinator.isApplyingUpdate = false
+        }
+
+        let selection = min(data.selection, uiView.text.count)
+        if context.coordinator.selectionOffset(in: uiView) != selection,
+           let start = uiView.position(from: uiView.beginningOfDocument, offset: selection),
+           let range = uiView.textRange(from: start, to: start) {
+            context.coordinator.isApplyingUpdate = true
+            uiView.selectedTextRange = range
+            context.coordinator.isApplyingUpdate = false
+        }
+
+        if data.autoScrollToEnd {
+            DispatchQueue.main.async {
+                let endRange = NSRange(location: uiView.text.count, length: 0)
+                uiView.scrollRangeToVisible(endRange)
+            }
+        }
+    }
+
+    private func preferredFont(for data: EditableTextNodeViewData) -> UIFont {
+        if data.value.count > 72 {
+            return .preferredFont(forTextStyle: .body)
+        }
+        return .preferredFont(forTextStyle: .title3)
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var onChange: ((String, Int) -> Void)?
+        var isMultiline: Bool
+        var isApplyingUpdate = false
+
+        init(onChange: ((String, Int) -> Void)?, isMultiline: Bool) {
+            self.onChange = onChange
+            self.isMultiline = isMultiline
+        }
+
+        func textViewDidChange(_ textView: UITextView) {
+            guard !isApplyingUpdate else { return }
+            notifyChange(textView)
+        }
+
+        func textViewDidChangeSelection(_ textView: UITextView) {
+            guard !isApplyingUpdate else { return }
+            notifyChange(textView)
+        }
+
+        func textView(
+            _ textView: UITextView,
+            shouldChangeTextIn range: NSRange,
+            replacementText text: String
+        ) -> Bool {
+            if !isMultiline, text.contains("\n") {
+                return false
+            }
+            return true
+        }
+
+        private func notifyChange(_ textView: UITextView) {
+            let selection = textView.selectedRange.location
+            onChange?(textView.text, selection)
+        }
+
+        func selectionOffset(in textView: UITextView) -> Int {
+            textView.selectedRange.location
         }
     }
 }

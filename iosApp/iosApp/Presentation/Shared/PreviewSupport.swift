@@ -128,6 +128,21 @@ enum PreviewData {
                 ]
             )
         ),
+        .editableText(
+            EditableTextNodeViewData(
+                id: "editable",
+                fieldId: "expression",
+                value: "2^3",
+                selection: 3,
+                displayValue: "",
+                displayFormatterName: "CalculatorExpression",
+                placeholder: "Type expression",
+                isMultiline: true,
+                maxLines: 4,
+                autoScrollToEnd: true,
+                onChange: { _, _ in }
+            )
+        ),
         .list(sampleListNode),
         .grid(sampleGridNode),
         .form(sampleFormNode)
@@ -304,6 +319,8 @@ enum PreviewData {
             iconAsset: .builtinName("Calculate"),
             title: "Calculator",
             subtitle: "Evaluate expressions and inspect structured output",
+            trailingText: "8",
+            showsListEntry: true,
             titleMatches: [HighlightMatch(start: 0, end: 3)],
             subtitleMatches: [],
             detailNodes: [
@@ -324,6 +341,8 @@ enum PreviewData {
             iconAsset: .builtinName("GridView"),
             title: "Apps",
             subtitle: "Search installed applications",
+            trailingText: "",
+            showsListEntry: true,
             titleMatches: [],
             subtitleMatches: [],
             detailNodes: [],

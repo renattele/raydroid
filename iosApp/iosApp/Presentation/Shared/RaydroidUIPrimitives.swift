@@ -198,6 +198,9 @@ struct SearchInputField: UIViewRepresentable {
         applyVisibleTextStyling(to: textField)
         textField.clearButtonMode = .never
         textField.backspaceDelegate = context.coordinator
+        textField.mutationHandler = { [weak coordinator = context.coordinator] field in
+            coordinator?.textFieldDidMutate(field)
+        }
         textField.addTarget(
             context.coordinator,
             action: #selector(Coordinator.textDidChange(_:)),
@@ -319,6 +322,22 @@ struct SearchInputField: UIViewRepresentable {
             onTextChange(nextValue, selectionName(in: textField))
         }
 
+        func textFieldDidMutate(_ textField: UITextField) {
+            onTextChange(textField.text ?? "", selectionName(in: textField))
+        }
+
+        func textField(
+            _ textField: UITextField,
+            shouldChangeCharactersIn range: NSRange,
+            replacementString string: String
+        ) -> Bool {
+            DispatchQueue.main.async { [weak self, weak textField] in
+                guard let self, let textField else { return }
+                self.onTextChange(textField.text ?? "", self.selectionName(in: textField))
+            }
+            return true
+        }
+
         func textFieldDidEndEditing(_ textField: UITextField) {
             guard retainFocusWhenBlurred, desiredFocus else { return }
             DispatchQueue.main.async {
@@ -380,6 +399,7 @@ final class BackspaceAwareTextField: UITextField {
     private let contentInsets = UIEdgeInsets(top: 6, left: 0, bottom: 6, right: 0)
 
     weak var backspaceDelegate: BackspaceAwareTextFieldDelegate?
+    var mutationHandler: ((BackspaceAwareTextField) -> Void)?
 
     override var keyCommands: [UIKeyCommand]? {
         [
@@ -401,6 +421,17 @@ final class BackspaceAwareTextField: UITextField {
             backspaceDelegate?.textFieldDidBackspaceOnEmpty()
         }
         super.deleteBackward()
+        mutationHandler?(self)
+    }
+
+    override func insertText(_ text: String) {
+        super.insertText(text)
+        mutationHandler?(self)
+    }
+
+    override func paste(_ sender: Any?) {
+        super.paste(sender)
+        mutationHandler?(self)
     }
 
     @objc private func handleMoveFocusUp() {
