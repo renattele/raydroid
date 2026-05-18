@@ -41,8 +41,8 @@ import ru.raydroid.core.designsystem.component.RPopupSurface
 import ru.raydroid.core.designsystem.component.rInteractable
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.event.NotificationEvent
+import ru.raydroid.plugin.host.api.ui.ActionPanelActionUi
 import ru.raydroid.plugin.host.api.ui.PluginColor
-import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
@@ -53,7 +53,7 @@ import kotlin.math.pow
 
 @Composable
 fun ActionPanel(
-    actions: List<PluginCommandListAction>,
+    actions: List<ActionPanelActionUi>,
     showActions: Boolean,
     onToggleActions: () -> Unit,
     showPrimaryHint: Boolean = true,
@@ -107,7 +107,7 @@ fun ToastsOverlay(
 
 @Composable
 private fun Action(
-    actions: List<PluginCommandListAction>,
+    actions: List<ActionPanelActionUi>,
     showActions: Boolean,
     onToggleActions: () -> Unit,
     showPrimaryHint: Boolean,
@@ -169,9 +169,9 @@ private fun Action(
 
 @Composable
 fun ActionsPanelOverlay(
-    actions: List<PluginCommandListAction>,
+    actions: List<ActionPanelActionUi>,
     visible: Boolean,
-    onActionClick: (PluginCommandListAction) -> Unit,
+    onActionClick: (ActionPanelActionUi) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
@@ -216,14 +216,15 @@ fun ActionsPanelOverlay(
 
 @Composable
 private fun ActionsPopupAction(
-    action: PluginCommandListAction,
+    action: ActionPanelActionUi,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val spacing = RaydroidTheme.spacing
-    val color = when (action.style) {
-        PluginCommandListAction.Style.Default -> PluginColor.OnSurface
-        PluginCommandListAction.Style.Destructive -> PluginColor.Error
+    val color = if (action.destructive) {
+        PluginColor.Error
+    } else {
+        PluginColor.OnSurface
     }
     Row(
         modifier

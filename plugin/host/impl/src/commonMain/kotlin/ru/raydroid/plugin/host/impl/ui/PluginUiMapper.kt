@@ -245,6 +245,7 @@ internal fun CommandListItem.toPluginCommandListItem(pluginId: PluginId): Plugin
         description = description?.toPluginUiText(pluginId),
         enabled = enabled,
         trailingText = trailingText?.toPluginUiText(pluginId),
+        alias = null,
     )
 }
 

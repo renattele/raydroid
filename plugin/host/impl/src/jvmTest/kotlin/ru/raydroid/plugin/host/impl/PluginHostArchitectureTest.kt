@@ -646,6 +646,8 @@ private class RecordingSearchIndexRepository : SearchIndexRepository {
         lastUpdatedUsage = resultId
     }
 
+    override suspend fun getPreview(resultId: SearchResultId): RankedSearchResult? = null
+
     override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> =
         flowOf(emptyList())
 }
@@ -680,6 +682,7 @@ private class FakeSearchIndexCacheDao(
     override suspend fun updateUsage(pluginId: String, command: String, itemId: String, nowEpochMs: Long) = Unit
     override suspend fun markAsOutdated(pluginId: String, commandName: String, itemId: String) = Unit
     override suspend fun markAllAsOutdated(pluginId: String, commandName: String) = Unit
+    override suspend fun preview(pluginId: String, command: String, itemId: String): SearchIndexCacheSearchEntity? = null
     override fun recent(limit: Int): Flow<List<SearchIndexCacheSearchEntity>> = flowOf(recentResults.take(limit))
     override fun searchFtsCandidates(matchQuery: String, limit: Int): Flow<List<SearchIndexCacheSearchEntity>> =
         flowOf(emptyList())

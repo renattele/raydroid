@@ -69,6 +69,10 @@ protocol SearchViewModelClient {
     func focusPluginItem(_ itemId: Any)
     func enterPluginItem(_ itemId: Any)
     func showContextActions(resultId: ApiSearchResultId, actions: [ApiPluginCommandListAction])
+    func updateAliasEditorInput(_ value: String)
+    func saveAliasEditor()
+    func removeAlias()
+    func dismissAliasEditor()
     func dismissAlert(_ alert: ApiNotificationEventAlert)
     func confirmAlert(_ alert: ApiNotificationEventAlert)
     func hideToast(_ toastId: String)
@@ -210,6 +214,22 @@ final class KmpSearchViewModelClient: SearchViewModelClient {
                 actions: actions
             )
         )
+    }
+
+    func updateAliasEditorInput(_ value: String) {
+        viewModel.onEvent(event: SearchScreenEventUpdateAliasEditorInput(value: value))
+    }
+
+    func saveAliasEditor() {
+        viewModel.onEvent(event: SearchScreenEventSaveAliasEditor.shared)
+    }
+
+    func removeAlias() {
+        viewModel.onEvent(event: SearchScreenEventRemoveAlias.shared)
+    }
+
+    func dismissAliasEditor() {
+        viewModel.onEvent(event: SearchScreenEventDismissAliasEditor.shared)
     }
 
     func dismissAlert(_ alert: ApiNotificationEventAlert) {

@@ -26,6 +26,7 @@ struct SearchSceneState {
     var exitBackspaceCount: Int
     var toasts: [ToastModel]
     var alert: AlertModel?
+    var aliasEditor: AliasEditorSheetModel?
 
     static let empty = SearchSceneState(
         query: "",
@@ -41,7 +42,8 @@ struct SearchSceneState {
         showsBackButton: false,
         exitBackspaceCount: 0,
         toasts: [],
-        alert: nil
+        alert: nil,
+        aliasEditor: nil
     )
 }
 
@@ -49,6 +51,7 @@ struct SearchResultRowModel: Identifiable {
     let id: String
     let iconAsset: PluginAsset?
     let title: String
+    let alias: String?
     let subtitle: String
     let trailingText: String
     let showsListEntry: Bool
@@ -69,6 +72,19 @@ struct OverlayActionModel: Identifiable {
     let iconAsset: PluginAsset?
     let style: PluginActionStyle
     let onSelect: () -> Void
+}
+
+struct AliasEditorSheetModel: Identifiable {
+    let id: String
+    let title: String
+    let subjectTitle: String?
+    let input: String
+    let error: String?
+    let showsRemove: Bool
+    let onInputChanged: (String) -> Void
+    let onSave: () -> Void
+    let onRemove: (() -> Void)?
+    let onDismiss: () -> Void
 }
 
 enum ToastStyle {
@@ -249,6 +265,28 @@ private struct SearchSceneStateMapper {
             fullscreenFocusedActions: fullscreenFocusedActions,
             suppressHostActions: suppressHostActions
         )
+        let alertModel = state.alerts.first.map { alert in
+            let dismissButton = alert.dismissAction.map { dismissAction in
+                AlertDismissButtonModel(
+                    title: client.resolveText(dismissAction.title),
+                    role: alertRole(dismissAction.style),
+                    action: {
+                        client.dismissAlert(alert)
+                    }
+                )
+            }
+            return AlertModel(
+                id: "\(ObjectIdentifier(alert))",
+                title: client.resolveText(alert.title),
+                message: client.resolveText(alert.message),
+                confirmTitle: client.resolveText(alert.confirmAction.title),
+                onConfirm: {
+                    client.confirmAlert(alert)
+                },
+                dismissButton: dismissButton
+            )
+        }
+        let aliasEditorModel = mapAliasEditor(state.overlayState.aliasEditor)
         let fullscreen = state.fullscreenContent.map { fullscreen in
             FullscreenModel(
                 nodes: PluginNodeMapper(
@@ -290,27 +328,8 @@ private struct SearchSceneStateMapper {
                     }
                 )
             },
-            alert: state.alerts.first.map { alert in
-                let dismissButton = alert.dismissAction.map { dismissAction in
-                    AlertDismissButtonModel(
-                        title: client.resolveText(dismissAction.title),
-                        role: alertRole(dismissAction.style),
-                        action: {
-                            client.dismissAlert(alert)
-                        }
-                    )
-                }
-                return AlertModel(
-                    id: "\(ObjectIdentifier(alert))",
-                    title: client.resolveText(alert.title),
-                    message: client.resolveText(alert.message),
-                    confirmTitle: client.resolveText(alert.confirmAction.title),
-                    onConfirm: {
-                        client.confirmAlert(alert)
-                    },
-                    dismissButton: dismissButton
-                )
-            }
+            alert: alertModel,
+            aliasEditor: aliasEditorModel
         )
     }
 
@@ -368,6 +387,34 @@ private struct SearchSceneStateMapper {
         )
     }
 
+    private func mapAliasEditor(_ aliasEditor: SearchAliasEditorState?) -> AliasEditorSheetModel? {
+        guard let aliasEditor else { return nil }
+        let id = "alias-editor:\(aliasEditor.resultId.commandName)"
+        let subjectTitle = aliasEditor.title.map { client.resolveText($0) }
+        let error = aliasEditor.error.map { client.resolveText($0) }
+        let showsRemove = aliasEditor.existingAlias != nil
+        return AliasEditorSheetModel(
+            id: id,
+            title: showsRemove ? "Edit Alias" : "Add Alias",
+            subjectTitle: subjectTitle,
+            input: aliasEditor.input,
+            error: error,
+            showsRemove: showsRemove,
+            onInputChanged: { value in
+                client.updateAliasEditorInput(value)
+            },
+            onSave: {
+                client.saveAliasEditor()
+            },
+            onRemove: showsRemove ? {
+                client.removeAlias()
+            } : nil,
+            onDismiss: {
+                client.dismissAliasEditor()
+            }
+        )
+    }
+
     private func isAnimatedLoadingToast(_ toast: ApiNotificationEventShowToast) -> Bool {
         enumName(toast.toast.style).lowercased() == "animated"
     }
@@ -418,6 +465,7 @@ private struct SearchSceneStateMapper {
         let resolvedTitle = client.resolveText(result.listEntry.title)
         let resolvedSubtitle = client.resolveText(result.listEntry.description_)
         let resolvedTrailingText = client.resolveText(result.listEntry.trailingText)
+        let alias = result.listEntry.alias
         let commandName = result.resultId.commandName
         let title: String
         let subtitle: String
@@ -440,6 +488,7 @@ private struct SearchSceneStateMapper {
             id: "\(isLiveResult ? "live" : "result").\(index).\(result.resultId.commandName)",
             iconAsset: iconAsset,
             title: title,
+            alias: alias,
             subtitle: subtitle,
             trailingText: trailingText,
             showsListEntry: showsListEntry,
@@ -490,6 +539,20 @@ private struct SearchSceneStateMapper {
             title: client.resolveText(action.title),
             iconAsset: client.resolveIcon(action.icon),
             style: action.style == .destructive ? .destructive : .normal,
+            onSelect: onSelect
+        )
+    }
+
+    private func overlayAction(
+        id: String,
+        action: SearchPanelAction,
+        onSelect: @escaping () -> Void
+    ) -> OverlayActionModel {
+        OverlayActionModel(
+            id: id,
+            title: client.resolveText(action.title),
+            iconAsset: client.resolveIcon(action.icon),
+            style: action.destructive ? .destructive : .normal,
             onSelect: onSelect
         )
     }

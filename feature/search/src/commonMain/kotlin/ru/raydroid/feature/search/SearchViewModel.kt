@@ -35,11 +35,15 @@ import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetSearchFieldRequestsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
+import ru.raydroid.plugin.host.api.application.usecase.RemoveSearchAliasUseCase
+import ru.raydroid.plugin.host.api.application.usecase.SaveSearchAliasUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
 import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
 import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.SearchAliasInvalidReason
+import ru.raydroid.plugin.host.api.domain.model.SearchAliasSaveResult
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
@@ -51,6 +55,7 @@ import ru.raydroid.plugin.host.api.event.NotificationEvent.Selection
 import ru.raydroid.plugin.host.api.event.NotificationEvent.ShowToast
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
+import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.api.ui.pluginFocusModel
@@ -72,6 +77,8 @@ class SearchViewModel(
     private val emitEventUseCase: EmitEventUseCase,
     private val getSearchFieldRequestsUseCase: GetSearchFieldRequestsUseCase,
     private val updateCommandQueryUseCase: UpdateCommandQueryUseCase,
+    private val saveSearchAliasUseCase: SaveSearchAliasUseCase,
+    private val removeSearchAliasUseCase: RemoveSearchAliasUseCase,
     private val backCommandUseCase: BackCommandUseCase? = null
 ) {
     constructor(
@@ -88,7 +95,9 @@ class SearchViewModel(
         getEventsUseCase: GetEventsUseCase,
         emitEventUseCase: EmitEventUseCase,
         getSearchFieldRequestsUseCase: GetSearchFieldRequestsUseCase,
-        updateCommandQueryUseCase: UpdateCommandQueryUseCase
+        updateCommandQueryUseCase: UpdateCommandQueryUseCase,
+        saveSearchAliasUseCase: SaveSearchAliasUseCase,
+        removeSearchAliasUseCase: RemoveSearchAliasUseCase
     ) : this(
         applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
         syncCacheUseCase = syncCacheUseCase,
@@ -104,6 +113,8 @@ class SearchViewModel(
         emitEventUseCase = emitEventUseCase,
         getSearchFieldRequestsUseCase = getSearchFieldRequestsUseCase,
         updateCommandQueryUseCase = updateCommandQueryUseCase,
+        saveSearchAliasUseCase = saveSearchAliasUseCase,
+        removeSearchAliasUseCase = removeSearchAliasUseCase,
         backCommandUseCase = backCommandUseCase
     )
 
@@ -543,11 +554,42 @@ class SearchViewModel(
             }
 
             is SearchScreenEvent.EnterAction -> {
-                executeCommandCallbackUseCase(
-                    resultId = event.action.resultId,
-                    callback = event.action.action.callback,
-                    updateUsage = event.action.updateUsage
-                )
+                when (val kind = event.action.action.kind) {
+                    is SearchPanelAction.Kind.PluginCallback -> {
+                        executeCommandCallbackUseCase(
+                            resultId = event.action.resultId,
+                            callback = kind.callback,
+                            updateUsage = kind.updateUsage && event.action.updateUsage
+                        )
+                    }
+
+                    is SearchPanelAction.Kind.OpenAliasEditor -> {
+                        backingState.update { uiState ->
+                            uiState.copy(
+                                aliasEditor = SearchAliasEditorState(
+                                    resultId = event.action.resultId,
+                                    title = currentResultTitle(event.action.resultId),
+                                    input = kind.existingAlias.orEmpty(),
+                                    existingAlias = kind.existingAlias
+                                ),
+                                showActions = false,
+                                showContextActions = false
+                            )
+                        }
+                    }
+
+                    SearchPanelAction.Kind.RemoveAlias -> {
+                        removeSearchAliasUseCase(event.action.resultId)
+                        backingState.update { uiState ->
+                            uiState.copy(
+                                aliasEditor = uiState.aliasEditor
+                                    ?.takeUnless { editor -> editor.resultId == event.action.resultId },
+                                showActions = false,
+                                showContextActions = false
+                            )
+                        }
+                    }
+                }
             }
 
             is SearchScreenEvent.EnterCallback -> {
@@ -561,7 +603,7 @@ class SearchViewModel(
             is SearchScreenEvent.ShowContextActions -> {
                 backingState.update { uiState ->
                     uiState.copy(
-                        contextActions = event.actions.map { action ->
+                        contextActions = event.actions.toSearchPanelActions(updateUsage = false).map { action ->
                             FocusedCommandAction(
                                 resultId = event.resultId,
                                 action = action,
@@ -571,6 +613,62 @@ class SearchViewModel(
                         showContextActions = event.actions.isNotEmpty(),
                         showActions = false
                     )
+                }
+            }
+
+            is SearchScreenEvent.UpdateAliasEditorInput -> {
+                backingState.update { uiState ->
+                    uiState.copy(
+                        aliasEditor = uiState.aliasEditor?.copy(
+                            input = event.value,
+                            error = null
+                        )
+                    )
+                }
+            }
+
+            SearchScreenEvent.SaveAliasEditor -> {
+                val editor = backingState.value.aliasEditor ?: return
+                when (val result = saveSearchAliasUseCase(editor.resultId, editor.input)) {
+                    is SearchAliasSaveResult.Success -> {
+                        backingState.update { uiState ->
+                            uiState.copy(aliasEditor = null)
+                        }
+                    }
+
+                    is SearchAliasSaveResult.Conflict -> {
+                        backingState.update { uiState ->
+                            uiState.copy(
+                                aliasEditor = uiState.aliasEditor?.copy(
+                                    error = PluginUiText.Plain("Alias '${result.alias}' is already in use")
+                                )
+                            )
+                        }
+                    }
+
+                    is SearchAliasSaveResult.Invalid -> {
+                        backingState.update { uiState ->
+                            uiState.copy(
+                                aliasEditor = uiState.aliasEditor?.copy(
+                                    error = PluginUiText.Plain(result.reason.message())
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            SearchScreenEvent.RemoveAlias -> {
+                val editor = backingState.value.aliasEditor ?: return
+                removeSearchAliasUseCase(editor.resultId)
+                backingState.update { uiState ->
+                    uiState.copy(aliasEditor = null)
+                }
+            }
+
+            SearchScreenEvent.DismissAliasEditor -> {
+                backingState.update { uiState ->
+                    uiState.copy(aliasEditor = null)
                 }
             }
 
@@ -636,6 +734,14 @@ class SearchViewModel(
         }
     }
 
+    private fun currentResultTitle(resultId: SearchResultId): PluginUiText? {
+        return backingState.value.searchResults
+            ?.results
+            ?.firstOrNull { result -> result.resultId == resultId }
+            ?.listEntry
+            ?.title
+    }
+
     private fun showToast(toast: ShowToast) {
         val replacedToastIds = backingState.value.toasts
             .filter { existing -> existing.shouldBeReplacedBy(toast) }
@@ -697,11 +803,12 @@ class SearchViewModel(
             .orEmpty()
         val focusedActions = focusedItem?.actions
             ?.takeIf { actions -> actions.isNotEmpty() }
+            ?.toSearchPanelActions(updateUsage = false)
             ?: currentFocusedActions.takeIf { actions -> actions.isNotEmpty() }
             ?: fullscreen.resultId.let { resultId ->
                 focusedItem?.let { item ->
                     uiState.plugins[resultId.pluginId]?.actions(resultId.commandName, item.id)
-                }
+                }?.toSearchPanelActions(updateUsage = false)
             }.orEmpty()
         backingState.update { currentState ->
             val currentFullscreen = currentState.fullscreen ?: return@update currentState
@@ -746,11 +853,18 @@ class SearchViewModel(
             .firstOrNull { action -> action.action.primary }
             ?: backingState.value.focusedActions.firstOrNull()
         if (focusedAction != null) {
-            executeCommandCallbackUseCase(
-                resultId = focusedAction.resultId,
-                callback = focusedAction.action.callback,
-                updateUsage = false
-            )
+            when (val kind = focusedAction.action.kind) {
+                is SearchPanelAction.Kind.PluginCallback -> {
+                    executeCommandCallbackUseCase(
+                        resultId = focusedAction.resultId,
+                        callback = kind.callback,
+                        updateUsage = false
+                    )
+                }
+
+                is SearchPanelAction.Kind.OpenAliasEditor,
+                SearchPanelAction.Kind.RemoveAlias -> Unit
+            }
         } else {
             uiState.plugins[fullscreen.resultId.pluginId]?.update(
                 fullscreen.resultId.commandName,
@@ -849,6 +963,7 @@ private data class SearchViewModelState(
     val isSearching: Boolean = false,
     val showActions: Boolean = false,
     val showContextActions: Boolean = false,
+    val aliasEditor: SearchAliasEditorState? = null,
     val fullscreen: SearchFullscreenContentState? = null,
     val alerts: List<Alert> = emptyList(),
     val toasts: List<ShowToast> = emptyList()
@@ -877,9 +992,17 @@ data class SearchFullscreenContentState(
     val plugins: Map<PluginId, PluginRuntime> = emptyMap()
 )
 
+data class SearchAliasEditorState(
+    val resultId: SearchResultId,
+    val title: PluginUiText?,
+    val input: String,
+    val existingAlias: String?,
+    val error: PluginUiText? = null
+)
+
 data class FocusedCommandAction(
     val resultId: SearchResultId,
-    val action: PluginCommandListAction,
+    val action: SearchPanelAction,
     val updateUsage: Boolean = true
 )
 
@@ -892,7 +1015,8 @@ data class SearchOverlayState(
     val focusedActions: List<FocusedCommandAction> = emptyList(),
     val contextActions: List<FocusedCommandAction> = emptyList(),
     val showActions: Boolean = false,
-    val showContextActions: Boolean = false
+    val showContextActions: Boolean = false,
+    val aliasEditor: SearchAliasEditorState? = null
 )
 
 data class SearchResultsContentState(
@@ -976,6 +1100,11 @@ sealed interface SearchScreenEvent {
         val actions: List<PluginCommandListAction>
     ) : SearchScreenEvent
 
+    data class UpdateAliasEditorInput(val value: String) : SearchScreenEvent
+    data object SaveAliasEditor : SearchScreenEvent
+    data object RemoveAlias : SearchScreenEvent
+    data object DismissAliasEditor : SearchScreenEvent
+
     data class FocusPluginItem(val itemId: CommandItemId) : SearchScreenEvent
     data class EnterPluginItem(val itemId: CommandItemId) : SearchScreenEvent
     data object MoveFocusPrevious : SearchScreenEvent
@@ -1007,7 +1136,8 @@ private fun SearchViewModelState.overlayState(): SearchOverlayState =
         focusedActions = focusedActions,
         contextActions = contextActions,
         showActions = showActions,
-        showContextActions = showContextActions
+        showContextActions = showContextActions,
+        aliasEditor = aliasEditor
     )
 
 private fun SearchViewModelState.toScreenState(): SearchScreenState {
@@ -1076,15 +1206,59 @@ private suspend fun SearchResultSet?.actionsForFocused(
     }
 }
 
-private suspend fun SearchResultSet.SearchResult.actions(
+internal suspend fun SearchResultSet.SearchResult.actions(
     plugins: Map<PluginId, PluginRuntime>
-): List<PluginCommandListAction> {
-    return when (this) {
-        is SearchResultSet.LiveSearchResult -> presentation.actions
+): List<SearchPanelAction> {
+    val pluginActions = when (this) {
+        is SearchResultSet.LiveSearchResult -> presentation.actions.toSearchPanelActions(updateUsage = false)
         is SearchResultSet.CachedSearchResult,
         is SearchResultSet.CommandSearchResult -> plugins[resultId.pluginId]?.actions(
             commandName = resultId.commandName,
             itemId = resultId.itemId
-        ).orEmpty()
+        ).orEmpty().toSearchPanelActions(updateUsage = true)
     }
+    return pluginActions + hostAliasActions()
+}
+
+private fun SearchResultSet.SearchResult.hostAliasActions(): List<SearchPanelAction> {
+    val alias = when (this) {
+        is SearchResultSet.CachedSearchResult,
+        is SearchResultSet.CommandSearchResult -> listEntry.alias
+        is SearchResultSet.LiveSearchResult -> return emptyList()
+    }
+    val group = PluginUiText.Plain("Aliases")
+    return if (alias == null) {
+        listOf(
+            SearchPanelAction(
+                title = PluginUiText.Plain("Add Alias"),
+                icon = PluginIcon.Builtin("Add"),
+                group = group,
+                kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = null)
+            )
+        )
+    } else {
+        listOf(
+            SearchPanelAction(
+                title = PluginUiText.Plain("Edit Alias"),
+                description = PluginUiText.Plain(alias),
+                icon = PluginIcon.Builtin("Edit"),
+                group = group,
+                kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = alias)
+            ),
+            SearchPanelAction(
+                title = PluginUiText.Plain("Remove Alias"),
+                description = PluginUiText.Plain(alias),
+                icon = PluginIcon.Builtin("Delete"),
+                group = group,
+                destructive = true,
+                kind = SearchPanelAction.Kind.RemoveAlias
+            )
+        )
+    }
+}
+
+private fun SearchAliasInvalidReason.message(): String = when (this) {
+    SearchAliasInvalidReason.Blank -> "Alias cannot be empty"
+    SearchAliasInvalidReason.ContainsWhitespace -> "Alias cannot contain spaces"
+    SearchAliasInvalidReason.NonAscii -> "Alias must use ASCII characters only"
 }

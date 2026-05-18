@@ -3,6 +3,16 @@ package ru.raydroid.plugin.host.api.ui
 import ru.raydroid.plugin.api.presentation.CommandCallbackRef
 import ru.raydroid.plugin.api.presentation.CommandItemId
 
+interface ActionPanelActionUi {
+    val title: PluginUiText
+    val description: PluginUiText?
+    val icon: PluginIcon?
+    val group: PluginUiText?
+    val primary: Boolean
+    val enabled: Boolean
+    val destructive: Boolean
+}
+
 class PluginCommandCallback(
     val ref: CommandCallbackRef,
     private val dispatch: suspend (CommandCallbackRef) -> Unit
@@ -32,22 +42,26 @@ data class PluginCommandListItem(
     val enabled: Boolean = true,
     val iconColor: PluginColor? = null,
     val trailingText: PluginUiText? = null,
+    val alias: String? = null,
 )
 
 data class PluginCommandListAction(
     val callback: PluginCommandCallback,
-    val title: PluginUiText,
-    val description: PluginUiText?,
-    val icon: PluginIcon?,
-    val group: PluginUiText? = null,
+    override val title: PluginUiText,
+    override val description: PluginUiText?,
+    override val icon: PluginIcon?,
+    override val group: PluginUiText? = null,
     val style: Style = Style.Default,
-    val primary: Boolean = false,
-    val enabled: Boolean = true,
-) {
+    override val primary: Boolean = false,
+    override val enabled: Boolean = true,
+) : ActionPanelActionUi {
     enum class Style {
         Default,
         Destructive
     }
+
+    override val destructive: Boolean
+        get() = style == Style.Destructive
 }
 
 data class PluginCommandPresentation(

@@ -44,6 +44,10 @@ final class PreviewSearchViewModelClient: SearchViewModelClient {
     func focusPluginItem(_ itemId: Any) {}
     func enterPluginItem(_ itemId: Any) {}
     func showContextActions(resultId: ApiSearchResultId, actions: [ApiPluginCommandListAction]) {}
+    func updateAliasEditorInput(_ value: String) {}
+    func saveAliasEditor() {}
+    func removeAlias() {}
+    func dismissAliasEditor() {}
     func dismissAlert(_ alert: ApiNotificationEventAlert) {}
     func confirmAlert(_ alert: ApiNotificationEventAlert) {}
     func hideToast(_ toastId: String) {}
@@ -318,6 +322,7 @@ enum PreviewData {
             id: "result.one",
             iconAsset: .builtinName("Calculate"),
             title: "Calculator",
+            alias: "calc",
             subtitle: "Evaluate expressions and inspect structured output",
             trailingText: "8",
             showsListEntry: true,
@@ -340,6 +345,7 @@ enum PreviewData {
             id: "result.two",
             iconAsset: .builtinName("GridView"),
             title: "Apps",
+            alias: nil,
             subtitle: "Search installed applications",
             trailingText: "",
             showsListEntry: true,

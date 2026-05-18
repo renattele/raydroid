@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import okio.FileSystem
@@ -31,6 +32,8 @@ import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetSearchFieldRequestsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
+import ru.raydroid.plugin.host.api.application.usecase.RemoveSearchAliasUseCase
+import ru.raydroid.plugin.host.api.application.usecase.SaveSearchAliasUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
 import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
@@ -38,11 +41,14 @@ import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
 import ru.raydroid.plugin.host.api.domain.model.PluginDescriptor
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.RankedSearchResult
+import ru.raydroid.plugin.host.api.domain.model.SearchAliasEntry
+import ru.raydroid.plugin.host.api.domain.model.SearchAliasSaveResult
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultScore
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.repository.PluginRepository
+import ru.raydroid.plugin.host.api.domain.repository.SearchAliasRepository
 import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
@@ -252,6 +258,59 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `command with alias exposes host alias actions`() = runTest {
+        val fixture = SearchViewModelFixture(this)
+        val result = SearchResultSet.CommandSearchResult(
+            resultId = fixture.resultId,
+            listEntry = PluginCommandListItem(
+                id = CommandItemId.CommandRoot,
+                icon = null,
+                title = PluginUiText.Plain("Calculator"),
+                description = null,
+                alias = "oy"
+            )
+        )
+        val actions = result.actions(emptyMap()).map { it.title }
+        assertEquals(
+            listOf(
+                PluginUiText.Plain("Edit Alias"),
+                PluginUiText.Plain("Remove Alias")
+            ),
+            actions
+        )
+    }
+
+    @Test
+    fun `duplicate alias keeps editor open with inline error`() = runTest {
+        val fixture = SearchViewModelFixture(this)
+        val editAction = FocusedCommandAction(
+            resultId = fixture.resultId,
+            action = SearchPanelAction(
+                title = PluginUiText.Plain("Edit Alias"),
+                kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = "calc")
+            )
+        )
+        fixture.aliasRepository.nextSaveResult = SearchAliasSaveResult.Conflict(
+            alias = "oy",
+            existingResultId = SearchResultId(
+                pluginId = PluginId("ru.raydroid.notes"),
+                commandName = "notes",
+                itemId = CommandItemId.CommandRoot
+            )
+        )
+
+        fixture.viewModel.onEvent(SearchScreenEvent.EnterAction(editAction))
+        fixture.viewModel.onEvent(SearchScreenEvent.UpdateAliasEditorInput("oy"))
+        fixture.viewModel.onEvent(SearchScreenEvent.SaveAliasEditor)
+        advanceUntilIdle()
+
+        assertEquals(
+            PluginUiText.Plain("Alias 'oy' is already in use"),
+            fixture.viewModel.currentState().overlayState.aliasEditor?.error
+        )
+    }
+
+    @Test
     fun `next focus picks first result when nothing is focused`() {
         assertEquals(0, nextSearchResultsFocusIndex(currentIndex = null, resultCount = 2))
     }
@@ -285,6 +344,7 @@ private class SearchViewModelFixture(testScope: kotlinx.coroutines.test.TestScop
     val searchFieldGateway = FakeSearchFieldGateway()
     val searchFieldRequests = MutableSharedFlow<SearchFieldRequest>(extraBufferCapacity = 8)
     val searchRepository = FakeSearchIndexRepository()
+    val aliasRepository = FakeSearchAliasRepository()
 
     private val coordinator = FakePluginRuntimeCoordinator(
         runtimes = runtimes,
@@ -302,7 +362,7 @@ private class SearchViewModelFixture(testScope: kotlinx.coroutines.test.TestScop
             pluginRuntimeRegistry = registry,
             pluginLoader = EmptyPluginLoader()
         ),
-        searchUseCase = SearchUseCase(registry, searchRepository, FakeSearchResultRanker()),
+        searchUseCase = SearchUseCase(registry, searchRepository, FakeSearchResultRanker(), aliasRepository),
         getPluginsUseCase = GetPluginsUseCase(registry),
         openCommandUseCase = OpenCommandUseCase(CommandActionDispatcher(registry), searchRepository),
         enterItemUseCase = EnterItemUseCase(CommandActionDispatcher(registry), searchRepository),
@@ -316,7 +376,9 @@ private class SearchViewModelFixture(testScope: kotlinx.coroutines.test.TestScop
         getSearchFieldRequestsUseCase = GetSearchFieldRequestsUseCase(searchFieldGateway.also { gateway ->
             gateway.source = searchFieldRequests
         }),
-        updateCommandQueryUseCase = UpdateCommandQueryUseCase(registry)
+        updateCommandQueryUseCase = UpdateCommandQueryUseCase(registry),
+        saveSearchAliasUseCase = SaveSearchAliasUseCase(aliasRepository),
+        removeSearchAliasUseCase = RemoveSearchAliasUseCase(aliasRepository)
     )
 }
 
@@ -389,6 +451,7 @@ private class FakePluginRuntime(
 private class FakeSearchIndexRepository : SearchIndexRepository {
     val results = MutableStateFlow<List<RankedSearchResult>>(emptyList())
     val usageUpdates = mutableListOf<SearchResultId>()
+    var preview: RankedSearchResult? = null
 
     override suspend fun update(mutations: List<SearchIndexMutation>) = Unit
 
@@ -396,7 +459,36 @@ private class FakeSearchIndexRepository : SearchIndexRepository {
         usageUpdates += resultId
     }
 
+    override suspend fun getPreview(resultId: SearchResultId): RankedSearchResult? = preview
+
     override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> = results
+}
+
+private class FakeSearchAliasRepository : SearchAliasRepository {
+    val aliases = MutableStateFlow<Map<SearchResultId, String>>(emptyMap())
+    var nextSaveResult: SearchAliasSaveResult? = null
+
+    override fun observeAliases(): Flow<Map<SearchResultId, String>> = aliases
+
+    override suspend fun saveAlias(
+        resultId: SearchResultId,
+        alias: String
+    ): SearchAliasSaveResult {
+        nextSaveResult?.let { result ->
+            nextSaveResult = null
+            return result
+        }
+        aliases.value = aliases.value + (resultId to alias)
+        return SearchAliasSaveResult.Success(SearchAliasEntry(resultId, alias))
+    }
+
+    override suspend fun removeAlias(resultId: SearchResultId) {
+        aliases.value = aliases.value - resultId
+    }
+
+    override suspend fun resolveExactAlias(alias: String): SearchResultId? {
+        return aliases.value.entries.firstOrNull { entry -> entry.value == alias }?.key
+    }
 }
 
 private class FakeSearchResultRanker : SearchResultRanker {

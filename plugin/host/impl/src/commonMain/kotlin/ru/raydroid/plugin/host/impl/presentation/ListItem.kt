@@ -71,18 +71,31 @@ fun SearchListItem(
                 )
             )
         }
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+        ) {
             val highlightStyle = SpanStyle(
                 color = PluginColor.Primary.toColor(),
                 fontWeight = FontWeight.SemiBold
             )
             val title = result.listEntry.title
             if (title != null) {
-                RText(
-                    text = title.asText().highlight(result.titleMatches, highlightStyle),
-                    fontSize = PluginFontSize.Large.toTextUnit(),
-                    color = PluginColor.OnSurface.toColor()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RText(
+                        text = title.asText().highlight(result.titleMatches, highlightStyle),
+                        fontSize = PluginFontSize.Large.toTextUnit(),
+                        color = PluginColor.OnSurface.toColor(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    result.listEntry.alias?.let { alias ->
+                        AliasBadge(alias)
+                    }
+                }
             }
             val description = result.listEntry.description
             if (description != null) {
@@ -141,43 +154,53 @@ fun CommandListItemView(
             verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
         ) {
             if (title != null) {
-                if (trailingValue == null || titleText == null) {
-                    TextRenderer(
-                        data = PluginTextData(
-                            text = title,
-                            fontSize = PluginFontSize.Large
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                    verticalAlignment = if (placeTrailingBelow) Alignment.Top else Alignment.CenterVertically
+                ) {
+                    if (trailingValue == null || titleText == null) {
+                        TextRenderer(
+                            data = PluginTextData(
+                                text = title,
+                                fontSize = PluginFontSize.Large
+                            ),
+                            modifier = Modifier.weight(1f)
                         )
-                    )
-                } else {
-                    val expressionModifier = if (placeTrailingBelow) {
-                        Modifier
-                            .heightIn(max = CalculationExpressionMaxHeight)
                     } else {
-                        Modifier
-                    }
-                    val scrollState = rememberScrollState()
-                    Row(
-                        modifier = expressionModifier,
-                        horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        RText(
-                            text = titleText.withCalculationBreaks(),
-                            fontSize = titleText.trailingTitleFontSize(placeTrailingBelow).toTextUnit(),
-                            color = PluginColor.OnSurface.toColor(),
-                            maxLines = if (placeTrailingBelow) Int.MAX_VALUE else 2,
-                            overflow = TextOverflow.Clip,
-                            modifier = if (placeTrailingBelow) {
-                                Modifier
-                                    .weight(1f)
-                                    .verticalScroll(scrollState)
-                            } else {
-                                Modifier
-                            }
-                        )
-                        if (placeTrailingBelow) {
-                            CalculationScrollHandle(scrollState)
+                        val expressionModifier = if (placeTrailingBelow) {
+                            Modifier
+                                .heightIn(max = CalculationExpressionMaxHeight)
+                        } else {
+                            Modifier
                         }
+                        val scrollState = rememberScrollState()
+                        Row(
+                            modifier = Modifier.weight(1f).then(expressionModifier),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            RText(
+                                text = titleText.withCalculationBreaks(),
+                                fontSize = titleText.trailingTitleFontSize(placeTrailingBelow).toTextUnit(),
+                                color = PluginColor.OnSurface.toColor(),
+                                maxLines = if (placeTrailingBelow) Int.MAX_VALUE else 2,
+                                overflow = TextOverflow.Clip,
+                                modifier = if (placeTrailingBelow) {
+                                    Modifier
+                                        .weight(1f)
+                                        .verticalScroll(scrollState)
+                                } else {
+                                    Modifier.weight(1f)
+                                }
+                            )
+                            if (placeTrailingBelow) {
+                                CalculationScrollHandle(scrollState)
+                            }
+                        }
+                    }
+                    listEntry.alias?.let { alias ->
+                        AliasBadge(alias)
                     }
                 }
             }
@@ -215,6 +238,21 @@ fun CommandListItemView(
             )
         }
     }
+}
+
+@Composable
+private fun AliasBadge(alias: String, modifier: Modifier = Modifier) {
+    RText(
+        text = alias,
+        fontSize = PluginFontSize.ExtraSmall.toTextUnit(),
+        color = PluginColor.OnSecondaryContainer.toColor(),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .clip(RaydroidTheme.shapes.small)
+            .background(PluginColor.SecondaryContainer.toColor().copy(alpha = 0.72f))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    )
 }
 
 @Composable

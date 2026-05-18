@@ -153,7 +153,8 @@ internal class PluginRuntimeCoordinatorImpl(
             iconColor = override?.listEntry?.iconColor ?: command.icon
                 ?.takeIf { icon -> icon.type == Icon.Type.Builtin }
                 ?.let { PluginColor.OnSurfaceVariant },
-            trailingText = override?.listEntry?.trailingText
+            trailingText = override?.listEntry?.trailingText,
+            alias = null
         )
     }
 }

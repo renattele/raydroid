@@ -18,11 +18,16 @@ import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetSearchFieldRequestsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
+import ru.raydroid.plugin.host.api.application.usecase.ObserveSearchAliasesUseCase
 import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
+import ru.raydroid.plugin.host.api.application.usecase.RemoveSearchAliasUseCase
+import ru.raydroid.plugin.host.api.application.usecase.ResolveSearchAliasUseCase
+import ru.raydroid.plugin.host.api.application.usecase.SaveSearchAliasUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
 import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
 import ru.raydroid.plugin.host.api.domain.repository.PluginRepository
+import ru.raydroid.plugin.host.api.domain.repository.SearchAliasRepository
 import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
 import ru.raydroid.plugin.host.api.domain.service.HostBridgeFactory
@@ -38,6 +43,7 @@ import ru.raydroid.plugin.host.impl.data.plugin.RemotePluginDataSourceImpl
 import ru.raydroid.plugin.host.impl.data.plugin.ResourcePluginDataSource
 import ru.raydroid.plugin.host.impl.data.plugin.ResourcePluginDataSourceImpl
 import ru.raydroid.plugin.host.impl.data.search.CachedSearchRanker
+import ru.raydroid.plugin.host.impl.data.search.SearchAliasRepositoryImpl
 import ru.raydroid.plugin.host.impl.data.search.SearchIndexRepositoryImpl
 import ru.raydroid.plugin.host.impl.data.search.SearchRanker
 import ru.raydroid.plugin.host.impl.data.search.SearchResourceResolver
@@ -79,6 +85,7 @@ val pluginHostModule = module {
     single<SearchRanker> { get<CachedSearchRanker>() }
     single<SearchResultRanker> { get<CachedSearchRanker>() }
     singleOf(::SearchResourceResolverImpl) bind SearchResourceResolver::class
+    singleOf(::SearchAliasRepositoryImpl) bind SearchAliasRepository::class
     singleOf(::RemotePluginDataSourceImpl) bind RemotePluginDataSource::class
     singleOf(::PluginRepositoryImpl) bind PluginRepository::class
     singleOf(::EventGatewayImpl) bind EventGateway::class
@@ -92,6 +99,10 @@ val pluginHostModule = module {
     singleOf(::SyncCacheUseCase)
     singleOf(::LoadRuntimesUseCase)
     singleOf(::SearchUseCase)
+    singleOf(::ObserveSearchAliasesUseCase)
+    singleOf(::SaveSearchAliasUseCase)
+    singleOf(::RemoveSearchAliasUseCase)
+    singleOf(::ResolveSearchAliasUseCase)
     singleOf(::CommandActionDispatcher)
     singleOf(::BackCommandUseCase)
     singleOf(::OpenCommandUseCase)

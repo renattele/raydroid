@@ -8,8 +8,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import ru.raydroid.plugin.host.api.domain.model.SearchAliasNormalizer
+import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
+import ru.raydroid.plugin.host.api.domain.repository.SearchAliasRepository
+import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
 import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
@@ -18,7 +22,8 @@ import ru.raydroid.plugin.host.api.domain.service.SearchResultRanker
 class SearchUseCase(
     private val pluginRuntimeRegistry: PluginRuntimeRegistry,
     private val searchIndexRepository: SearchIndexRepository,
-    private val searchResultRanker: SearchResultRanker
+    private val searchResultRanker: SearchResultRanker,
+    private val searchAliasRepository: SearchAliasRepository
 ) {
     @OptIn(ExperimentalCoroutinesApi::class)
     operator fun invoke(query: String, limit: Int = 50): Flow<SearchResultSet> {
@@ -26,6 +31,7 @@ class SearchUseCase(
         val commandsFlow = runtimeCoordinator.commands()
         val contentFlow = runtimeCoordinator.content()
         val cachedResultsFlow = searchIndexRepository.search(query, limit)
+        val aliasesFlow = searchAliasRepository.observeAliases()
 
         return channelFlow {
             launch {
@@ -36,7 +42,7 @@ class SearchUseCase(
                 }
             }
 
-            combine(commandsFlow, contentFlow, cachedResultsFlow) { commandItems, liveResults, cachedResults ->
+            combine(commandsFlow, contentFlow, cachedResultsFlow, aliasesFlow) { commandItems, liveResults, cachedResults, aliases ->
                 val rankedCommandResults = searchResultRanker.rankCommands(
                     query = query,
                     commandsSnapshot = commandItems,
@@ -47,17 +53,79 @@ class SearchUseCase(
                     contentSnapshot = liveResults,
                     limit = limit
                 )
-                SearchResultSet(
+                SearchSnapshot(
                     results = searchResultRanker.merge(
                         commandResults = rankedCommandResults,
                         liveResults = rankedLiveResults,
                         cachedResults = cachedResults,
                         limit = limit
-                    ),
+                    ).decorateAliases(aliases),
+                    commandItems = commandItems,
+                    aliases = aliases
                 )
-            }.flowOn(Dispatchers.Default).collectLatest { searchResults ->
-                send(searchResults)
+            }.flowOn(Dispatchers.Default).collectLatest { snapshot ->
+                send(
+                    SearchResultSet(
+                        results = promoteExactAlias(
+                            query = query,
+                            snapshot = snapshot,
+                            limit = limit
+                        )
+                    )
+                )
             }
         }
     }
+
+    private suspend fun promoteExactAlias(
+        query: String,
+        snapshot: SearchSnapshot,
+        limit: Int
+    ): List<SearchResultSet.SearchResult> {
+        val aliasResultId = SearchAliasNormalizer.normalizeLookup(query)
+            ?.let { alias -> snapshot.aliases.entries.firstOrNull { entry -> entry.value == alias }?.key }
+            ?: return snapshot.results
+        val promoted = snapshot.results.firstOrNull { result -> result.resultId == aliasResultId }
+            ?: snapshot.commandItems.firstOrNull { item -> item.resultId == aliasResultId }?.toCommandSearchResult(
+                alias = snapshot.aliases[aliasResultId]
+            )
+            ?: searchIndexRepository.getPreview(aliasResultId)?.result?.decorateAlias(snapshot.aliases[aliasResultId])
+            ?: return snapshot.results
+        return listOf(promoted) + snapshot.results
+            .filterNot { result -> result.resultId == aliasResultId }
+            .take((limit - 1).coerceAtLeast(0))
+    }
+}
+
+private data class SearchSnapshot(
+    val results: List<SearchResultSet.SearchResult>,
+    val commandItems: List<PluginRuntimeCoordinator.CommandItem>,
+    val aliases: Map<SearchResultId, String>
+)
+
+private fun List<SearchResultSet.SearchResult>.decorateAliases(
+    aliases: Map<SearchResultId, String>
+): List<SearchResultSet.SearchResult> = map { result ->
+    result.decorateAlias(aliases[result.resultId])
+}
+
+private fun SearchResultSet.SearchResult.decorateAlias(alias: String?): SearchResultSet.SearchResult {
+    return when (this) {
+        is SearchResultSet.CachedSearchResult -> copy(
+            listEntry = listEntry.copy(alias = alias)
+        )
+
+        is SearchResultSet.CommandSearchResult -> copy(
+            listEntry = listEntry.copy(alias = alias)
+        )
+
+        is SearchResultSet.LiveSearchResult -> this
+    }
+}
+
+private fun PluginRuntimeCoordinator.CommandItem.toCommandSearchResult(alias: String?): SearchResultSet.CommandSearchResult {
+    return SearchResultSet.CommandSearchResult(
+        resultId = resultId,
+        listEntry = listEntry.copy(alias = alias)
+    )
 }

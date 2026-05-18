@@ -27,6 +27,8 @@ struct SearchSceneView: View {
     }
 
     var body: some View {
+        let shouldFocusSearchDock = model.state.aliasEditor == nil && !model.state.showsBackButton
+
         NavigationStack {
             ZStack {
                 RaydroidBackground()
@@ -62,8 +64,8 @@ struct SearchSceneView: View {
                     query: model.state.query,
                     placeholder: model.state.placeholder,
                     selectionName: model.state.selectionName,
-                    desiredFocus: !model.state.showsBackButton,
-                    retainFocusWhenBlurred: !model.state.showsBackButton,
+                    desiredFocus: shouldFocusSearchDock,
+                    retainFocusWhenBlurred: shouldFocusSearchDock,
                     showsBackButton: model.state.showsBackButton,
                     exitBackspaceCount: model.state.exitBackspaceCount,
                     actionTitle: model.state.actionTitle,
@@ -114,6 +116,20 @@ struct SearchSceneView: View {
             )) { alert in
                 buildAlert(for: alert)
             }
+            .sheet(
+                item: Binding(
+                    get: { model.state.aliasEditor },
+                    set: { aliasEditor in
+                        if aliasEditor == nil {
+                            model.state.aliasEditor?.onDismiss()
+                        }
+                    }
+                )
+            ) { aliasEditor in
+                AliasEditorSheetView(editor: aliasEditor)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
         }
     }
 
@@ -145,6 +161,105 @@ struct SearchSceneView: View {
             return .destructive(title, action: button.action)
         case .normal:
             return .default(title, action: button.action)
+        }
+    }
+}
+
+private struct AliasEditorSheetView: View {
+    let editor: AliasEditorSheetModel
+    @State private var input: String
+
+    init(editor: AliasEditorSheetModel) {
+        self.editor = editor
+        _input = State(initialValue: editor.input)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(editor.title)
+                        .font(.title3.weight(.semibold))
+                    Text("Create a short keyboard-friendly shortcut for this result.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let subjectTitle = editor.subjectTitle, !subjectTitle.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("For")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(subjectTitle)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 18))
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Alias")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField(
+                        "e.g. yt",
+                        text: Binding(
+                            get: { input },
+                            set: { value in
+                                input = value
+                                editor.onInputChanged(value)
+                            }
+                        )
+                    )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+
+                    Text("ASCII only. No spaces.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let error = editor.error, !error.isEmpty {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: editor.onDismiss)
+                        .foregroundStyle(.secondary)
+                }
+                if let onRemove = editor.onRemove {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button("Remove", action: onRemove)
+                            .foregroundStyle(.red)
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        editor.onInputChanged(input)
+                        editor.onSave()
+                    }
+                    .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        .presentationBackground(.thinMaterial)
+        .onChange(of: editor.input) { _, updatedInput in
+            if input != updatedInput {
+                input = updatedInput
+            }
         }
     }
 }
@@ -211,6 +326,7 @@ private struct SearchResultRow: View {
                 ResultListRow(
                     icon: result.iconAsset,
                     title: result.title,
+                    alias: result.alias,
                     subtitle: result.subtitle,
                     trailingText: result.trailingText,
                     titleMatches: result.titleMatches,
@@ -237,6 +353,7 @@ private struct SearchResultRow: View {
 private struct ResultListRow: View {
     let icon: PluginAsset?
     let title: String
+    let alias: String?
     let subtitle: String
     let trailingText: String
     let titleMatches: [HighlightMatch]
@@ -251,6 +368,9 @@ private struct ResultListRow: View {
                     HighlightedText(text: title, matches: titleMatches)
                         .font(.headline)
                     Spacer(minLength: 0)
+                    if let alias, !alias.isEmpty {
+                        AliasBadge(alias: alias)
+                    }
                     if !trailingText.isEmpty {
                         Text(trailingText)
                             .font(.headline.monospacedDigit())
@@ -264,6 +384,23 @@ private struct ResultListRow: View {
                 }
             }
         }
+    }
+}
+
+private struct AliasBadge: View {
+    let alias: String
+
+    var body: some View {
+        Text(alias)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(Color(uiColor: .label))
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Color.accentColor.opacity(0.16),
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
     }
 }
 
@@ -344,14 +481,16 @@ private struct ActionsOverlay: View {
                         .padding(.horizontal, 12)
                         .frame(height: 38)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(
-                            action.style == .destructive
-                                ? .regular.tint(.red.opacity(0.14)).interactive()
-                                : .regular.interactive(),
-                            in: .rect(cornerRadius: 16)
-                        )
-                        .glassEffectID(action.id, in: actionGlassNamespace)
                 }
+                .frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
+                .contentShape(.rect)
+                .glassEffect(
+                    action.style == .destructive
+                        ? .regular.tint(.red.opacity(0.14)).interactive()
+                        : .regular.interactive(),
+                    in: .rect(cornerRadius: 16)
+                )
+                .glassEffectID(action.id, in: actionGlassNamespace)
                 .buttonStyle(.plain)
                 .opacity(isVisible ? 1 : 0)
                 .offset(y: isVisible ? 0 : 10)
@@ -375,6 +514,8 @@ private struct ActionsOverlay: View {
                     .frame(height: 38)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
+            .contentShape(.rect)
             .buttonStyle(.plain)
             .opacity(isVisible ? 1 : 0)
             .offset(x: isVisible ? 0 : 12)

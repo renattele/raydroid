@@ -45,6 +45,14 @@ internal class SearchIndexRepositoryImpl(
         )
     }
 
+    override suspend fun getPreview(resultId: SearchResultId): RankedSearchResult? {
+        return cacheDao.preview(
+            pluginId = resultId.pluginId.id,
+            command = resultId.commandName,
+            itemId = resultId.itemId.value
+        )?.toRankedPreview()
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> {
         val normalizedQuery = SearchQueryNormalizer.from(query)

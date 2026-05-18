@@ -30,7 +30,9 @@ val raydroidSearchModule = module {
             getEventsUseCase = get(),
             emitEventUseCase = get(),
             getSearchFieldRequestsUseCase = get(),
-            updateCommandQueryUseCase = get()
+            updateCommandQueryUseCase = get(),
+            saveSearchAliasUseCase = get(),
+            removeSearchAliasUseCase = get()
         )
     }
 }

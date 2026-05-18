@@ -10,8 +10,10 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,10 +23,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -42,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.RAlertDialog
@@ -49,8 +56,11 @@ import ru.raydroid.core.designsystem.component.RButton
 import ru.raydroid.core.designsystem.component.RIcon
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
+import ru.raydroid.core.designsystem.component.RTextField
 import ru.raydroid.feature.search.FocusedCommandAction
+import ru.raydroid.feature.search.SearchAliasEditorState
 import ru.raydroid.feature.search.SearchFieldUiState
+import ru.raydroid.feature.search.toSearchPanelAction
 import ru.raydroid.feature.search.SearchScreenEvent
 import ru.raydroid.feature.search.SearchScreenState
 import ru.raydroid.feature.search.SearchViewModel
@@ -78,6 +88,7 @@ import ru.raydroid.plugin.host.impl.presentation.SearchListItem
 import ru.raydroid.plugin.host.impl.presentation.ToastsOverlay
 import ru.raydroid.plugin.host.impl.presentation.asText
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(modifier: Modifier = Modifier) {
     val viewModel = koinInject<SearchViewModel>()
@@ -151,7 +162,7 @@ fun SearchScreen(
                 ?.map { action ->
                     FocusedCommandAction(
                         resultId = fullscreen.resultId,
-                        action = action,
+                        action = action.toSearchPanelAction(updateUsage = false),
                         updateUsage = false
                     )
                 }
@@ -217,6 +228,12 @@ fun SearchScreen(
                     text = {
                         RText(alert.message.asText())
                     }
+                )
+            }
+            overlayState.aliasEditor?.let { aliasEditor ->
+                AliasEditorSheet(
+                    state = aliasEditor,
+                    onEvent = onEvent
                 )
             }
             Box(
@@ -427,6 +444,169 @@ fun SearchScreen(
                             onEvent(SearchScreenEvent.ToggleActions)
                         }
                     )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AliasEditorSheet(
+    state: SearchAliasEditorState,
+    onEvent: (SearchScreenEvent) -> Unit
+) {
+    val spacing = RaydroidTheme.spacing
+    val colors = RaydroidTheme.colorScheme
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+    val fieldState = remember(state.resultId) {
+        TextFieldState(state.input)
+    }
+    val canSave = state.input.isNotBlank()
+    val latestState by rememberUpdatedState(state)
+    val dismissSheet: () -> Unit = {
+        coroutineScope.launch {
+            if (sheetState.isVisible) {
+                sheetState.hide()
+            }
+            onEvent(SearchScreenEvent.DismissAliasEditor)
+        }
+    }
+    LaunchedEffect(fieldState, state.resultId) {
+        snapshotFlow { fieldState.text.toString() }
+            .distinctUntilChanged()
+            .collectLatest { value ->
+                if (value != latestState.input) {
+                    onEvent(SearchScreenEvent.UpdateAliasEditorInput(value))
+                }
+            }
+    }
+    LaunchedEffect(state.resultId, state.input) {
+        if (fieldState.text.toString() != state.input) {
+            fieldState.edit {
+                replace(0, length, state.input)
+                selection = androidx.compose.ui.text.TextRange(state.input.length)
+            }
+        }
+    }
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = {
+            dismissSheet()
+        },
+        containerColor = colors.surface,
+        contentColor = colors.onSurface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = spacing.small)
+                    .width(48.dp)
+                    .height(5.dp)
+                    .clip(RaydroidTheme.shapes.full)
+                    .background(colors.onSurface.copy(alpha = 0.18f))
+            )
+        }
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = spacing.large,
+                    end = spacing.large,
+                    top = spacing.small,
+                    bottom = spacing.extraLarge
+                ),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+                RText(
+                    text = if (state.existingAlias == null) "Add Alias" else "Edit Alias",
+                    color = colors.onSurface,
+                    fontSize = RaydroidTheme.typographyScale.large
+                )
+                RText(
+                    text = "Create a short keyboard-friendly shortcut for this result.",
+                    color = colors.onSurfaceVariant,
+                    fontSize = RaydroidTheme.typographyScale.extraSmall
+                )
+            }
+            state.title?.let { title ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RaydroidTheme.shapes.large)
+                        .background(colors.surfaceVariant.copy(alpha = 0.16f))
+                        .padding(horizontal = spacing.medium, vertical = spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                ) {
+                    RText(
+                        text = "For",
+                        color = colors.onSurfaceVariant,
+                        fontSize = RaydroidTheme.typographyScale.extraSmall
+                    )
+                    RText(
+                        text = title.asText(),
+                        color = colors.onSurface,
+                        fontSize = RaydroidTheme.typographyScale.medium
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                RText(
+                    text = "Alias",
+                    color = colors.onSurfaceVariant,
+                    fontSize = RaydroidTheme.typographyScale.extraSmall
+                )
+                RTextField(
+                    state = fieldState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RaydroidTheme.shapes.large)
+                        .background(colors.surfaceVariant.copy(alpha = 0.24f)),
+                    contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.medium),
+                    placeholder = {
+                        RText(
+                            text = "e.g. yt",
+                            color = colors.onSurfaceVariant.copy(alpha = 0.72f)
+                        )
+                    }
+                )
+                RText(
+                    text = "ASCII only. No spaces.",
+                    color = colors.onSurfaceVariant,
+                    fontSize = RaydroidTheme.typographyScale.extraSmall
+                )
+            }
+            state.error?.let { error ->
+                RText(
+                    text = error.asText(),
+                    color = colors.error,
+                    fontSize = RaydroidTheme.typographyScale.extraSmall
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (state.existingAlias != null) {
+                    RTextButton(
+                        onClick = { onEvent(SearchScreenEvent.RemoveAlias) }
+                    ) {
+                        RText("Remove", color = colors.error)
+                    }
+                }
+                Box(Modifier.weight(1f))
+                RTextButton(onClick = dismissSheet) {
+                    RText("Cancel", color = colors.onSurfaceVariant)
+                }
+                RButton(
+                    onClick = { onEvent(SearchScreenEvent.SaveAliasEditor) },
+                    enabled = canSave,
+                    modifier = Modifier.clip(RaydroidTheme.shapes.full)
+                ) {
+                    RText("Save")
                 }
             }
         }

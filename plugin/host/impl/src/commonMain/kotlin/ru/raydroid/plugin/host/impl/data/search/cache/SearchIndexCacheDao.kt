@@ -231,6 +231,51 @@ internal abstract class SearchIndexCacheDao {
             list_item_cache_content.description AS description,
             list_item_cache.last_used_at_epoch_ms AS last_used_at_epoch_ms,
             list_item_cache.usage_count AS usage_count
+        FROM list_item_cache
+        INNER JOIN (
+            SELECT
+                list_item_cache_id,
+                MIN(id) AS content_id
+            FROM list_item_cache_content
+            WHERE list_item_cache_id = (
+                SELECT id
+                FROM list_item_cache
+                WHERE plugin_id = :pluginId
+                    AND command = :command
+                    AND item_id = :itemId
+                LIMIT 1
+            )
+            GROUP BY list_item_cache_id
+        ) AS preview_content
+            ON preview_content.list_item_cache_id = list_item_cache.id
+        INNER JOIN list_item_cache_content
+            ON list_item_cache_content.id = preview_content.content_id
+        WHERE list_item_cache.plugin_id = :pluginId
+            AND list_item_cache.command = :command
+            AND list_item_cache.item_id = :itemId
+        LIMIT 1
+        """
+    )
+    abstract suspend fun preview(
+        pluginId: String,
+        command: String,
+        itemId: String
+    ): SearchIndexCacheSearchEntity?
+
+    @Query(
+        """
+        SELECT
+            list_item_cache.id AS cache_id,
+            list_item_cache_content.id AS content_id,
+            list_item_cache.plugin_id AS plugin_id,
+            list_item_cache.command AS command,
+            list_item_cache.item_id AS item_id,
+            list_item_cache.icon AS icon,
+            list_item_cache.icon_type AS icon_type,
+            list_item_cache_content.title AS title,
+            list_item_cache_content.description AS description,
+            list_item_cache.last_used_at_epoch_ms AS last_used_at_epoch_ms,
+            list_item_cache.usage_count AS usage_count
         FROM list_item_cache_content_fts
         INNER JOIN list_item_cache_content
             ON list_item_cache_content.id = list_item_cache_content_fts.rowid
