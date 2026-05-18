@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -25,6 +23,7 @@ import coil3.compose.AsyncImage
 import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.RIcon
 import ru.raydroid.core.designsystem.component.RText
+import ru.raydroid.core.designsystem.component.rInteractable
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
@@ -111,7 +110,7 @@ fun ComposeRayRenderer(
     onClick: (PluginCommandCallback) -> Unit = {},
     onItemEnter: (CommandItemId) -> Unit = {},
     onFocus: (CommandItemId) -> Unit = {},
-    onActions: (List<PluginCommandListAction>) -> Unit = {}
+    onActions: (String, List<PluginCommandListAction>) -> Unit = { _, _ -> }
 ) {
     ComposeRayItemRenderer(data, modifier, query, focusedItemId, onClick, onItemEnter, onFocus, onActions)
 }
@@ -157,7 +156,7 @@ fun ComposeRayItemRenderer(
     onClick: (PluginCommandCallback) -> Unit = {},
     onItemEnter: (CommandItemId) -> Unit = {},
     onFocus: (CommandItemId) -> Unit = {},
-    onActions: (List<PluginCommandListAction>) -> Unit = {}
+    onActions: (String, List<PluginCommandListAction>) -> Unit = { _, _ -> }
 ) {
     data.forEach { node ->
         val nodeModifier = modifier
@@ -223,7 +222,7 @@ internal fun BoxRenderer(
     onClick: (PluginCommandCallback) -> Unit = {},
     onItemEnter: (CommandItemId) -> Unit = {},
     onFocus: (CommandItemId) -> Unit = {},
-    onActions: (List<PluginCommandListAction>) -> Unit = {}
+    onActions: (String, List<PluginCommandListAction>) -> Unit = { _, _ -> }
 ) {
     Box(
         modifier
@@ -264,7 +263,7 @@ private fun OrientedBoxRenderer(
     onClick: (PluginCommandCallback) -> Unit = {},
     onItemEnter: (CommandItemId) -> Unit = {},
     onFocus: (CommandItemId) -> Unit = {},
-    onActions: (List<PluginCommandListAction>) -> Unit = {}
+    onActions: (String, List<PluginCommandListAction>) -> Unit = { _, _ -> }
 ) {
     val containerModifier = modifier
         .clip(data.shape.toShape())
@@ -387,34 +386,32 @@ fun PluginUiText.asText(): String = LocalResourceResolver.current.resolveText(th
 private fun Modifier.interactive(
     modifier: PluginRayModifier?,
     onClick: (PluginCommandCallback) -> Unit,
-    onActions: (List<PluginCommandListAction>) -> Unit
+    onActions: (String, List<PluginCommandListAction>) -> Unit
 ): Modifier {
     if (modifier == null || (modifier.click == null && modifier.actions.isEmpty())) {
         return this
     }
     return composed {
-        val interactionSource = remember { MutableInteractionSource() }
+        val sourceId = remember(modifier) { modifier.contextActionSourceId() }
         val primaryAction = remember(modifier.actions) {
             modifier.actions.find { it.primary } ?: modifier.actions.firstOrNull()
         }
-        combinedClickable(
-            interactionSource = interactionSource,
-            indication = null,
+        rInteractable(
             enabled = modifier.enabled,
+            contextMenuSourceId = sourceId,
             onLongClick = {
-                if (modifier.actions.isNotEmpty()) {
-                    onActions(modifier.actions)
-                }
-            },
-            onClick = {
-                val click = modifier.click
-                if (click != null) {
-                    onClick(click)
-                } else if (primaryAction != null) {
-                    onClick(primaryAction.callback)
+                if (sourceId != null && modifier.actions.isNotEmpty()) {
+                    onActions(sourceId, modifier.actions)
                 }
             }
-        )
+        ) {
+            val click = modifier.click
+            if (click != null) {
+                onClick(click)
+            } else if (primaryAction != null) {
+                onClick(primaryAction.callback)
+            }
+        }
     }
 }
 
@@ -423,4 +420,9 @@ private fun Modifier.surfaceBackground(shape: PluginShapeToken): Modifier {
     if (shape == PluginShapeToken.None) return this
     return background(RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))
         .padding(RaydroidTheme.spacing.large)
+}
+
+private fun PluginRayModifier.contextActionSourceId(): String? {
+    val callback = click ?: actions.firstOrNull()?.callback ?: return null
+    return "ray:${callback.ref.id.value}:${callback.ref.generation}"
 }

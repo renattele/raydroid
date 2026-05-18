@@ -28,6 +28,7 @@ struct SearchSceneView: View {
 
     var body: some View {
         let shouldFocusSearchDock = model.state.aliasEditor == nil && !model.state.showsBackButton
+        let showsContextMenu = model.state.showsContextMenu
 
         NavigationStack {
             ZStack {
@@ -45,6 +46,10 @@ struct SearchSceneView: View {
                             actions: model.state.actions,
                             toasts: model.state.toasts,
                             showsActionsPanel: model.state.showsActionsPanel
+                        )
+                        .contextMenuLayer(
+                            showsContextMenu: showsContextMenu,
+                            isActive: false
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                         .padding(.trailing, 16)
@@ -93,9 +98,27 @@ struct SearchSceneView: View {
                         model.send(.toggleActions)
                     }
                 )
+                .contextMenuLayer(
+                    showsContextMenu: showsContextMenu,
+                    isActive: false
+                )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            }
+            .coordinateSpace(name: ContextMenuCoordinateSpace.name)
+            .overlayPreferenceValue(ContextMenuAnchorPreferenceKey.self) { anchors in
+                if model.state.showsContextMenu,
+                   let activeContextSourceId = model.state.activeContextSourceId,
+                   let anchorRect = anchors[activeContextSourceId] {
+                    AnchoredContextActionsOverlay(
+                        actions: model.state.contextActions,
+                        anchorRect: anchorRect,
+                        onDismiss: {
+                            model.send(.hideActions)
+                        }
+                    )
+                }
             }
             .navigationTitle("Raydroid")
             .toolbarTitleDisplayMode(.inline)
@@ -346,7 +369,13 @@ private struct SearchResultRow: View {
                 .stroke(result.isFocused ? Color.accentColor.opacity(0.45) : Color.clear, lineWidth: 1.5)
         }
         .contentShape(Rectangle())
-        .onTapGesture(perform: result.onSelect)
+        .contextMenuPressable(
+            sourceId: result.contextSourceId,
+            isContextMenuPresented: result.isContextMenuPresented,
+            isContextMenuActive: result.isContextMenuActive,
+            onTap: result.onSelect,
+            onLongPress: result.onLongPress
+        )
     }
 }
 
@@ -449,6 +478,69 @@ private struct OverlayChrome: View {
         }
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showsActionsPanel)
         .animation(.spring(response: 0.3, dampingFraction: 0.86), value: actionIds)
+    }
+}
+
+private struct AnchoredContextActionsOverlay: View {
+    let actions: [OverlayActionModel]
+    let anchorRect: CGRect
+    let onDismiss: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let overlaySize = proxy.size
+            let popupWidth = min(anchorRect.width, 280)
+            let estimatedHeight = min(CGFloat(actions.count) * 46 + 20, 220)
+            let showBelow = anchorRect.maxY + estimatedHeight + 8 <= overlaySize.height - 12
+            let x = min(
+                max(anchorRect.minX, 12),
+                max(12, overlaySize.width - popupWidth - 12)
+            )
+            let y = showBelow
+                ? anchorRect.maxY + 8
+                : max(12, anchorRect.minY - estimatedHeight - 8)
+
+            ZStack(alignment: .topLeading) {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onDismiss)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(actions) { action in
+                        Button(action: action.onSelect) {
+                            HStack(spacing: 10) {
+                                PluginIconView(
+                                    asset: action.iconAsset,
+                                    tint: action.style == .destructive ? .red : .primary,
+                                    size: 16
+                                )
+                                .frame(width: 18, height: 18)
+                                Text(action.title)
+                                    .font(.subheadline)
+                                    .foregroundStyle(action.style == .destructive ? .red : .primary)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 12)
+                            .frame(height: 38)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(6)
+                .frame(width: popupWidth, alignment: .leading)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Color(uiColor: .separator).opacity(0.28), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
+                .offset(x: x, y: y)
+                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .topLeading)))
+            }
+        }
+        .ignoresSafeArea()
+        .zIndex(5)
     }
 }
 

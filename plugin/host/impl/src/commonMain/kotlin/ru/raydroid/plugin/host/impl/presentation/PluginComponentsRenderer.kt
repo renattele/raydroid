@@ -1,8 +1,6 @@
 package ru.raydroid.plugin.host.impl.presentation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +46,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
@@ -58,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import ru.raydroid.core.designsystem.RaydroidShapeToken
 import ru.raydroid.core.designsystem.RaydroidTheme
+import ru.raydroid.core.designsystem.component.rInteractable
 import ru.raydroid.core.designsystem.component.RButton
 import ru.raydroid.core.designsystem.component.RDivider
 import ru.raydroid.core.designsystem.component.RText
@@ -581,7 +579,7 @@ internal fun ListRenderer(
     onClick: (PluginCommandCallback) -> Unit,
     onItemEnter: (CommandItemId) -> Unit,
     onFocus: (CommandItemId) -> Unit,
-    onActions: (List<PluginCommandListAction>) -> Unit
+    onActions: (String, List<PluginCommandListAction>) -> Unit
 ) {
     val sections = remember(data, query) { data.filtered(query) }
     Box(modifier.fillMaxWidth()) {
@@ -630,7 +628,7 @@ private fun ComponentListItem(
     onClick: (PluginCommandCallback) -> Unit,
     onItemEnter: (CommandItemId) -> Unit,
     onFocus: (CommandItemId) -> Unit,
-    onActions: (List<PluginCommandListAction>) -> Unit
+    onActions: (String, List<PluginCommandListAction>) -> Unit
 ) {
     Row(
         Modifier
@@ -688,7 +686,7 @@ internal fun GridRenderer(
     onClick: (PluginCommandCallback) -> Unit,
     onItemEnter: (CommandItemId) -> Unit,
     onFocus: (CommandItemId) -> Unit,
-    onActions: (List<PluginCommandListAction>) -> Unit
+    onActions: (String, List<PluginCommandListAction>) -> Unit
 ) {
     val sections = remember(data, query) { data.filtered(query) }
     Box(modifier.fillMaxWidth()) {
@@ -730,7 +728,7 @@ private fun ComponentGridItem(
     onClick: (PluginCommandCallback) -> Unit,
     onItemEnter: (CommandItemId) -> Unit,
     onFocus: (CommandItemId) -> Unit,
-    onActions: (List<PluginCommandListAction>) -> Unit
+    onActions: (String, List<PluginCommandListAction>) -> Unit
 ) {
     Column(
         Modifier
@@ -843,35 +841,29 @@ private fun Modifier.componentInteractive(
     onClick: (PluginCommandCallback) -> Unit,
     onItemEnter: (CommandItemId) -> Unit,
     onFocus: (CommandItemId) -> Unit,
-    onActions: (List<PluginCommandListAction>) -> Unit
+    onActions: (String, List<PluginCommandListAction>) -> Unit
 ): Modifier {
-    return composed {
-        val interactionSource = remember { MutableInteractionSource() }
-        val actions = modifier?.actions.orEmpty()
-        val primaryAction = remember(actions) {
-            modifier?.actions?.find { it.primary } ?: modifier?.actions?.firstOrNull()
-        }
-        val click = modifier?.click
-        combinedClickable(
-            interactionSource = interactionSource,
-            indication = null,
-            enabled = modifier?.enabled ?: true,
-            onLongClick = {
-                if (actions.isNotEmpty()) {
-                    onActions(actions)
-                }
-            },
-            onClick = {
-                onFocus(itemId)
-                if (click != null) {
-                    onClick(click)
-                } else if (primaryAction != null) {
-                    onClick(primaryAction.callback)
-                } else {
-                    onItemEnter(itemId)
-                }
+    val actions = modifier?.actions.orEmpty()
+    val primaryAction = modifier?.actions?.find { it.primary } ?: modifier?.actions?.firstOrNull()
+    val click = modifier?.click
+    val sourceId = "plugin-item:${itemId.value}"
+    return rInteractable(
+        enabled = modifier?.enabled ?: true,
+        contextMenuSourceId = sourceId,
+        onLongClick = {
+            if (actions.isNotEmpty()) {
+                onActions(sourceId, actions)
             }
-        )
+        }
+    ) {
+        onFocus(itemId)
+        if (click != null) {
+            onClick(click)
+        } else if (primaryAction != null) {
+            onClick(primaryAction.callback)
+        } else {
+            onItemEnter(itemId)
+        }
     }
 }
 

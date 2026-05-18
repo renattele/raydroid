@@ -68,7 +68,8 @@ protocol SearchViewModelClient {
     func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool)
     func focusPluginItem(_ itemId: Any)
     func enterPluginItem(_ itemId: Any)
-    func showContextActions(resultId: ApiSearchResultId, actions: [ApiPluginCommandListAction])
+    func showContextActions(resultId: ApiSearchResultId, sourceId: String, actions: [ApiPluginCommandListAction])
+    func showResultContextActions(resultId: ApiSearchResultId, sourceId: String)
     func updateAliasEditorInput(_ value: String)
     func saveAliasEditor()
     func removeAlias()
@@ -207,11 +208,21 @@ final class KmpSearchViewModelClient: SearchViewModelClient {
         viewModel.onEvent(event: SearchScreenEventEnterPluginItem(itemId: itemId))
     }
 
-    func showContextActions(resultId: ApiSearchResultId, actions: [ApiPluginCommandListAction]) {
+    func showContextActions(resultId: ApiSearchResultId, sourceId: String, actions: [ApiPluginCommandListAction]) {
         viewModel.onEvent(
             event: SearchScreenEventShowContextActions(
                 resultId: resultId,
+                sourceId: sourceId,
                 actions: actions
+            )
+        )
+    }
+
+    func showResultContextActions(resultId: ApiSearchResultId, sourceId: String) {
+        viewModel.onEvent(
+            event: SearchScreenEventShowResultContextActions(
+                resultId: resultId,
+                sourceId: sourceId
             )
         )
     }

@@ -206,7 +206,8 @@ class SearchViewModel(
                             focusedActions = emptyList(),
                             showActions = false,
                             contextActions = emptyList(),
-                            showContextActions = false
+                            showContextActions = false,
+                            activeContextSourceId = null
                         )
                     }
                 }
@@ -235,7 +236,8 @@ class SearchViewModel(
                                 focusedActions = focusedActions,
                                 showActions = uiState.showActions && focusedActions.isNotEmpty(),
                                 contextActions = emptyList(),
-                                showContextActions = false
+                                showContextActions = false,
+                                activeContextSourceId = null
                             )
                         }
                     }
@@ -301,8 +303,12 @@ class SearchViewModel(
 
     fun onEvent(event: SearchScreenEvent) {
         scope.launch {
-            handleEvent(event)
+            dispatchEvent(event)
         }
+    }
+
+    internal suspend fun dispatchEvent(event: SearchScreenEvent) {
+        handleEvent(event)
     }
 
     fun openSearch(query: String) {
@@ -331,7 +337,8 @@ class SearchViewModel(
         backingState.update { uiState ->
             uiState.copy(
                 showActions = !uiState.showActions,
-                showContextActions = false
+                showContextActions = false,
+                activeContextSourceId = null
             )
         }
     }
@@ -340,7 +347,8 @@ class SearchViewModel(
         backingState.update { uiState ->
             uiState.copy(
                 showActions = false,
-                showContextActions = false
+                showContextActions = false,
+                activeContextSourceId = null
             )
         }
     }
@@ -459,13 +467,14 @@ class SearchViewModel(
                     uiState.plugins
                 )
                 backingState.update { currentState ->
-                    currentState.copy(
-                        focusedItemIndex = focusedIndex,
-                        focusedActions = focusedActions,
-                        showActions = false,
-                        contextActions = emptyList(),
-                        showContextActions = false
-                    )
+                        currentState.copy(
+                            focusedItemIndex = focusedIndex,
+                            focusedActions = focusedActions,
+                            showActions = false,
+                            contextActions = emptyList(),
+                            showContextActions = false,
+                            activeContextSourceId = null
+                        )
                 }
             }
 
@@ -486,13 +495,14 @@ class SearchViewModel(
                     uiState.plugins
                 )
                 backingState.update { currentState ->
-                    currentState.copy(
-                        focusedItemIndex = focusedIndex,
-                        focusedActions = focusedActions,
-                        showActions = false,
-                        contextActions = emptyList(),
-                        showContextActions = false
-                    )
+                        currentState.copy(
+                            focusedItemIndex = focusedIndex,
+                            focusedActions = focusedActions,
+                            showActions = false,
+                            contextActions = emptyList(),
+                            showContextActions = false,
+                            activeContextSourceId = null
+                        )
                 }
             }
 
@@ -500,7 +510,8 @@ class SearchViewModel(
                 backingState.update { uiState ->
                     uiState.copy(
                         showActions = !uiState.showActions,
-                        showContextActions = false
+                        showContextActions = false,
+                        activeContextSourceId = null
                     )
                 }
             }
@@ -509,7 +520,8 @@ class SearchViewModel(
                 backingState.update { uiState ->
                     uiState.copy(
                         showActions = false,
-                        showContextActions = false
+                        showContextActions = false,
+                        activeContextSourceId = null
                     )
                 }
             }
@@ -517,6 +529,13 @@ class SearchViewModel(
             SearchScreenEvent.BackspaceOnEmpty -> {
                 val uiState = backingState.value
                 val fullscreen = uiState.fullscreen ?: return
+                backingState.update { currentState ->
+                    currentState.copy(
+                        contextActions = emptyList(),
+                        showContextActions = false,
+                        activeContextSourceId = null
+                    )
+                }
                 if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
                     backingState.update { currentState ->
                         val currentFullscreen = currentState.fullscreen ?: return@update currentState
@@ -547,6 +566,13 @@ class SearchViewModel(
             SearchScreenEvent.CloseFullscreen -> {
                 val uiState = backingState.value
                 val fullscreen = uiState.fullscreen ?: return
+                backingState.update { currentState ->
+                    currentState.copy(
+                        contextActions = emptyList(),
+                        showContextActions = false,
+                        activeContextSourceId = null
+                    )
+                }
                 if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
                     return
                 }
@@ -556,6 +582,14 @@ class SearchViewModel(
             is SearchScreenEvent.EnterAction -> {
                 when (val kind = event.action.action.kind) {
                     is SearchPanelAction.Kind.PluginCallback -> {
+                        backingState.update { uiState ->
+                            uiState.copy(
+                                showActions = false,
+                                contextActions = emptyList(),
+                                showContextActions = false,
+                                activeContextSourceId = null
+                            )
+                        }
                         executeCommandCallbackUseCase(
                             resultId = event.action.resultId,
                             callback = kind.callback,
@@ -573,7 +607,8 @@ class SearchViewModel(
                                     existingAlias = kind.existingAlias
                                 ),
                                 showActions = false,
-                                showContextActions = false
+                                showContextActions = false,
+                                activeContextSourceId = null
                             )
                         }
                     }
@@ -585,7 +620,8 @@ class SearchViewModel(
                                 aliasEditor = uiState.aliasEditor
                                     ?.takeUnless { editor -> editor.resultId == event.action.resultId },
                                 showActions = false,
-                                showContextActions = false
+                                showContextActions = false,
+                                activeContextSourceId = null
                             )
                         }
                     }
@@ -593,6 +629,14 @@ class SearchViewModel(
             }
 
             is SearchScreenEvent.EnterCallback -> {
+                backingState.update { uiState ->
+                    uiState.copy(
+                        showActions = false,
+                        contextActions = emptyList(),
+                        showContextActions = false,
+                        activeContextSourceId = null
+                    )
+                }
                 executeCommandCallbackUseCase(
                     resultId = event.resultId,
                     callback = event.callback,
@@ -611,7 +655,34 @@ class SearchViewModel(
                             )
                         },
                         showContextActions = event.actions.isNotEmpty(),
-                        showActions = false
+                        showActions = false,
+                        activeContextSourceId = event.sourceId.takeIf { event.actions.isNotEmpty() }
+                    )
+                }
+            }
+
+            is SearchScreenEvent.ShowResultContextActions -> {
+                val currentState = backingState.value
+                val result = currentState.searchResults
+                    ?.results
+                    ?.firstOrNull { searchResult -> searchResult.resultId == event.resultId }
+                    ?: return
+                val actions = result.actions(currentState.plugins)
+                if (actions.isEmpty()) {
+                    return
+                }
+                backingState.update { uiState ->
+                    uiState.copy(
+                        contextActions = actions.map { action ->
+                            FocusedCommandAction(
+                                resultId = event.resultId,
+                                action = action,
+                                updateUsage = false
+                            )
+                        },
+                        showContextActions = true,
+                        showActions = false,
+                        activeContextSourceId = event.sourceId
                     )
                 }
             }
@@ -682,7 +753,12 @@ class SearchViewModel(
 
             is SearchScreenEvent.DismissAlert -> {
                 backingState.update { uiState ->
-                    uiState.copy(alerts = uiState.alerts - event.alert)
+                    uiState.copy(
+                        alerts = uiState.alerts - event.alert,
+                        contextActions = emptyList(),
+                        showContextActions = false,
+                        activeContextSourceId = null
+                    )
                 }
                 emitEventUseCase.invoke(
                     event.alert.pluginId,
@@ -692,7 +768,12 @@ class SearchViewModel(
 
             is SearchScreenEvent.ConfirmAlert -> {
                 backingState.update { uiState ->
-                    uiState.copy(alerts = uiState.alerts - event.alert)
+                    uiState.copy(
+                        alerts = uiState.alerts - event.alert,
+                        contextActions = emptyList(),
+                        showContextActions = false,
+                        activeContextSourceId = null
+                    )
                 }
                 emitEventUseCase.invoke(
                     event.alert.pluginId,
@@ -730,7 +811,12 @@ class SearchViewModel(
         fullscreenJob = null
         closeCommandUseCase(fullscreen.resultId)
         backingState.update { currentState ->
-            currentState.copy(fullscreen = null)
+            currentState.copy(
+                fullscreen = null,
+                contextActions = emptyList(),
+                showContextActions = false,
+                activeContextSourceId = null
+            )
         }
     }
 
@@ -828,7 +914,8 @@ class SearchViewModel(
                     },
                     showActions = currentState.showActions && focusedActions.isNotEmpty(),
                     contextActions = emptyList(),
-                    showContextActions = false
+                    showContextActions = false,
+                    activeContextSourceId = null
                 )
             }
         }
@@ -897,7 +984,8 @@ class SearchViewModel(
                 focusedActions = emptyList(),
                 showActions = false,
                 contextActions = emptyList(),
-                showContextActions = false
+                showContextActions = false,
+                activeContextSourceId = null
             )
         }
         scope.launch {
@@ -963,6 +1051,7 @@ private data class SearchViewModelState(
     val isSearching: Boolean = false,
     val showActions: Boolean = false,
     val showContextActions: Boolean = false,
+    val activeContextSourceId: String? = null,
     val aliasEditor: SearchAliasEditorState? = null,
     val fullscreen: SearchFullscreenContentState? = null,
     val alerts: List<Alert> = emptyList(),
@@ -1016,6 +1105,7 @@ data class SearchOverlayState(
     val contextActions: List<FocusedCommandAction> = emptyList(),
     val showActions: Boolean = false,
     val showContextActions: Boolean = false,
+    val activeContextSourceId: String? = null,
     val aliasEditor: SearchAliasEditorState? = null
 )
 
@@ -1097,7 +1187,13 @@ sealed interface SearchScreenEvent {
 
     data class ShowContextActions(
         val resultId: SearchResultId,
+        val sourceId: String,
         val actions: List<PluginCommandListAction>
+    ) : SearchScreenEvent
+
+    data class ShowResultContextActions(
+        val resultId: SearchResultId,
+        val sourceId: String
     ) : SearchScreenEvent
 
     data class UpdateAliasEditorInput(val value: String) : SearchScreenEvent
@@ -1137,6 +1233,7 @@ private fun SearchViewModelState.overlayState(): SearchOverlayState =
         contextActions = contextActions,
         showActions = showActions,
         showContextActions = showContextActions,
+        activeContextSourceId = activeContextSourceId,
         aliasEditor = aliasEditor
     )
 

@@ -182,6 +182,9 @@ struct PluginListItemViewData: Identifiable {
     let iconAsset: PluginAsset?
     let content: [PluginNodeViewData]
     let isFocused: Bool
+    let contextSourceId: String?
+    let isContextMenuPresented: Bool
+    let isContextMenuActive: Bool
     let showsContextButton: Bool
     let onTap: () -> Void
     let onShowContextActions: (() -> Void)?
@@ -208,6 +211,9 @@ struct PluginGridItemViewData: Identifiable {
     let subtitle: String
     let imageAsset: PluginAsset?
     let isFocused: Bool
+    let contextSourceId: String?
+    let isContextMenuPresented: Bool
+    let isContextMenuActive: Bool
     let onTap: () -> Void
     let onShowContextActions: (() -> Void)?
 }
@@ -306,6 +312,24 @@ struct PluginNodeMapper {
     let query: String
     let resultId: ApiSearchResultId?
     let focusedItemId: Any?
+    let activeContextSourceId: String?
+    let isContextMenuPresented: Bool
+
+    init(
+        client: SearchViewModelClient,
+        query: String,
+        resultId: ApiSearchResultId?,
+        focusedItemId: Any?,
+        activeContextSourceId: String? = nil,
+        isContextMenuPresented: Bool = false
+    ) {
+        self.client = client
+        self.query = query
+        self.resultId = resultId
+        self.focusedItemId = focusedItemId
+        self.activeContextSourceId = activeContextSourceId
+        self.isContextMenuPresented = isContextMenuPresented
+    }
 
     func mapNodes(_ nodes: [AnyObject], path: String) -> [PluginNodeViewData] {
         nodes.enumerated().map { index, node in
@@ -515,6 +539,7 @@ struct PluginNodeMapper {
         let actions = modifier?.actions ?? []
         let itemId = listItemId(item)
         let currentResultId = resultId
+        let contextSourceId = itemId.map { "plugin-item:\(commandItemIdValue($0))" } ?? path
         return PluginListItemViewData(
             id: path,
             title: client.resolveText(listItemTitle(item)),
@@ -522,6 +547,9 @@ struct PluginNodeMapper {
             iconAsset: client.resolveIcon(listItemIcon(item)),
             content: mapNodes(listItemContent(item), path: "\(path).content"),
             isFocused: commandItemIdValue(itemId) == commandItemIdValue(focusedItemId),
+            contextSourceId: contextSourceId,
+            isContextMenuPresented: isContextMenuPresented,
+            isContextMenuActive: activeContextSourceId == contextSourceId,
             showsContextButton: currentResultId != nil && !actions.isEmpty,
             onTap: {
                 if let itemId {
@@ -542,6 +570,7 @@ struct PluginNodeMapper {
                 {
                     client.showContextActions(
                         resultId: currentResultId!,
+                        sourceId: contextSourceId,
                         actions: actions
                     )
                 }
@@ -553,12 +582,16 @@ struct PluginNodeMapper {
         let actions = listItemModifier(item)?.actions ?? []
         let itemId = listItemId(item)
         let currentResultId = resultId
+        let contextSourceId = itemId.map { "plugin-item:\(commandItemIdValue($0))" } ?? path
         return PluginGridItemViewData(
             id: path,
             title: client.resolveText(listItemTitle(item)),
             subtitle: client.resolveText(listItemSubtitle(item)),
             imageAsset: client.resolveImage(gridItemImage(item)),
             isFocused: commandItemIdValue(itemId) == commandItemIdValue(focusedItemId),
+            contextSourceId: contextSourceId,
+            isContextMenuPresented: isContextMenuPresented,
+            isContextMenuActive: activeContextSourceId == contextSourceId,
             onTap: {
                 if let itemId {
                     client.focusPluginItem(itemId)
@@ -578,6 +611,7 @@ struct PluginNodeMapper {
                 {
                     client.showContextActions(
                         resultId: currentResultId!,
+                        sourceId: contextSourceId,
                         actions: actions
                     )
                 }

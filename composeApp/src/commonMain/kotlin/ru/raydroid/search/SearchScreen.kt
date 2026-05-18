@@ -27,8 +27,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
@@ -41,7 +43,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,10 +58,13 @@ import org.koin.compose.koinInject
 import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.RAlertDialog
 import ru.raydroid.core.designsystem.component.RButton
+import ru.raydroid.core.designsystem.component.LocalRContextActionOverlayState
 import ru.raydroid.core.designsystem.component.RIcon
+import ru.raydroid.core.designsystem.component.RContextActionOverlayState
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.core.designsystem.component.RTextField
+import ru.raydroid.core.designsystem.component.rContextActionInactiveLayer
 import ru.raydroid.feature.search.FocusedCommandAction
 import ru.raydroid.feature.search.SearchAliasEditorState
 import ru.raydroid.feature.search.SearchFieldUiState
@@ -66,6 +74,7 @@ import ru.raydroid.feature.search.SearchScreenState
 import ru.raydroid.feature.search.SearchViewModel
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginActionPanelHintMode
@@ -76,6 +85,7 @@ import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.api.ui.suppressesHostActions
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
 import ru.raydroid.plugin.host.impl.presentation.ActionPanel
+import ru.raydroid.plugin.host.impl.presentation.AnchoredActionsOverlay
 import ru.raydroid.plugin.host.impl.presentation.ActionsPanelOverlay
 import ru.raydroid.plugin.host.impl.presentation.CommandListItemView
 import ru.raydroid.plugin.host.impl.presentation.ComposeRayRenderer
@@ -107,18 +117,34 @@ fun SearchScreen(
     modifier: Modifier = Modifier
 ) {
     ResourceResolverProvider(state.plugins) {
+        val contextAnchors = remember { mutableStateMapOf<String, Rect>() }
+        var rootBounds by remember { mutableStateOf<Rect?>(null) }
         val spacing = RaydroidTheme.spacing
         val fullscreen = state.fullscreenContent
         val resultsContent = state.resultsContent
         val overlayState = state.overlayState
+        val activeContextSourceId = overlayState.activeContextSourceId
+            ?.takeIf { overlayState.showContextActions }
         val activeSearchFieldState = state.searchFieldState
         val latestSearchFieldState by rememberUpdatedState(activeSearchFieldState)
         val searchField = remember(fullscreen?.resultId) { TextFieldState() }
-        Column(
-            modifier
-                .fillMaxSize()
-                .background(RaydroidTheme.colorScheme.background),
+        CompositionLocalProvider(
+            LocalRContextActionOverlayState provides RContextActionOverlayState(
+                activeSourceId = activeContextSourceId,
+                visible = overlayState.showContextActions,
+                registerAnchor = { sourceId, bounds ->
+                    contextAnchors[sourceId] = bounds
+                },
+                unregisterAnchor = { sourceId ->
+                    contextAnchors.remove(sourceId)
+                }
+            )
         ) {
+            Column(
+                modifier
+                    .fillMaxSize()
+                    .background(RaydroidTheme.colorScheme.background),
+            ) {
             val focus = remember { FocusRequester() }
             LaunchedEffect(Unit) {
                 focus.requestFocus()
@@ -180,11 +206,6 @@ fun SearchScreen(
             val contextActions = overlayState.contextActions.map { contextAction ->
                 contextAction.action
             }
-            val overlayActions = if (overlayState.showContextActions) {
-                contextActions
-            } else {
-                focusedActions
-            }
             val overlayFocusedActions = if (overlayState.showContextActions) {
                 overlayState.contextActions
             } else {
@@ -239,6 +260,9 @@ fun SearchScreen(
             Box(
                 Modifier
                     .weight(1f)
+                    .onGloballyPositioned { coordinates ->
+                        rootBounds = coordinates.boundsInWindow()
+                    }
             ) {
                 if (fullscreen != null) {
                     Box(
@@ -265,10 +289,11 @@ fun SearchScreen(
                             onFocus = { itemId ->
                                 onEvent(SearchScreenEvent.FocusPluginItem(itemId))
                             },
-                            onActions = { actions ->
+                            onActions = { sourceId, actions ->
                                 onEvent(
                                     SearchScreenEvent.ShowContextActions(
                                         resultId = fullscreen.resultId,
+                                        sourceId = sourceId,
                                         actions = actions
                                     )
                                 )
@@ -290,16 +315,38 @@ fun SearchScreen(
                         if (searchResults != null) {
                             itemsIndexed(searchResults.results) { index, searchResult ->
                                 if (searchResult is SearchResultSet.CachedSearchResult) {
-                                    SearchListItem(searchResult, onClick = {
-                                        onEvent(SearchScreenEvent.Submit(searchResult.resultId))
-                                    }, focused = index == focusedItemIndex)
+                                    SearchListItem(
+                                        result = searchResult,
+                                        onClick = {
+                                            onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                        },
+                                        focused = index == focusedItemIndex,
+                                        contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
+                                        onLongClick = {
+                                            onEvent(
+                                                SearchScreenEvent.ShowResultContextActions(
+                                                    resultId = searchResult.resultId,
+                                                    sourceId = searchResult.resultId.contextActionSourceId()
+                                                )
+                                            )
+                                        }
+                                    )
                                 } else if (searchResult is SearchResultSet.CommandSearchResult) {
                                     CommandListItemView(
                                         listEntry = searchResult.listEntry,
                                         onClick = {
                                             onEvent(SearchScreenEvent.Submit(searchResult.resultId))
                                         },
-                                        focused = index == focusedItemIndex
+                                        focused = index == focusedItemIndex,
+                                        contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
+                                        onLongClick = {
+                                            onEvent(
+                                                SearchScreenEvent.ShowResultContextActions(
+                                                    resultId = searchResult.resultId,
+                                                    sourceId = searchResult.resultId.contextActionSourceId()
+                                                )
+                                            )
+                                        }
                                     )
                                 } else if (searchResult is SearchResultSet.LiveSearchResult) {
                                     RayDecorator(
@@ -314,6 +361,15 @@ fun SearchScreen(
                                         focused = index == focusedItemIndex,
                                         onClick = {
                                             onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                        },
+                                        contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
+                                        onLongClick = {
+                                            onEvent(
+                                                SearchScreenEvent.ShowResultContextActions(
+                                                    resultId = searchResult.resultId,
+                                                    sourceId = searchResult.resultId.contextActionSourceId()
+                                                )
+                                            )
                                         }
                                     ) {
                                         ComposeRayRenderer(
@@ -330,10 +386,11 @@ fun SearchScreen(
                                             onItemEnter = {
                                                 onEvent(SearchScreenEvent.Submit(searchResult.resultId))
                                             },
-                                            onActions = { actions ->
+                                            onActions = { sourceId, actions ->
                                                 onEvent(
                                                     SearchScreenEvent.ShowContextActions(
                                                         resultId = searchResult.resultId,
+                                                        sourceId = sourceId,
                                                         actions = actions
                                                     )
                                                 )
@@ -360,7 +417,10 @@ fun SearchScreen(
                 }
                 LookaheadScope {
                     Column(
-                        Modifier.padding(spacing.medium).align(Alignment.BottomEnd),
+                        Modifier
+                            .padding(spacing.medium)
+                            .align(Alignment.BottomEnd)
+                            .rContextActionInactiveLayer(),
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
                     ) {
@@ -372,8 +432,8 @@ fun SearchScreen(
                             )
                         )
                         ActionsPanelOverlay(
-                            actions = overlayActions,
-                            visible = overlayState.showActions || overlayState.showContextActions,
+                            actions = focusedActions,
+                            visible = overlayState.showActions,
                             onActionClick = { action ->
                                 overlayFocusedActions
                                     .firstOrNull { focusedAction -> focusedAction.action == action }
@@ -384,6 +444,22 @@ fun SearchScreen(
                         )
                     }
                 }
+                AnchoredActionsOverlay(
+                    actions = contextActions,
+                    anchorBounds = activeContextSourceId?.let(contextAnchors::get),
+                    rootBounds = rootBounds,
+                    visible = overlayState.showContextActions,
+                    onDismiss = {
+                        onEvent(SearchScreenEvent.HideActions)
+                    },
+                    onActionClick = { action ->
+                        overlayFocusedActions
+                            .firstOrNull { focusedAction -> focusedAction.action == action }
+                            ?.let { focusedAction ->
+                                onEvent(SearchScreenEvent.EnterAction(focusedAction))
+                            }
+                    }
+                )
             }
             SearchField(
                 activeSearchFieldState.toPresentationState(
@@ -415,7 +491,9 @@ fun SearchScreen(
                         SearchFieldEvent.BackspaceOnEmpty -> onEvent(SearchScreenEvent.BackspaceOnEmpty)
                     }
                 },
-                Modifier.focusRequester(focus),
+                Modifier
+                    .focusRequester(focus)
+                    .rContextActionInactiveLayer(),
                 contentPadding = if (fullscreen != null) {
                     PaddingValues(horizontal = spacing.small, vertical = spacing.large)
                 } else {
@@ -448,6 +526,7 @@ fun SearchScreen(
             }
         }
     }
+}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -741,6 +820,10 @@ private data class SearchFieldSnapshot(
     val query: String,
     val selection: SearchFieldSelection
 )
+
+private fun SearchResultId.contextActionSourceId(): String {
+    return "search-result:${pluginId.id}:$commandName:${itemId.value}"
+}
 
 private fun SearchFieldUiState.asSnapshot(): SearchFieldSnapshot =
     SearchFieldSnapshot(query = query, selection = selection)

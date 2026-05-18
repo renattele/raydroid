@@ -19,9 +19,12 @@ struct SearchSceneState {
     var fullscreen: FullscreenModel?
     var loadingStatusMessage: String?
     var actions: [OverlayActionModel]
+    var contextActions: [OverlayActionModel]
     var actionTitle: String?
     var showsActionToggle: Bool
     var showsActionsPanel: Bool
+    var showsContextMenu: Bool
+    var activeContextSourceId: String?
     var showsBackButton: Bool
     var exitBackspaceCount: Int
     var toasts: [ToastModel]
@@ -36,9 +39,12 @@ struct SearchSceneState {
         fullscreen: nil,
         loadingStatusMessage: nil,
         actions: [],
+        contextActions: [],
         actionTitle: nil,
         showsActionToggle: false,
         showsActionsPanel: false,
+        showsContextMenu: false,
+        activeContextSourceId: nil,
         showsBackButton: false,
         exitBackspaceCount: 0,
         toasts: [],
@@ -59,7 +65,11 @@ struct SearchResultRowModel: Identifiable {
     let subtitleMatches: [HighlightMatch]
     let detailNodes: [PluginNodeViewData]
     let isFocused: Bool
+    let contextSourceId: String
+    let isContextMenuPresented: Bool
+    let isContextMenuActive: Bool
     let onSelect: () -> Void
+    let onLongPress: () -> Void
 }
 
 struct FullscreenModel {
@@ -132,6 +142,7 @@ enum SearchSceneEvent {
     case toggleActions
     case moveFocusNext
     case moveFocusPrevious
+    case hideActions
     case dismissAlert
     case confirmAlert
     case dismissToast(String)
@@ -179,6 +190,8 @@ final class SearchSceneViewModel {
             viewModelClient.moveFocusNext()
         case .moveFocusPrevious:
             viewModelClient.moveFocusPrevious()
+        case .hideActions:
+            viewModelClient.hideActions()
         case .dismissAlert:
             dismissAlert()
         case .confirmAlert:
@@ -260,7 +273,7 @@ private struct SearchSceneStateMapper {
             fullscreenFocusedActions: fullscreenFocusedActions,
             suppressHostActions: suppressHostActions
         )
-        let overlayActions = resolveOverlayActions(
+        let contextActions = resolveContextActions(
             state: state,
             fullscreenFocusedActions: fullscreenFocusedActions,
             suppressHostActions: suppressHostActions
@@ -293,7 +306,9 @@ private struct SearchSceneStateMapper {
                     client: client,
                     query: fullscreen.searchFieldState.query,
                     resultId: fullscreen.resultId,
-                    focusedItemId: fullscreen.focusedItemId
+                    focusedItemId: fullscreen.focusedItemId,
+                    activeContextSourceId: state.overlayState.activeContextSourceId,
+                    isContextMenuPresented: state.overlayState.showContextActions
                 ).mapNodes(
                     fullscreen.content.map { $0 as AnyObject },
                     path: "fullscreen"
@@ -310,10 +325,13 @@ private struct SearchSceneStateMapper {
             loadingStatusMessage: loadingToast.map { toast in
                 client.resolveText(toast.toast.message)
             },
-            actions: overlayActions,
+            actions: dockActions,
+            contextActions: contextActions,
             actionTitle: actionHintMode == .full ? primaryActionTitle(actions: dockActions) : nil,
             showsActionToggle: actionHintMode != .hidden && !dockActions.isEmpty,
-            showsActionsPanel: state.overlayState.showActions || state.overlayState.showContextActions,
+            showsActionsPanel: state.overlayState.showActions,
+            showsContextMenu: state.overlayState.showContextActions,
+            activeContextSourceId: state.overlayState.activeContextSourceId,
             showsBackButton: state.fullscreenContent != nil,
             exitBackspaceCount: Int(state.fullscreenContent?.exitBackspaceCount ?? 0),
             toasts: state.toasts
@@ -365,7 +383,7 @@ private struct SearchSceneStateMapper {
         }
     }
 
-    private func resolveOverlayActions(
+    private func resolveContextActions(
         state: SearchScreenState,
         fullscreenFocusedActions: [ApiPluginCommandListAction],
         suppressHostActions: Bool
@@ -380,11 +398,7 @@ private struct SearchSceneStateMapper {
                 }
             }
         }
-        return resolveDockActions(
-            state: state,
-            fullscreenFocusedActions: fullscreenFocusedActions,
-            suppressHostActions: suppressHostActions
-        )
+        return []
     }
 
     private func mapAliasEditor(_ aliasEditor: SearchAliasEditorState?) -> AliasEditorSheetModel? {
@@ -428,7 +442,9 @@ private struct SearchSceneStateMapper {
                         result,
                         index: index,
                         query: state.searchFieldState.query,
-                        focusedIndex: state.resultsContent?.focusedItemIndex?.intValue
+                        focusedIndex: state.resultsContent?.focusedItemIndex?.intValue,
+                        isContextMenuPresented: state.overlayState.showContextActions,
+                        activeContextSourceId: state.overlayState.activeContextSourceId
                     )
                 }
             )
@@ -443,7 +459,9 @@ private struct SearchSceneStateMapper {
         _ result: any ApiSearchResultSetSearchResult,
         index: Int,
         query: String,
-        focusedIndex: Int?
+        focusedIndex: Int?,
+        isContextMenuPresented: Bool,
+        activeContextSourceId: String?
     ) -> SearchResultRowModel {
         let liveContent = searchResultContent(result)
         let isLiveResult = SearchInteropBridge.shared.searchResultIsLive(result: result)
@@ -453,7 +471,9 @@ private struct SearchSceneStateMapper {
                 client: client,
                 query: query,
                 resultId: result.resultId,
-                focusedItemId: nil
+                focusedItemId: nil,
+                activeContextSourceId: activeContextSourceId,
+                isContextMenuPresented: isContextMenuPresented
             ).mapNodes(
                 liveContent.map { $0 as AnyObject },
                 path: "live.\(index)"
@@ -483,6 +503,8 @@ private struct SearchSceneStateMapper {
 
         let iconAsset = client.resolveIcon(result.listEntry.icon) ?? (isLiveResult ? nil : fallbackIcon(for: commandName))
         let showsListEntry = iconAsset != nil || !title.isEmpty || !subtitle.isEmpty || !trailingText.isEmpty
+        let contextSourceId = resultContextSourceId(result.resultId)
+        let isContextMenuActive = activeContextSourceId == contextSourceId
 
         return SearchResultRowModel(
             id: "\(isLiveResult ? "live" : "result").\(index).\(result.resultId.commandName)",
@@ -496,8 +518,17 @@ private struct SearchSceneStateMapper {
             subtitleMatches: searchResultDescriptionMatches(result),
             detailNodes: detailNodes,
             isFocused: focusedIndex == index,
+            contextSourceId: contextSourceId,
+            isContextMenuPresented: isContextMenuPresented,
+            isContextMenuActive: isContextMenuActive,
             onSelect: {
                 client.enter(result.resultId)
+            },
+            onLongPress: {
+                client.showResultContextActions(
+                    resultId: result.resultId,
+                    sourceId: contextSourceId
+                )
             }
         )
     }
@@ -688,6 +719,29 @@ private func buildHighlightMatches(_ rawMatches: [NSNumber]) -> [HighlightMatch]
         index += 2
     }
     return matches
+}
+
+private func resultContextSourceId(_ resultId: ApiSearchResultId) -> String {
+    "search-result:\(pluginIdValue(resultId.pluginId)):\(resultId.commandName):\(focusedItemIdValue(resultId.itemId))"
+}
+
+private func pluginIdValue(_ value: Any?) -> String {
+    if let raw = value as? String {
+        return raw
+    }
+    if let raw = value as? NSString {
+        return raw as String
+    }
+    guard let object = value as AnyObject? else { return "" }
+    if object.responds(to: NSSelectorFromString("id")),
+       let raw = object.value(forKey: "id") as? String {
+        return raw
+    }
+    if object.responds(to: NSSelectorFromString("value")),
+       let raw = object.value(forKey: "value") as? String {
+        return raw
+    }
+    return String(describing: object)
 }
 
 private func focusedItemIdValue(_ value: Any?) -> String {

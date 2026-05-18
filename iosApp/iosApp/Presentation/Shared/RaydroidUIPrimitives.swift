@@ -6,6 +6,64 @@ struct HighlightMatch {
     let end: Int
 }
 
+enum ContextMenuCoordinateSpace {
+    static let name = "search-scene-context-menu"
+}
+
+struct ContextMenuAnchorPreferenceKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+
+    static func reduce(value: inout [String : CGRect], nextValue: () -> [String : CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+private struct ContextMenuLayerModifier: ViewModifier {
+    let showsContextMenu: Bool
+    let isActive: Bool
+    let blurRadius: CGFloat
+    let inactiveOpacity: Double
+
+    func body(content: Content) -> some View {
+        content
+            .blur(radius: showsContextMenu && !isActive ? blurRadius : 0)
+            .opacity(showsContextMenu && !isActive ? inactiveOpacity : 1)
+            .zIndex(isActive ? 4 : 0)
+            .animation(.spring(response: 0.26, dampingFraction: 0.82), value: showsContextMenu)
+            .animation(.spring(response: 0.26, dampingFraction: 0.82), value: isActive)
+    }
+}
+
+private struct ContextMenuPressableModifier: ViewModifier {
+    let sourceId: String?
+    let isContextMenuPresented: Bool
+    let isContextMenuActive: Bool
+    let onTap: () -> Void
+    let onLongPress: () -> Void
+
+    @GestureState private var isPressing = false
+
+    func body(content: Content) -> some View {
+        content
+            .contextMenuAnchor(sourceId: sourceId)
+            .contextMenuLayer(
+                showsContextMenu: isContextMenuPresented,
+                isActive: isContextMenuActive
+            )
+            .scaleEffect(isContextMenuActive ? 1.06 : (isPressing ? 1.02 : 1))
+            .animation(.spring(response: 0.24, dampingFraction: 0.72), value: isPressing)
+            .animation(.spring(response: 0.28, dampingFraction: 0.74), value: isContextMenuActive)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .updating($isPressing) { _, state, _ in
+                        state = true
+                    }
+            )
+            .onTapGesture(perform: onTap)
+            .onLongPressGesture(minimumDuration: 0.45, maximumDistance: 18, perform: onLongPress)
+    }
+}
+
 struct RaydroidBackground: View {
     var body: some View {
         LinearGradient(
@@ -484,6 +542,51 @@ struct RaydroidGlassSurface: ViewModifier {
 extension View {
     func raydroidGlassSurface(cornerRadius: CGFloat, interactive: Bool = false) -> some View {
         modifier(RaydroidGlassSurface(cornerRadius: cornerRadius, interactive: interactive))
+    }
+
+    func contextMenuAnchor(sourceId: String?) -> some View {
+        background(
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: ContextMenuAnchorPreferenceKey.self,
+                    value: sourceId.map { [$0: proxy.frame(in: .named(ContextMenuCoordinateSpace.name))] } ?? [:]
+                )
+            }
+        )
+    }
+
+    func contextMenuLayer(
+        showsContextMenu: Bool,
+        isActive: Bool,
+        blurRadius: CGFloat = 12,
+        inactiveOpacity: Double = 0.5
+    ) -> some View {
+        modifier(
+            ContextMenuLayerModifier(
+                showsContextMenu: showsContextMenu,
+                isActive: isActive,
+                blurRadius: blurRadius,
+                inactiveOpacity: inactiveOpacity
+            )
+        )
+    }
+
+    func contextMenuPressable(
+        sourceId: String?,
+        isContextMenuPresented: Bool,
+        isContextMenuActive: Bool,
+        onTap: @escaping () -> Void,
+        onLongPress: @escaping () -> Void
+    ) -> some View {
+        modifier(
+            ContextMenuPressableModifier(
+                sourceId: sourceId,
+                isContextMenuPresented: isContextMenuPresented,
+                isContextMenuActive: isContextMenuActive,
+                onTap: onTap,
+                onLongPress: onLongPress
+            )
+        )
     }
 }
 

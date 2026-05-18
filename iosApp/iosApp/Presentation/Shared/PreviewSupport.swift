@@ -43,7 +43,8 @@ final class PreviewSearchViewModelClient: SearchViewModelClient {
     func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool) {}
     func focusPluginItem(_ itemId: Any) {}
     func enterPluginItem(_ itemId: Any) {}
-    func showContextActions(resultId: ApiSearchResultId, actions: [ApiPluginCommandListAction]) {}
+    func showContextActions(resultId: ApiSearchResultId, sourceId: String, actions: [ApiPluginCommandListAction]) {}
+    func showResultContextActions(resultId: ApiSearchResultId, sourceId: String) {}
     func updateAliasEditorInput(_ value: String) {}
     func saveAliasEditor() {}
     func removeAlias() {}
@@ -177,6 +178,9 @@ enum PreviewData {
                             )
                         ],
                         isFocused: true,
+                        contextSourceId: "plugin-item:one",
+                        isContextMenuPresented: false,
+                        isContextMenuActive: false,
                         showsContextButton: true,
                         onTap: {},
                         onShowContextActions: {}
@@ -188,6 +192,9 @@ enum PreviewData {
                         iconAsset: .builtinName("Clear"),
                         content: [],
                         isFocused: false,
+                        contextSourceId: "plugin-item:two",
+                        isContextMenuPresented: false,
+                        isContextMenuActive: false,
                         showsContextButton: false,
                         onTap: {},
                         onShowContextActions: nil
@@ -214,6 +221,9 @@ enum PreviewData {
                         subtitle: "Browse installed apps",
                         imageAsset: .builtinName("GridView"),
                         isFocused: true,
+                        contextSourceId: "plugin-grid:one",
+                        isContextMenuPresented: false,
+                        isContextMenuActive: false,
                         onTap: {},
                         onShowContextActions: {}
                     ),
@@ -223,6 +233,9 @@ enum PreviewData {
                         subtitle: "Adjust preferences",
                         imageAsset: .builtinName("Tune"),
                         isFocused: false,
+                        contextSourceId: "plugin-grid:two",
+                        isContextMenuPresented: false,
+                        isContextMenuActive: false,
                         onTap: {},
                         onShowContextActions: nil
                     )
@@ -339,7 +352,11 @@ enum PreviewData {
                 )
             ],
             isFocused: true,
-            onSelect: {}
+            contextSourceId: "search-result:one",
+            isContextMenuPresented: false,
+            isContextMenuActive: false,
+            onSelect: {},
+            onLongPress: {}
         ),
         SearchResultRowModel(
             id: "result.two",
@@ -353,7 +370,11 @@ enum PreviewData {
             subtitleMatches: [],
             detailNodes: [],
             isFocused: false,
-            onSelect: {}
+            contextSourceId: "search-result:two",
+            isContextMenuPresented: false,
+            isContextMenuActive: false,
+            onSelect: {},
+            onLongPress: {}
         )
     ])
 
@@ -382,9 +403,12 @@ enum PreviewData {
                 onSelect: {}
             )
         ],
+        contextActions: [],
         actionTitle: "Run Command",
         showsActionToggle: true,
         showsActionsPanel: true,
+        showsContextMenu: false,
+        activeContextSourceId: nil,
         showsBackButton: false,
         exitBackspaceCount: 0,
         toasts: [
@@ -425,9 +449,12 @@ enum PreviewData {
                 onSelect: {}
             )
         ],
+        contextActions: [],
         actionTitle: "Copy Result",
         showsActionToggle: true,
         showsActionsPanel: true,
+        showsContextMenu: false,
+        activeContextSourceId: nil,
         showsBackButton: true,
         exitBackspaceCount: 1,
         toasts: [],

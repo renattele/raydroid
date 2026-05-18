@@ -50,13 +50,19 @@ fun SearchListItem(
     result: SearchResultSet.CachedSearchResult,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    focused: Boolean = false
+    focused: Boolean = false,
+    contextMenuSourceId: String? = null,
+    onLongClick: (() -> Unit)? = null
 ) {
     val spacing = RaydroidTheme.spacing
     val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     Row(
         modifier
-            .rInteractable(focused = focused) { onClick() }
+            .rInteractable(
+                focused = focused,
+                contextMenuSourceId = contextMenuSourceId,
+                onLongClick = onLongClick
+            ) { onClick() }
             .fillMaxWidth()
             .clip(shape)
             .padding(horizontal = spacing.medium, vertical = spacing.small),
@@ -114,14 +120,20 @@ fun CommandListItemView(
     listEntry: PluginCommandListItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    focused: Boolean = false
+    focused: Boolean = false,
+    contextMenuSourceId: String? = null,
+    onLongClick: (() -> Unit)? = null
 ) {
     val spacing = RaydroidTheme.spacing
     val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     val hasInlineResult = listEntry.trailingText != null
     Row(
         modifier
-            .rInteractable(focused = focused) { onClick() }
+            .rInteractable(
+                focused = focused,
+                contextMenuSourceId = contextMenuSourceId,
+                onLongClick = onLongClick
+            ) { onClick() }
             .fillMaxWidth()
             .clip(shape)
             .background(

@@ -101,6 +101,66 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `show context actions tracks active source`() = runTest {
+        val fixture = SearchViewModelFixture(this)
+        fixture.runtime.actionResults = listOf(
+            PluginCommandListAction(
+                callback = callback("open"),
+                title = PluginUiText.Plain("Open"),
+                description = null,
+                icon = null
+            )
+        )
+        advanceUntilIdle()
+
+        fixture.viewModel.dispatchEvent(
+            SearchScreenEvent.ShowContextActions(
+                resultId = fixture.resultId,
+                sourceId = "result-row-1",
+                actions = fixture.runtime.actionResults
+            )
+        )
+
+        val state = fixture.viewModel.currentState().overlayState
+        assertEquals(true, state.showContextActions)
+        assertEquals(false, state.showActions)
+        assertEquals("result-row-1", state.activeContextSourceId)
+        assertEquals(listOf(PluginUiText.Plain("Open")), state.contextActions.map { it.action.title })
+
+        fixture.viewModel.hideActions()
+        assertEquals(null, fixture.viewModel.currentState().overlayState.activeContextSourceId)
+    }
+
+    @Test
+    fun `result long press ignores empty actions`() = runTest {
+        val fixture = SearchViewModelFixture(this)
+        fixture.commands.value = listOf(
+            PluginRuntimeCoordinator.CommandItem(
+                runtime = fixture.runtime,
+                listEntry = listEntry("Calculator", "Evaluate"),
+                resultId = fixture.resultId
+            )
+        )
+
+        fixture.viewModel.start()
+        fixture.viewModel.openSearch("calc")
+        advanceUntilIdle()
+
+        fixture.viewModel.onEvent(
+            SearchScreenEvent.ShowResultContextActions(
+                resultId = fixture.resultId,
+                sourceId = "result-row-1"
+            )
+        )
+        advanceUntilIdle()
+
+        val state = fixture.viewModel.currentState().overlayState
+        assertEquals(false, state.showContextActions)
+        assertEquals(emptyList(), state.contextActions)
+        assertEquals(null, state.activeContextSourceId)
+    }
+
+    @Test
     fun `toast events are shown then hidden`() = runTest {
         val fixture = SearchViewModelFixture(this)
         fixture.viewModel.start()
@@ -418,6 +478,7 @@ private class FakePluginRuntime(
 ) : PluginRuntime {
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
+    var actionResults: List<PluginCommandListAction> = emptyList()
     private val fullscreen = MutableStateFlow(
         PluginRuntime.FullscreenContent(
             commandName = "calculator",
@@ -435,7 +496,7 @@ private class FakePluginRuntime(
     override suspend fun actions(
         commandName: String,
         itemId: CommandItemId
-    ): List<PluginCommandListAction> = emptyList()
+    ): List<PluginCommandListAction> = actionResults
 
     override suspend fun update(action: CommandActionBridge) = Unit
 

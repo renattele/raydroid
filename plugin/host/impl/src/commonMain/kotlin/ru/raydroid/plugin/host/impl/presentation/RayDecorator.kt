@@ -33,11 +33,18 @@ fun RayDecorator(
     modifier: Modifier = Modifier,
     title: PluginUiText? = listItem.title,
     onClick: () -> Unit = {},
+    contextMenuSourceId: String? = null,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Column(
         modifier
-            .rInteractable(focused = focused, onClick = onClick)
+            .rInteractable(
+                focused = focused,
+                contextMenuSourceId = contextMenuSourceId,
+                onLongClick = onLongClick,
+                onClick = onClick
+            )
             .clip(RaydroidTheme.shapes.medium)
             .background(
                 if (focused) {

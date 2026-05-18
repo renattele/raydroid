@@ -4,8 +4,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -26,8 +29,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.raydroid.core.designsystem.RaydroidMotionToken
@@ -215,6 +222,82 @@ fun ActionsPanelOverlay(
 }
 
 @Composable
+fun AnchoredActionsOverlay(
+    actions: List<ActionPanelActionUi>,
+    anchorBounds: Rect?,
+    rootBounds: Rect?,
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    onActionClick: (ActionPanelActionUi) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (!visible || actions.isEmpty() || anchorBounds == null || rootBounds == null) {
+        return
+    }
+    val density = LocalDensity.current
+    val groupedActions = remember(actions) { actions.groupBy { it.group }.entries.toList() }
+    val estimatedHeightPx = with(density) {
+        (groupedActions.sumOf { (_, groupActions) -> groupActions.size } * 44).dp.roundToPx() +
+            (groupedActions.size * 16).dp.roundToPx()
+    }.coerceAtMost(with(density) { PopupHeight.roundToPx() })
+    val popupWidthPx = with(density) {
+        minOf(anchorBounds.width, PopupAnchoredMaxWidth.toPx())
+    }
+    val horizontalMarginPx = with(density) { PopupAnchoredMargin.toPx() }
+    val verticalGapPx = with(density) { PopupAnchoredGap.toPx() }
+    val availableBottom = rootBounds.bottom - anchorBounds.bottom - verticalGapPx
+    val showBelow = availableBottom >= estimatedHeightPx
+    val x = anchorBounds.left.coerceIn(
+        rootBounds.left + horizontalMarginPx,
+        rootBounds.right - popupWidthPx - horizontalMarginPx
+    )
+    val y = if (showBelow) {
+        anchorBounds.bottom + verticalGapPx
+    } else {
+        (anchorBounds.top - estimatedHeightPx - verticalGapPx)
+            .coerceAtLeast(rootBounds.top + horizontalMarginPx)
+    }
+    val offset = IntOffset(
+        x = (x - rootBounds.left).toInt(),
+        y = (y - rootBounds.top).toInt()
+    )
+    val popupWidth = with(density) { popupWidthPx.toDp() }
+
+    Box(
+        modifier
+            .fillMaxSize()
+            .pointerInput(actions, anchorBounds, rootBounds) {
+                detectTapGestures(onTap = { onDismiss() })
+            }
+    ) {
+        RPopupSurface(
+            modifier = Modifier
+                .absoluteOffset { offset }
+                .width(popupWidth)
+                .heightIn(max = PopupHeight),
+            shape = RaydroidTheme.shapes.medium,
+            color = RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f)
+        ) {
+            LazyColumn {
+                itemsIndexed(groupedActions) { index, (_, actionsList) ->
+                    Column(
+                        Modifier.padding(RaydroidTheme.spacing.small),
+                        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+                    ) {
+                        actionsList.forEach { action ->
+                            ActionsPopupAction(action, onClick = { onActionClick(action) })
+                        }
+                    }
+                    if (index != groupedActions.lastIndex) {
+                        RDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ActionsPopupAction(
     action: ActionPanelActionUi,
     onClick: () -> Unit,
@@ -299,6 +382,9 @@ private val PanelHeight = 80.dp
 private val ToastHeight = 60.dp
 private val PopupHeight = 180.dp
 private val PopupWidth = 240.dp
+private val PopupAnchoredMaxWidth = 280.dp
+private val PopupAnchoredMargin = 12.dp
+private val PopupAnchoredGap = 8.dp
 
 @Preview
 @Composable
