@@ -38,6 +38,7 @@ typealias Resources = Map<String, Map<String, String>>
 data class Access(
     val clipboard: ClipboardAccess? = null,
     val cache: SizedAccess? = null,
+    val contacts: ContactsAccess? = null,
     val environment: EnvironmentAccess? = null,
     val filesystem: FileSystemAccess? = null,
     val network: NetworkAccess? = null,
@@ -52,6 +53,11 @@ data class Access(
 
 @Serializable
 data class ClipboardAccess(
+    val permissions: List<Permission>? = null
+)
+
+@Serializable
+data class ContactsAccess(
     val permissions: List<Permission>? = null
 )
 

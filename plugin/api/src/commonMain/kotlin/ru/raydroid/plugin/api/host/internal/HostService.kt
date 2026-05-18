@@ -10,6 +10,7 @@ internal class HostServiceImpl(
 ): HostService {
     override val cache = CacheServiceImpl(bridge.cacheBridge, serializer)
     override val clipboard = ClipboardServiceImpl(bridge.clipboardBridge)
+    override val contacts = ContactsServiceImpl(bridge.contactsBridge)
     override val environment = EnvironmentServiceImpl(bridge.environmentBridge)
     override val filesystem = FileSystemServiceImpl(bridge.filesystemBridge)
     override val network = NetworkServiceImpl(bridge.networkBridge, serializer)
