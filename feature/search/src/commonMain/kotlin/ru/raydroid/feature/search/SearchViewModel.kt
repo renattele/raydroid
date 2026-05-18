@@ -637,6 +637,10 @@ class SearchViewModel(
                 }
             }
 
+            is SearchScreenEvent.EnterQuickAction -> {
+                enterQuickAction(event.resultId)
+            }
+
             is SearchScreenEvent.EnterCallback -> {
                 backingState.update { uiState ->
                     uiState.copy(
@@ -954,6 +958,25 @@ class SearchViewModel(
         enterFullscreenItem(itemId)
     }
 
+    private suspend fun enterQuickAction(resultId: SearchResultId) {
+        val uiState = backingState.value
+        val result = uiState.searchResults
+            ?.results
+            ?.firstOrNull { result -> result.resultId == resultId }
+            ?: return
+        val action = result.actions(uiState.plugins)
+            .firstOrNull { action -> action.primary }
+            ?: return
+        handleEvent(
+            SearchScreenEvent.EnterAction(
+                FocusedCommandAction(
+                    resultId = resultId,
+                    action = action
+                )
+            )
+        )
+    }
+
     private suspend fun enterFullscreenItem(itemId: CommandItemId) {
         val uiState = backingState.value
         val fullscreen = uiState.fullscreen ?: return
@@ -1242,6 +1265,7 @@ sealed interface SearchScreenEvent {
         val callback: PluginCommandCallback,
         val updateUsage: Boolean = false
     ) : SearchScreenEvent
+    data class EnterQuickAction(val resultId: SearchResultId) : SearchScreenEvent
 
     data class ShowContextActions(
         val resultId: SearchResultId,

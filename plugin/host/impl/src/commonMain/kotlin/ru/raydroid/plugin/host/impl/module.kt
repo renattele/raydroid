@@ -123,6 +123,7 @@ val pluginHostModule = module {
             storageBridge = { get { parametersOf(it) } },
             filesystemBridge = { get { parametersOf(it) } },
             clipboardBridge = { get { parametersOf(it) } },
+            contactsBridge = { get { parametersOf(it) } },
             environmentBridge = { get { parametersOf(it) } },
             systemBridge = { get { parametersOf(it) } },
         )

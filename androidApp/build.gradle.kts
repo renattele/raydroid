@@ -23,5 +23,6 @@ dependencies {
     implementation(projects.composeApp)
     implementation(projects.plugin.api)
     implementation(projects.plugin.host.api)
+    implementation(projects.plugin.host.impl)
     testImplementation(libs.junit)
 }

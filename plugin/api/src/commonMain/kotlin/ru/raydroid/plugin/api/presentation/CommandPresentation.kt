@@ -47,6 +47,13 @@ data class CommandListItem(
     val enabled: Boolean = true,
     val iconColor: Color? = null,
     val trailingText: UiText? = null,
+    val quickAction: CommandListQuickAction? = null,
+)
+
+@Serializable
+data class CommandListQuickAction(
+    val title: UiText,
+    val icon: Icon
 )
 
 @Serializable
@@ -76,6 +83,7 @@ interface CommandListScope {
         icon: Icon? = null,
         iconColor: Color? = null,
         trailingText: UiText? = null,
+        quickAction: CommandListQuickAction? = null,
         modifier: Modifier = Modifier,
         content: RayScope.() -> Unit = {}
     )

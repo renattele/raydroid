@@ -347,6 +347,9 @@ fun SearchScreen(
                                                     sourceId = searchResult.resultId.contextActionSourceId()
                                                 )
                                             )
+                                        },
+                                        onQuickAction = {
+                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
                                         }
                                     )
                                 } else if (searchResult is SearchResultSet.CommandSearchResult) {
@@ -364,6 +367,9 @@ fun SearchScreen(
                                                     sourceId = searchResult.resultId.contextActionSourceId()
                                                 )
                                             )
+                                        },
+                                        onQuickAction = {
+                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
                                         }
                                     )
                                 } else if (
@@ -384,6 +390,10 @@ fun SearchScreen(
                                                     sourceId = searchResult.resultId.contextActionSourceId()
                                                 )
                                             )
+                                        }
+                                        },
+                                        onQuickAction = {
+                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
                                         }
                                     )
                                 } else if (searchResult is SearchResultSet.LiveSearchResult) {

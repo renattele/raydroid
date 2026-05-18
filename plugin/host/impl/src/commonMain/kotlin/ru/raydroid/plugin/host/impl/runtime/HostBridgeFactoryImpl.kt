@@ -3,6 +3,7 @@ package ru.raydroid.plugin.host.impl.runtime
 import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
 import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
+import ru.raydroid.plugin.api.host.transport.ContactsServiceBridge
 import ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge
 import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 import ru.raydroid.plugin.api.host.transport.HostServiceBridge
@@ -27,6 +28,7 @@ class HostBridgeFactoryImpl(
     private val storageBridge: (PluginId) -> StorageServiceBridge,
     private val filesystemBridge: (PluginId) -> FileSystemServiceBridge,
     private val clipboardBridge: (PluginId) -> ClipboardServiceBridge,
+    private val contactsBridge: (PluginId) -> ContactsServiceBridge,
     private val environmentBridge: (PluginId) -> EnvironmentServiceBridge,
     private val systemBridge: (PluginId) -> SystemServiceBridge
 ): HostBridgeFactory {
@@ -34,6 +36,7 @@ class HostBridgeFactoryImpl(
          val bridge = HostServiceBridgeImpl(
             cacheBridge = cacheBridge(pluginId),
             clipboardBridge = clipboardBridge(pluginId),
+            contactsBridge = contactsBridge(pluginId),
             environmentBridge = environmentBridge(pluginId),
             filesystemBridge = filesystemBridge(pluginId),
             networkBridge = networkBridge(pluginId),

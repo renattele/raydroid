@@ -8,6 +8,7 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultScore
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginCommandListQuickAction
 import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginUiText
@@ -22,7 +23,8 @@ internal fun SearchIndexCacheSearchEntity.toPluginListEntry(): PluginCommandList
             ?: PluginColor.OnSurfaceVariant.takeIf { iconType == Icon.Type.Builtin.name },
         title = title?.let(PluginUiText::Plain),
         description = description?.let(PluginUiText::Plain),
-        alias = null
+        alias = null,
+        quickAction = quickAction()
     )
 }
 
@@ -42,6 +44,14 @@ private fun String.toPluginIcon(
     }
 }
 
+private fun SearchIndexCacheSearchEntity.quickAction(): PluginCommandListQuickAction? {
+    if (pluginId != ContactsPluginId || command != ContactsCommandName) return null
+    return PluginCommandListQuickAction(
+        title = PluginUiText.Plain("Call"),
+        icon = PluginIcon.Builtin("Call")
+    )
+}
+
 internal fun SearchIndexCacheSearchEntity.toRankedPreview(): RankedSearchResult {
     return RankedSearchResult(
         result = SearchResultSet.CachedSearchResult(
@@ -57,3 +67,6 @@ internal fun SearchIndexCacheSearchEntity.toRankedPreview(): RankedSearchResult 
         score = SearchResultScore(textScore = 0.0, stableOrder = contentId)
     )
 }
+
+private const val ContactsPluginId = "ru.raydroid.plugin.impl.contacts"
+private const val ContactsCommandName = "ContactsCommand"

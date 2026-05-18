@@ -236,6 +236,9 @@
         "cache": {
           "$ref": "#/definitions/sizedAccess"
         },
+        "contacts": {
+          "$ref": "#/definitions/contactsAccess"
+        },
         "environment": {
           "$ref": "#/definitions/environmentAccess"
         },
@@ -276,6 +279,21 @@
             "enum": [
               "read",
               "write"
+            ]
+          }
+        }
+      }
+    },
+    "contactsAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "read"
             ]
           }
         }

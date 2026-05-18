@@ -4,6 +4,7 @@ import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandCallbackRef
 import ru.raydroid.plugin.api.presentation.CommandListAction
 import ru.raydroid.plugin.api.presentation.CommandListItem
+import ru.raydroid.plugin.api.presentation.CommandListQuickAction
 import ru.raydroid.plugin.api.presentation.CommandPresentation
 import ru.raydroid.plugin.api.ui.Alignment
 import ru.raydroid.plugin.api.ui.ActionPanelHintMode
@@ -53,6 +54,7 @@ import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginCommandListQuickAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
 import ru.raydroid.plugin.host.api.ui.PluginDetailData
 import ru.raydroid.plugin.host.api.ui.PluginDetailMetadataItemData
@@ -246,8 +248,15 @@ internal fun CommandListItem.toPluginCommandListItem(pluginId: PluginId): Plugin
         enabled = enabled,
         trailingText = trailingText?.toPluginUiText(pluginId),
         alias = null,
+        quickAction = quickAction?.toPluginCommandListQuickAction(pluginId),
     )
 }
+
+private fun CommandListQuickAction.toPluginCommandListQuickAction(pluginId: PluginId): PluginCommandListQuickAction =
+    PluginCommandListQuickAction(
+        title = title.toPluginUiText(pluginId),
+        icon = icon.toPluginIcon(pluginId)
+    )
 
 internal fun CommandListAction.toPluginCommandListAction(
     pluginId: PluginId,

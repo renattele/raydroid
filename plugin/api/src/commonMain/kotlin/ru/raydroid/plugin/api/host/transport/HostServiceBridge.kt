@@ -5,6 +5,7 @@ import app.cash.zipline.ZiplineService
 interface HostServiceBridge : ZiplineService {
    val cacheBridge: CacheServiceBridge
    val clipboardBridge: ClipboardServiceBridge
+   val contactsBridge: ContactsServiceBridge
    val environmentBridge: EnvironmentServiceBridge
    val filesystemBridge: FileSystemServiceBridge
    val networkBridge: NetworkServiceBridge
