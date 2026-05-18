@@ -78,7 +78,7 @@ class CalculatorCommand : CommandService() {
                         displayFormatter = EditableTextDisplayFormatter.CalculatorExpression,
                         placeholder = UiText.Resource("command.calculator.description"),
                         multiline = true,
-                        maxLines = CalculatorExpressionMaxLines,
+                        maxLines = CALCULATOR_EXPRESSION_MAX_LINES,
                         autoScrollToEnd = true
                     ) { value, selection ->
                         replaceInput(value, selection = selection, syncSearchField = true)
@@ -329,7 +329,7 @@ class CalculatorCommand : CommandService() {
     private fun resultMarkdown(): String {
         val result = calculation
         val valueText = result?.formattedValue
-            ?: (if (expression.isInvalidCompleteExpression()) ErrorText else null)
+            ?: (if (expression.isInvalidCompleteExpression()) ERROR_TEXT else null)
             ?: " "
         return "# $valueText"
     }
@@ -394,8 +394,8 @@ class CalculatorCommand : CommandService() {
         val CalculatorIcon = Icon.Builtin("Calculate")
         val CalculatorIconColor = Color.OnSurfaceVariant
         const val EXPRESSION_FIELD_ID = "calculator-expression"
-        const val CalculatorExpressionMaxLines = 16
-        const val ErrorText = "Error"
+        const val CALCULATOR_EXPRESSION_MAX_LINES = 16
+        const val ERROR_TEXT = "Error"
         val IncompleteTrailingCharacters = setOf('+', '-', '*', '/', '^', '%', '(')
         val SupportedExpressionSymbols = setOf('+', '-', '*', '/', '^', '%', '!', '(', ')', '.', ',')
         val NonUnaryOperators = setOf('*', '/', '^', '%')
