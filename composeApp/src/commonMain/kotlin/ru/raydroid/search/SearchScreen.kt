@@ -344,6 +344,9 @@ fun SearchScreen(
                                                     sourceId = searchResult.resultId.contextActionSourceId()
                                                 )
                                             )
+                                        },
+                                        onQuickAction = {
+                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
                                         }
                                     )
                                 } else if (searchResult is SearchResultSet.CommandSearchResult) {
@@ -361,6 +364,9 @@ fun SearchScreen(
                                                     sourceId = searchResult.resultId.contextActionSourceId()
                                                 )
                                             )
+                                        },
+                                        onQuickAction = {
+                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
                                         }
                                     )
                                 } else if (
@@ -372,7 +378,10 @@ fun SearchScreen(
                                         onClick = {
                                             onEvent(SearchScreenEvent.Submit(searchResult.resultId))
                                         },
-                                        focused = index == focusedItemIndex
+                                        focused = index == focusedItemIndex,
+                                        onQuickAction = {
+                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
+                                        }
                                     )
                                 } else if (searchResult is SearchResultSet.LiveSearchResult) {
                                     RayDecorator(

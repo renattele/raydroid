@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -39,9 +40,11 @@ import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginCommandListQuickAction
 import ru.raydroid.plugin.host.api.ui.PluginFontSize
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginIconData
+import ru.raydroid.plugin.host.api.ui.PluginIconSize
 import ru.raydroid.plugin.host.api.ui.PluginTextData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 
@@ -52,7 +55,8 @@ fun SearchListItem(
     modifier: Modifier = Modifier,
     focused: Boolean = false,
     contextMenuSourceId: String? = null,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    onQuickAction: (() -> Unit)? = null
 ) {
     val spacing = RaydroidTheme.spacing
     Row(
@@ -110,6 +114,11 @@ fun SearchListItem(
                 )
             }
         }
+        result.listEntry.quickAction?.let { quickAction ->
+            if (onQuickAction != null) {
+                QuickActionButton(quickAction, onClick = onQuickAction)
+            }
+        }
     }
 }
 
@@ -120,7 +129,8 @@ fun CommandListItemView(
     modifier: Modifier = Modifier,
     focused: Boolean = false,
     contextMenuSourceId: String? = null,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    onQuickAction: (() -> Unit)? = null
 ) {
     val spacing = RaydroidTheme.spacing
     val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
@@ -247,6 +257,36 @@ fun CommandListItemView(
                 modifier = Modifier.widthIn(min = 40.dp)
             )
         }
+        listEntry.quickAction?.let { quickAction ->
+            if (onQuickAction != null) {
+                QuickActionButton(quickAction, onClick = onQuickAction)
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickActionButton(
+    quickAction: PluginCommandListQuickAction,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier
+            .size(QuickActionButtonSize)
+            .clip(RaydroidTheme.shapes.full)
+            .background(PluginColor.TertiaryContainer.toColor())
+            .rInteractable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        IconRenderer(
+            data = PluginIconData(
+                icon = quickAction.icon,
+                contentDescription = quickAction.title.asText(),
+                size = PluginIconSize.Small,
+                color = PluginColor.OnTertiaryContainer
+            )
+        )
     }
 }
 
@@ -367,6 +407,7 @@ private const val InlineCombinedTrailingThreshold = 28
 private const val CompactTrailingTitleThreshold = 48
 private const val ZeroWidthSpace = '\u200B'
 private val CalculationExpressionMaxHeight = 220.dp
+private val QuickActionButtonSize = 40.dp
 private val CalculationScrollTrackWidth = 3.dp
 private val CalculationScrollThumbHeight = 44.dp
 private val CalculationScrollThumbTravel: Dp = CalculationExpressionMaxHeight - CalculationScrollThumbHeight

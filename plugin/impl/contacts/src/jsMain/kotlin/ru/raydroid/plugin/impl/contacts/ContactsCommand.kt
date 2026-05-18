@@ -8,6 +8,7 @@ import ru.raydroid.plugin.api.presentation.CommandActionScope
 import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
+import ru.raydroid.plugin.api.presentation.CommandListQuickAction
 import ru.raydroid.plugin.api.presentation.CommandListScope
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandService
@@ -51,7 +52,8 @@ class ContactsCommand : CommandService() {
                     id = CommandItemId(contact.id),
                     title = UiText.Plain(contact.name),
                     description = UiText.Plain(contact.phones.joinToString()),
-                    icon = ContactIcon
+                    icon = ContactIcon,
+                    quickAction = CallQuickAction
                 )
             }
     }
@@ -143,7 +145,8 @@ class ContactsCommand : CommandService() {
             title = UiText.Plain(name),
             description = UiText.Plain(phones.joinToString()),
             icon = ContactIcon,
-            iconColor = null
+            iconColor = null,
+            quickAction = CallQuickAction
         )
 
     private fun ContactsService.Contact.primaryPhone(): String? =
@@ -158,5 +161,9 @@ class ContactsCommand : CommandService() {
     private companion object {
         const val LiveResultLimit = 8
         val ContactIcon = Icon.Resource("icons/contact.png")
+        val CallQuickAction = CommandListQuickAction(
+            title = UiText.Resource("contacts.action.call"),
+            icon = Icon.Builtin("Call")
+        )
     }
 }

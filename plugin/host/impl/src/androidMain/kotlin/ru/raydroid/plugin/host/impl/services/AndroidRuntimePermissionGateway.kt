@@ -29,6 +29,10 @@ object AndroidRuntimePermissionGateway {
         requestPermission(context, Manifest.permission.READ_CONTACTS)
     }
 
+    suspend fun requestCallPhone(context: Context) {
+        requestPermission(context, Manifest.permission.CALL_PHONE)
+    }
+
     fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,

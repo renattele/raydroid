@@ -75,7 +75,11 @@ internal class AndroidContactsServiceBridgeImpl(
     }
 
     override suspend fun dial(phoneNumber: String) {
-        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(phoneNumber)}"))
+        AndroidRuntimePermissionGateway.requestCallPhone(context)
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${Uri.encode(phoneNumber)}"))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }

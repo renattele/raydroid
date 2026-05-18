@@ -44,6 +44,12 @@ data class PluginCommandListItem(
     val iconColor: PluginColor? = null,
     val trailingText: PluginUiText? = null,
     val alias: String? = null,
+    val quickAction: PluginCommandListQuickAction? = null,
+)
+
+data class PluginCommandListQuickAction(
+    val title: PluginUiText,
+    val icon: PluginIcon
 )
 
 data class PluginCommandListAction(
