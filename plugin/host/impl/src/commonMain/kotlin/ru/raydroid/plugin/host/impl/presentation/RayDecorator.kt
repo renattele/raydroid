@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.stringResource
 import raydroid.plugin.host.impl.generated.resources.Res
@@ -45,13 +44,13 @@ fun RayDecorator(
                 onLongClick = onLongClick,
                 onClick = onClick
             )
-            .clip(RaydroidTheme.shapes.medium)
             .background(
                 if (focused) {
                     RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
                 } else {
                     RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                }
+                },
+                shape = RaydroidTheme.shapes.medium
             )
             .padding(RaydroidTheme.spacing.small)
     ) {

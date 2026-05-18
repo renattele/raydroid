@@ -58,6 +58,7 @@ data class CommandListAction(
     val group: UiText? = null,
     val style: Style = Style.Default,
     val primary: Boolean = false,
+    val showPrimaryHint: Boolean = true,
     val enabled: Boolean = true,
 ) {
     enum class Style {
@@ -91,6 +92,7 @@ interface CommandActionScope {
         description: UiText? = null,
         style: CommandListAction.Style = CommandListAction.Style.Default,
         primary: Boolean = false,
+        showPrimaryHint: Boolean = true,
         enabled: Boolean = true,
         onClick: suspend () -> Unit
     )
@@ -147,6 +149,7 @@ private fun buildCommandActions(
             description: UiText?,
             style: CommandListAction.Style,
             primary: Boolean,
+            showPrimaryHint: Boolean,
             enabled: Boolean,
             onClick: suspend () -> Unit
         ) {
@@ -161,6 +164,7 @@ private fun buildCommandActions(
                 group = group,
                 style = style,
                 primary = primary,
+                showPrimaryHint = showPrimaryHint,
                 enabled = enabled
             )
             actionIndex++

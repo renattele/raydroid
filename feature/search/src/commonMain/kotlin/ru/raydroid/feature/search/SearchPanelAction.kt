@@ -11,6 +11,7 @@ data class SearchPanelAction(
     override val icon: PluginIcon? = null,
     override val group: PluginUiText? = null,
     override val primary: Boolean = false,
+    override val showPrimaryHint: Boolean = true,
     override val enabled: Boolean = true,
     override val destructive: Boolean = false,
     val kind: Kind
@@ -36,6 +37,7 @@ fun PluginCommandListAction.toSearchPanelAction(updateUsage: Boolean): SearchPan
         icon = icon,
         group = group,
         primary = primary,
+        showPrimaryHint = showPrimaryHint,
         enabled = enabled,
         destructive = style == PluginCommandListAction.Style.Destructive,
         kind = SearchPanelAction.Kind.PluginCallback(

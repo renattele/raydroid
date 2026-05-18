@@ -13,8 +13,16 @@ import okio.Path.Companion.toPath
 import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 
 internal class FileSystemServiceBridgeImpl(
-    private val fileSystem: FileSystem
+    private val fileSystem: FileSystem,
+    private val allFilesAccessGateway: AllFilesAccessGateway
 ) : FileSystemServiceBridge {
+    override suspend fun hasAllFilesAccess(): Boolean =
+        allFilesAccessGateway.hasAllFilesAccess()
+
+    override suspend fun requestAllFilesAccess() {
+        allFilesAccessGateway.requestAllFilesAccess()
+    }
+
     override suspend fun exists(path: String): Boolean = withContext(Dispatchers.IO) {
         fileSystem.exists(path.toPath())
     }

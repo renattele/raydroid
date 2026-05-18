@@ -1,0 +1,66 @@
+{
+  "$schema": "../../../../../api/plugin-manifest.schema.json",
+  "name": "ru.raydroid.plugin.impl.files",
+  "title": "app.name",
+  "description": "app.description",
+  "author": "app.author",
+  "version": -1,
+  "platforms": [],
+  "categories": ["Files"],
+  "license": "",
+  "commands": [
+    {
+      "service": "FilesCommand",
+      "title": "command.files.title",
+      "description": "command.files.description",
+      "placeholder": null,
+      "icon": {
+        "value": "FolderOpen",
+        "type": "Builtin"
+      },
+      "mode": "NoView",
+      "match": null,
+      "searchable": true,
+      "arguments": [],
+      "preferences": []
+    }
+  ],
+  "resources": {
+    "strings": {
+      "app.name": "File System",
+      "app.description": "Local file system index",
+      "app.author": "Raydroid",
+      "command.files.title": "File System",
+      "command.files.description": "Search indexed local files",
+      "files.action.open": "Open",
+      "files.action.info": "Info"
+    }
+  },
+  "access": {
+    "filesystem": {
+      "permissions": ["read"],
+      "allowed_paths": [
+        "/storage/emulated/0/Download(/.*)?",
+        "/storage/emulated/0/Downloads(/.*)?",
+        "/storage/emulated/0/Documents(/.*)?",
+        "/storage/emulated/0/DCIM(/.*)?",
+        "/storage/emulated/0/Pictures(/.*)?",
+        "/storage/emulated/0/Movies(/.*)?",
+        "/storage/emulated/0/Music(/.*)?",
+        "/storage/emulated/0/Recordings(/.*)?"
+      ]
+    },
+    "notification": {
+      "show_alerts": true
+    },
+    "system": {
+      "permissions": ["open_resource"],
+      "allowed_urls": [
+        "file:///storage/emulated/0/.*"
+      ]
+    },
+    "runtime": {
+      "requested_stack_size": 1024
+    }
+  }
+}

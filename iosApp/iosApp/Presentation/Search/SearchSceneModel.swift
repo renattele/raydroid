@@ -503,7 +503,11 @@ private struct SearchSceneStateMapper {
 
         let iconAsset = client.resolveIcon(result.listEntry.icon) ?? (isLiveResult ? nil : fallbackIcon(for: commandName))
         let showsListEntry = iconAsset != nil || !title.isEmpty || !subtitle.isEmpty || !trailingText.isEmpty
-        let contextSourceId = resultContextSourceId(result.resultId)
+        let contextSourceId = resultContextSourceId(
+            result.resultId,
+            index: index,
+            isLiveResult: isLiveResult
+        )
         let isContextMenuActive = activeContextSourceId == contextSourceId
 
         return SearchResultRowModel(
@@ -721,8 +725,12 @@ private func buildHighlightMatches(_ rawMatches: [NSNumber]) -> [HighlightMatch]
     return matches
 }
 
-private func resultContextSourceId(_ resultId: ApiSearchResultId) -> String {
-    "search-result:\(pluginIdValue(resultId.pluginId)):\(resultId.commandName):\(focusedItemIdValue(resultId.itemId))"
+private func resultContextSourceId(
+    _ resultId: ApiSearchResultId,
+    index: Int,
+    isLiveResult: Bool
+) -> String {
+    "\(isLiveResult ? "live" : "result"):\(index):\(pluginIdValue(resultId.pluginId)):\(resultId.commandName):\(focusedItemIdValue(resultId.itemId))"
 }
 
 private func pluginIdValue(_ value: Any?) -> String {

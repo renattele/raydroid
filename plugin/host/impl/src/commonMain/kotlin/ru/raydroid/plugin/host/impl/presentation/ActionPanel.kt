@@ -1,6 +1,9 @@
 package ru.raydroid.plugin.host.impl.presentation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +27,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -32,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -134,7 +142,7 @@ private fun Action(
             actions.find { it.primary } ?: actions.firstOrNull()
         }
         if (primaryAction != null) {
-            if (showPrimaryHint) {
+            if (showPrimaryHint && primaryAction.showPrimaryHint) {
                 TextRenderer(
                     PluginTextData(
                         text = primaryAction.title,
@@ -182,6 +190,8 @@ fun ActionsPanelOverlay(
     modifier: Modifier = Modifier
 ) {
     val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
+    val popupColor = actionPopupSurfaceColor()
+    val popupShadowColor = actionPopupShadowColor()
     val groupedActions = remember(actions) {
         actions.groupBy { it.group }
             .entries.toList()
@@ -200,7 +210,8 @@ fun ActionsPanelOverlay(
                 .heightIn(max = PopupHeight)
                 .width(PopupWidth),
             shape = popupShape,
-            color = RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f)
+            color = popupColor,
+            shadowColor = popupShadowColor
         ) {
             LazyColumn {
                 itemsIndexed(groupedActions) { index, (groupName, actionsList) ->
@@ -231,52 +242,118 @@ fun AnchoredActionsOverlay(
     onActionClick: (ActionPanelActionUi) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (!visible || actions.isEmpty() || anchorBounds == null || rootBounds == null) {
+    val visibilityState = remember { MutableTransitionState(false) }
+    LaunchedEffect(visible) {
+        visibilityState.targetState = visible
+    }
+    val shouldRender = visibilityState.currentState || visibilityState.targetState
+    if (!shouldRender) {
         return
     }
+    var retainedActions by remember { mutableStateOf(actions) }
+    var retainedAnchorBounds by remember { mutableStateOf(anchorBounds) }
+    var retainedRootBounds by remember { mutableStateOf(rootBounds) }
+    LaunchedEffect(visible, actions, anchorBounds, rootBounds) {
+        if (visible) {
+            if (actions.isNotEmpty()) retainedActions = actions
+            if (anchorBounds != null) retainedAnchorBounds = anchorBounds
+            if (rootBounds != null) retainedRootBounds = rootBounds
+        }
+    }
+    val resolvedActions = if (visible && actions.isNotEmpty()) actions else retainedActions
+    val resolvedAnchorBounds = if (visible && anchorBounds != null) anchorBounds else retainedAnchorBounds
+    val resolvedRootBounds = if (visible && rootBounds != null) rootBounds else retainedRootBounds
+    if (resolvedActions.isEmpty() || resolvedAnchorBounds == null || resolvedRootBounds == null) {
+        return
+    }
+
     val density = LocalDensity.current
-    val groupedActions = remember(actions) { actions.groupBy { it.group }.entries.toList() }
+    val groupedActions = remember(resolvedActions) { resolvedActions.groupBy { it.group }.entries.toList() }
+    val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
+    val popupColor = actionPopupSurfaceColor()
+    val popupShadowColor = actionPopupShadowColor()
+    val visibilityTransition = rememberTransition(
+        transitionState = visibilityState,
+        label = "anchoredActionsVisibility"
+    )
+    val backdropAlpha by visibilityTransition.animateFloat(
+        transitionSpec = { motion.floatSpec() },
+        label = "anchoredActionsBackdropAlpha"
+    ) { isVisible ->
+        if (isVisible) 0.18f else 0f
+    }
     val estimatedHeightPx = with(density) {
         (groupedActions.sumOf { (_, groupActions) -> groupActions.size } * 44).dp.roundToPx() +
             (groupedActions.size * 16).dp.roundToPx()
     }.coerceAtMost(with(density) { PopupHeight.roundToPx() })
     val popupWidthPx = with(density) {
-        minOf(anchorBounds.width, PopupAnchoredMaxWidth.toPx())
+        minOf(resolvedAnchorBounds.width, PopupAnchoredMaxWidth.toPx())
     }
     val horizontalMarginPx = with(density) { PopupAnchoredMargin.toPx() }
     val verticalGapPx = with(density) { PopupAnchoredGap.toPx() }
-    val availableBottom = rootBounds.bottom - anchorBounds.bottom - verticalGapPx
+    val availableBottom = resolvedRootBounds.bottom - resolvedAnchorBounds.bottom - verticalGapPx
     val showBelow = availableBottom >= estimatedHeightPx
-    val x = anchorBounds.left.coerceIn(
-        rootBounds.left + horizontalMarginPx,
-        rootBounds.right - popupWidthPx - horizontalMarginPx
+    val x = resolvedAnchorBounds.left.coerceIn(
+        resolvedRootBounds.left + horizontalMarginPx,
+        resolvedRootBounds.right - popupWidthPx - horizontalMarginPx
     )
     val y = if (showBelow) {
-        anchorBounds.bottom + verticalGapPx
+        resolvedAnchorBounds.bottom + verticalGapPx
     } else {
-        (anchorBounds.top - estimatedHeightPx - verticalGapPx)
-            .coerceAtLeast(rootBounds.top + horizontalMarginPx)
+        (resolvedAnchorBounds.top - estimatedHeightPx - verticalGapPx)
+            .coerceAtLeast(resolvedRootBounds.top + horizontalMarginPx)
     }
     val offset = IntOffset(
-        x = (x - rootBounds.left).toInt(),
-        y = (y - rootBounds.top).toInt()
+        x = (x - resolvedRootBounds.left).toInt(),
+        y = (y - resolvedRootBounds.top).toInt()
     )
     val popupWidth = with(density) { popupWidthPx.toDp() }
+    val anchorPivotX = (
+        ((resolvedAnchorBounds.left + resolvedAnchorBounds.right) / 2f - x) / popupWidthPx
+        ).coerceIn(0f, 1f)
+    val transformOrigin = TransformOrigin(
+        pivotFractionX = anchorPivotX,
+        pivotFractionY = if (showBelow) 0f else 1f
+    )
+    val popupScale by visibilityTransition.animateFloat(
+        transitionSpec = { motion.floatSpec() },
+        label = "anchoredActionsPopupScale"
+    ) { isVisible ->
+        if (isVisible) 1f else 1f - motion.scaleDelta
+    }
+    val popupAlpha by visibilityTransition.animateFloat(
+        transitionSpec = { motion.floatSpec() },
+        label = "anchoredActionsPopupAlpha"
+    ) { isVisible ->
+        if (isVisible) 1f else 0f
+    }
 
     Box(
         modifier
             .fillMaxSize()
-            .pointerInput(actions, anchorBounds, rootBounds) {
+            .pointerInput(onDismiss) {
                 detectTapGestures(onTap = { onDismiss() })
             }
     ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(RaydroidTheme.colorScheme.scrim.copy(alpha = backdropAlpha))
+        )
         RPopupSurface(
             modifier = Modifier
                 .absoluteOffset { offset }
                 .width(popupWidth)
-                .heightIn(max = PopupHeight),
+                .heightIn(max = PopupHeight)
+                .graphicsLayer {
+                    alpha = popupAlpha
+                    scaleX = popupScale
+                    scaleY = popupScale
+                    this.transformOrigin = transformOrigin
+                },
             shape = RaydroidTheme.shapes.medium,
-            color = RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f)
+            color = popupColor,
+            shadowColor = popupShadowColor
         ) {
             LazyColumn {
                 itemsIndexed(groupedActions) { index, (_, actionsList) ->
@@ -385,6 +462,24 @@ private val PopupWidth = 240.dp
 private val PopupAnchoredMaxWidth = 280.dp
 private val PopupAnchoredMargin = 12.dp
 private val PopupAnchoredGap = 8.dp
+
+@Composable
+private fun actionPopupSurfaceColor(): Color {
+    val colorScheme = RaydroidTheme.colorScheme
+    return if (colorScheme.surface.luminance() > 0.5f) {
+        colorScheme.surfaceBright.copy(alpha = 0.98f)
+    } else {
+        colorScheme.surfaceVariant.copy(alpha = 0.92f)
+    }
+}
+
+@Composable
+private fun actionPopupShadowColor(): Color {
+    val colorScheme = RaydroidTheme.colorScheme
+    return colorScheme.scrim.copy(
+        alpha = if (colorScheme.surface.luminance() > 0.5f) 0.22f else 0.45f
+    )
+}
 
 @Preview
 @Composable

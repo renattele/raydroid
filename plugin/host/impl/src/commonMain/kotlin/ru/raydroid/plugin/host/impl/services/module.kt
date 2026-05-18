@@ -31,7 +31,8 @@ internal val hostServiceModule = module {
     factory<CacheServiceBridge> { RuntimeCacheServiceImpl() }
     factory<FileSystemServiceBridge> {
         FileSystemServiceBridgeImpl(
-            fileSystem = get(named("localFileSystem"))
+            fileSystem = get(named("localFileSystem")),
+            allFilesAccessGateway = get()
         )
     }
     factory<StorageServiceBridge> {

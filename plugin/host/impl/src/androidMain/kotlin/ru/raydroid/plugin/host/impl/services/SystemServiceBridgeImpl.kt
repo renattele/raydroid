@@ -8,12 +8,13 @@ import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.Base64
-import androidx.core.net.toUri
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 import ru.raydroid.plugin.api.ui.Icon
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.net.URLConnection
 
 internal class SystemServiceBridgeImpl(
@@ -52,13 +53,24 @@ internal class SystemServiceBridgeImpl(
         target: String,
         options: SystemServiceBridge.OpenOptions
     ) {
-        val contentType = URLConnection.guessContentTypeFromName(target)
+        val file = File(target.removePrefix("file://"))
+        val uri = FileProvider.getUriForFile(
+            activityContext,
+            "${activityContext.packageName}.fileprovider",
+            file
+        )
+        val contentType = URLConnection.guessContentTypeFromName(file.name) ?: "*/*"
         val intent = Intent().apply {
             setAction(Intent.ACTION_VIEW)
-            setDataAndType(contentType.toUri(), contentType)
+            setDataAndType(uri, contentType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             applyOptions(options)
         }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val chooser = Intent.createChooser(intent, null).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        activityContext.startActivity(chooser)
     }
 
     private fun Intent.applyOptions(options: SystemServiceBridge.OpenOptions) {

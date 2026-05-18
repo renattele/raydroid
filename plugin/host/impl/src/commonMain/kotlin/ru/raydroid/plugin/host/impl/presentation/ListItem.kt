@@ -55,7 +55,6 @@ fun SearchListItem(
     onLongClick: (() -> Unit)? = null
 ) {
     val spacing = RaydroidTheme.spacing
-    val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     Row(
         modifier
             .rInteractable(
@@ -64,7 +63,6 @@ fun SearchListItem(
                 onLongClick = onLongClick
             ) { onClick() }
             .fillMaxWidth()
-            .clip(shape)
             .padding(horizontal = spacing.medium, vertical = spacing.small),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(spacing.medium)
@@ -135,13 +133,13 @@ fun CommandListItemView(
                 onLongClick = onLongClick
             ) { onClick() }
             .fillMaxWidth()
-            .clip(shape)
             .background(
                 if (hasInlineResult) {
                     RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
                 } else {
                     androidx.compose.ui.graphics.Color.Transparent
-                }
+                },
+                shape = shape
             )
             .padding(horizontal = spacing.medium, vertical = spacing.small),
         verticalAlignment = Alignment.CenterVertically,

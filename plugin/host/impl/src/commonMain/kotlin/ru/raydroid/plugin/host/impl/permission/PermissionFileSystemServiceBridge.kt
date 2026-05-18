@@ -10,6 +10,16 @@ internal class PermissionFileSystemServiceBridge(
     private val fileSystemServiceBridge: FileSystemServiceBridge,
     private val manifest: Manifest
 ) : FileSystemServiceBridge {
+    override suspend fun hasAllFilesAccess(): Boolean {
+        requireFileSystemReadAccess()
+        return fileSystemServiceBridge.hasAllFilesAccess()
+    }
+
+    override suspend fun requestAllFilesAccess() {
+        requireFileSystemReadAccess()
+        fileSystemServiceBridge.requestAllFilesAccess()
+    }
+
     override suspend fun exists(path: String): Boolean {
         requireRead(path)
         return fileSystemServiceBridge.exists(path)
@@ -69,6 +79,13 @@ internal class PermissionFileSystemServiceBridge(
 
     private fun requireWatch(path: String) {
         requireAccess(path, FileSystemAccessPermission.Watch)
+    }
+
+    private fun requireFileSystemReadAccess() {
+        val permissions = manifest.access.filesystem?.permissions ?: throw PermissionDenied()
+        if (FileSystemAccessPermission.Read !in permissions && FileSystemAccessPermission.Manage !in permissions) {
+            throw PermissionDenied()
+        }
     }
 
     private fun requireAccess(path: String, permission: FileSystemAccessPermission) {

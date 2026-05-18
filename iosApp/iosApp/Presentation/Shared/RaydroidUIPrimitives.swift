@@ -6,10 +6,6 @@ struct HighlightMatch {
     let end: Int
 }
 
-enum ContextMenuCoordinateSpace {
-    static let name = "search-scene-context-menu"
-}
-
 struct ContextMenuAnchorPreferenceKey: PreferenceKey {
     static var defaultValue: [String: CGRect] = [:]
 
@@ -35,17 +31,15 @@ private struct ContextMenuLayerModifier: ViewModifier {
 }
 
 private struct ContextMenuPressableModifier: ViewModifier {
-    let sourceId: String?
     let isContextMenuPresented: Bool
     let isContextMenuActive: Bool
     let onTap: () -> Void
     let onLongPress: () -> Void
 
-    @GestureState private var isPressing = false
+    @State private var isPressing = false
 
     func body(content: Content) -> some View {
         content
-            .contextMenuAnchor(sourceId: sourceId)
             .contextMenuLayer(
                 showsContextMenu: isContextMenuPresented,
                 isActive: isContextMenuActive
@@ -53,14 +47,15 @@ private struct ContextMenuPressableModifier: ViewModifier {
             .scaleEffect(isContextMenuActive ? 1.06 : (isPressing ? 1.02 : 1))
             .animation(.spring(response: 0.24, dampingFraction: 0.72), value: isPressing)
             .animation(.spring(response: 0.28, dampingFraction: 0.74), value: isContextMenuActive)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .updating($isPressing) { _, state, _ in
-                        state = true
-                    }
-            )
             .onTapGesture(perform: onTap)
-            .onLongPressGesture(minimumDuration: 0.45, maximumDistance: 18, perform: onLongPress)
+            .onLongPressGesture(
+                minimumDuration: 0.45,
+                maximumDistance: 18,
+                pressing: { pressing in
+                    isPressing = pressing
+                },
+                perform: onLongPress
+            )
     }
 }
 
@@ -545,14 +540,17 @@ extension View {
     }
 
     func contextMenuAnchor(sourceId: String?) -> some View {
-        background(
+        background {
             GeometryReader { proxy in
-                Color.clear.preference(
-                    key: ContextMenuAnchorPreferenceKey.self,
-                    value: sourceId.map { [$0: proxy.frame(in: .named(ContextMenuCoordinateSpace.name))] } ?? [:]
-                )
+                Color.clear
+                    .preference(
+                        key: ContextMenuAnchorPreferenceKey.self,
+                        value: sourceId.map {
+                            [$0: proxy.frame(in: .global)]
+                        } ?? [:]
+                    )
             }
-        )
+        }
     }
 
     func contextMenuLayer(
@@ -572,7 +570,6 @@ extension View {
     }
 
     func contextMenuPressable(
-        sourceId: String?,
         isContextMenuPresented: Bool,
         isContextMenuActive: Bool,
         onTap: @escaping () -> Void,
@@ -580,7 +577,6 @@ extension View {
     ) -> some View {
         modifier(
             ContextMenuPressableModifier(
-                sourceId: sourceId,
                 isContextMenuPresented: isContextMenuPresented,
                 isContextMenuActive: isContextMenuActive,
                 onTap: onTap,

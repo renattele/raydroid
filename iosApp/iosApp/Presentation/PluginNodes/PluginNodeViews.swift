@@ -398,8 +398,8 @@ private struct PluginListItemView: View {
                 .stroke(data.isFocused ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
         }
         .contentShape(Rectangle())
+        .contextMenuAnchor(sourceId: data.contextSourceId)
         .contextMenuPressable(
-            sourceId: data.contextSourceId,
             isContextMenuPresented: data.isContextMenuPresented,
             isContextMenuActive: data.isContextMenuActive,
             onTap: data.onTap,
@@ -438,8 +438,8 @@ private struct GridItemView: View {
                 .stroke(data.isFocused ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
         }
         .contentShape(Rectangle())
+        .contextMenuAnchor(sourceId: data.contextSourceId)
         .contextMenuPressable(
-            sourceId: data.contextSourceId,
             isContextMenuPresented: data.isContextMenuPresented,
             isContextMenuActive: data.isContextMenuActive,
             onTap: data.onTap,

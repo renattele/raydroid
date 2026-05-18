@@ -37,9 +37,21 @@ struct SearchSceneView: View {
                 VStack(spacing: 0) {
                     ZStack(alignment: .top) {
                         if let fullscreen = model.state.fullscreen {
-                            FullscreenContentView(fullscreen: fullscreen)
+                            FullscreenContentView(
+                                fullscreen: fullscreen,
+                                showsContextMenu: showsContextMenu,
+                                onScrollStart: {
+                                    model.send(.hideActions)
+                                }
+                            )
                         } else {
-                            SearchResultsView(resultsBody: model.state.resultsBody)
+                            SearchResultsView(
+                                resultsBody: model.state.resultsBody,
+                                showsContextMenu: showsContextMenu,
+                                onScrollStart: {
+                                    model.send(.hideActions)
+                                }
+                            )
                         }
 
                         OverlayChrome(
@@ -106,14 +118,18 @@ struct SearchSceneView: View {
                 .padding(.bottom, 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
-            .coordinateSpace(name: ContextMenuCoordinateSpace.name)
             .overlayPreferenceValue(ContextMenuAnchorPreferenceKey.self) { anchors in
                 if model.state.showsContextMenu,
                    let activeContextSourceId = model.state.activeContextSourceId,
                    let anchorRect = anchors[activeContextSourceId] {
                     AnchoredContextActionsOverlay(
                         actions: model.state.contextActions,
-                        anchorRect: anchorRect,
+                        anchorRect: CGRect(
+                            x: anchorRect.minX,
+                            y: anchorRect.minY,
+                            width: anchorRect.width,
+                            height: anchorRect.height
+                        ),
                         onDismiss: {
                             model.send(.hideActions)
                         }
@@ -313,6 +329,8 @@ private struct LoadingStatusRow: View {
 
 private struct SearchResultsView: View {
     let resultsBody: SearchResultsBodyState
+    let showsContextMenu: Bool
+    let onScrollStart: () -> Void
 
     var body: some View {
         switch resultsBody {
@@ -328,6 +346,14 @@ private struct SearchResultsView: View {
                 .padding(.bottom, 112)
             }
             .scrollDismissesKeyboard(.never)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { _ in
+                        if showsContextMenu {
+                            onScrollStart()
+                        }
+                    }
+            )
         case .loading:
             VStack {
                 ProgressView()
@@ -369,8 +395,8 @@ private struct SearchResultRow: View {
                 .stroke(result.isFocused ? Color.accentColor.opacity(0.45) : Color.clear, lineWidth: 1.5)
         }
         .contentShape(Rectangle())
+        .contextMenuAnchor(sourceId: result.contextSourceId)
         .contextMenuPressable(
-            sourceId: result.contextSourceId,
             isContextMenuPresented: result.isContextMenuPresented,
             isContextMenuActive: result.isContextMenuActive,
             onTap: result.onSelect,
@@ -435,6 +461,8 @@ private struct AliasBadge: View {
 
 private struct FullscreenContentView: View {
     let fullscreen: FullscreenModel
+    let showsContextMenu: Bool
+    let onScrollStart: () -> Void
 
     var body: some View {
         ScrollView {
@@ -448,6 +476,14 @@ private struct FullscreenContentView: View {
                 .padding(.bottom, 112)
         }
         .scrollDismissesKeyboard(.never)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { _ in
+                    if showsContextMenu {
+                        onScrollStart()
+                    }
+                }
+        )
     }
 }
 
@@ -486,19 +522,32 @@ private struct AnchoredContextActionsOverlay: View {
     let anchorRect: CGRect
     let onDismiss: () -> Void
 
+    @State private var measuredMenuHeight: CGFloat = 0
+    @State private var hasAppeared = false
+
     var body: some View {
         GeometryReader { proxy in
             let overlaySize = proxy.size
             let popupWidth = min(anchorRect.width, 280)
             let estimatedHeight = min(CGFloat(actions.count) * 46 + 20, 220)
-            let showBelow = anchorRect.maxY + estimatedHeight + 8 <= overlaySize.height - 12
+            let popupHeight = measuredMenuHeight > 0 ? measuredMenuHeight : estimatedHeight
+            let verticalGap: CGFloat = 14
+            let attachmentOffset: CGFloat = 12
+            let spaceBelow = overlaySize.height - anchorRect.maxY - 12
+            let spaceAbove = anchorRect.minY - 12
+            let prefersBelow = anchorRect.midY <= overlaySize.height * 0.55
+            let showBelow = if prefersBelow {
+                spaceBelow >= popupHeight + verticalGap || spaceBelow >= spaceAbove
+            } else {
+                !(spaceAbove >= popupHeight + verticalGap || spaceAbove > spaceBelow)
+            }
             let x = min(
                 max(anchorRect.minX, 12),
                 max(12, overlaySize.width - popupWidth - 12)
             )
             let y = showBelow
-                ? anchorRect.maxY + 8
-                : max(12, anchorRect.minY - estimatedHeight - 8)
+                ? min(anchorRect.maxY + verticalGap - attachmentOffset, overlaySize.height - popupHeight - 12)
+                : max(12, anchorRect.minY - popupHeight - verticalGap + attachmentOffset)
 
             ZStack(alignment: .topLeading) {
                 Color.clear
@@ -534,13 +583,35 @@ private struct AnchoredContextActionsOverlay: View {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .stroke(Color(uiColor: .separator).opacity(0.28), lineWidth: 1)
                 }
+                .background {
+                    GeometryReader { menuProxy in
+                        Color.clear
+                            .onAppear {
+                                measuredMenuHeight = menuProxy.size.height
+                            }
+                            .onChange(of: menuProxy.size.height) { _, newHeight in
+                                measuredMenuHeight = newHeight
+                            }
+                    }
+                }
                 .shadow(color: .black.opacity(0.18), radius: 18, y: 10)
                 .offset(x: x, y: y)
-                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .topLeading)))
+                .opacity(hasAppeared ? 1 : 0)
+                .scaleEffect(hasAppeared ? 1 : 0.96, anchor: .topLeading)
+                .offset(y: hasAppeared ? 0 : (showBelow ? -6 : 6))
             }
         }
         .ignoresSafeArea()
         .zIndex(5)
+        .onAppear {
+            hasAppeared = false
+            withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                hasAppeared = true
+            }
+        }
+        .onDisappear {
+            hasAppeared = false
+        }
     }
 }
 
@@ -977,7 +1048,11 @@ private struct GlassButtonCluster<Content: View>: View {
 }
 
 #Preview("Results List") {
-    SearchResultsView(resultsBody: PreviewData.searchResultsBody)
+    SearchResultsView(
+        resultsBody: PreviewData.searchResultsBody,
+        showsContextMenu: false,
+        onScrollStart: {}
+    )
         .padding()
         .background(RaydroidBackground())
 }

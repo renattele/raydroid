@@ -9,6 +9,7 @@ interface ActionPanelActionUi {
     val icon: PluginIcon?
     val group: PluginUiText?
     val primary: Boolean
+    val showPrimaryHint: Boolean
     val enabled: Boolean
     val destructive: Boolean
 }
@@ -53,6 +54,7 @@ data class PluginCommandListAction(
     override val group: PluginUiText? = null,
     val style: Style = Style.Default,
     override val primary: Boolean = false,
+    override val showPrimaryHint: Boolean = true,
     override val enabled: Boolean = true,
 ) : ActionPanelActionUi {
     enum class Style {

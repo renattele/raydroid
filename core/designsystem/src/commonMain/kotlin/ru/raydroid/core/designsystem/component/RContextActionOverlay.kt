@@ -1,6 +1,9 @@
 package ru.raydroid.core.designsystem.component
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -12,6 +15,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.zIndex
+import ru.raydroid.core.designsystem.RaydroidMotionToken
+import ru.raydroid.core.designsystem.RaydroidTheme
 
 @Immutable
 data class RContextActionOverlayState(
@@ -46,18 +51,37 @@ fun Modifier.rContextActionAnchor(sourceId: String?): Modifier = composed {
     )
 }
 
-fun Modifier.rContextActionInactiveLayer(): Modifier = composed {
+fun Modifier.rContextActionInactiveLayer(blur: Boolean = true): Modifier = composed {
     val overlayState = LocalRContextActionOverlayState.current
-    if (!overlayState.visible) {
-        return@composed this
-    }
-    blur(18.dp).alpha(0.45f)
+    val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
+    val blurRadius by animateDpAsState(
+        targetValue = if (overlayState.visible && blur) 18.dp else 0.dp,
+        animationSpec = motion.dpSpec(),
+        label = "rContextActionInactiveLayerBlur"
+    )
+    val alphaValue by animateFloatAsState(
+        targetValue = if (overlayState.visible) 0.45f else 1f,
+        animationSpec = motion.floatSpec(),
+        label = "rContextActionInactiveLayerAlpha"
+    )
+    blur(blurRadius).alpha(alphaValue)
 }
 
 fun Modifier.rContextActionInactiveItem(sourceId: String?): Modifier = composed {
     val overlayState = LocalRContextActionOverlayState.current
-    if (!overlayState.visible || sourceId == null || overlayState.activeSourceId == sourceId) {
-        return@composed this
-    }
-    blur(12.dp).alpha(0.5f)
+    val isInactive = overlayState.visible &&
+        sourceId != null &&
+        overlayState.activeSourceId != sourceId
+    val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
+    val blurRadius by animateDpAsState(
+        targetValue = if (isInactive) 12.dp else 0.dp,
+        animationSpec = motion.dpSpec(),
+        label = "rContextActionInactiveItemBlur"
+    )
+    val alphaValue by animateFloatAsState(
+        targetValue = if (isInactive) 0.5f else 1f,
+        animationSpec = motion.floatSpec(),
+        label = "rContextActionInactiveItemAlpha"
+    )
+    blur(blurRadius).alpha(alphaValue)
 }

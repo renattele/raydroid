@@ -199,6 +199,10 @@ fun SearchScreen(
                 emptyList()
             } else {
                 fullscreenFocusedActions ?: overlayState.focusedActions
+                    .takeIf { actions ->
+                        fullscreen == null || actions.all { action -> action.resultId == fullscreen.resultId }
+                    }
+                    .orEmpty()
             }
             val focusedActions = focusedCommandActions.map { focusedAction ->
                 focusedAction.action
@@ -217,6 +221,16 @@ fun SearchScreen(
                 if (fullscreen == null && focusedItemIndex != null) {
                     listState.scrollToItem(focusedItemIndex)
                 }
+            }
+            LaunchedEffect(listState, overlayState.showContextActions, fullscreen) {
+                if (fullscreen != null) return@LaunchedEffect
+                snapshotFlow { listState.isScrollInProgress }
+                    .distinctUntilChanged()
+                    .collectLatest { isScrolling ->
+                        if (isScrolling && overlayState.showContextActions) {
+                            onEvent(SearchScreenEvent.HideActions)
+                        }
+                    }
             }
             state.alerts.forEach { alert ->
                 RAlertDialog(
@@ -303,10 +317,11 @@ fun SearchScreen(
                 } else {
                     LazyColumn(
                         Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
                         contentPadding = PaddingValues(
                             start = spacing.medium,
                             end = spacing.medium,
-                            top = spacing.extraSmall,
+                            top = spacing.small,
                             bottom = spacing.extraLarge * 2
                         ),
                         reverseLayout = true,
@@ -347,6 +362,17 @@ fun SearchScreen(
                                                 )
                                             )
                                         }
+                                    )
+                                } else if (
+                                    searchResult is SearchResultSet.LiveSearchResult &&
+                                    searchResult.presentation.content.isEmpty()
+                                ) {
+                                    CommandListItemView(
+                                        listEntry = searchResult.listEntry,
+                                        onClick = {
+                                            onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                        },
+                                        focused = index == focusedItemIndex
                                     )
                                 } else if (searchResult is SearchResultSet.LiveSearchResult) {
                                     RayDecorator(

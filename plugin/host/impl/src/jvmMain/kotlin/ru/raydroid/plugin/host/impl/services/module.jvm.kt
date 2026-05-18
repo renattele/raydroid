@@ -10,6 +10,7 @@ import ru.raydroid.plugin.host.impl.services.mac.MacSystemServiceBridgeImpl
 
 internal actual val platformHostServiceModule = module {
     single<DesktopPlatform> { detectDesktopPlatform() }
+    factory<AllFilesAccessGateway> { UnsupportedAllFilesAccessGateway() }
     factory<ClipboardServiceBridge> { ClipboardServiceBridgeImpl() }
     factory<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
     factory<SystemServiceBridge> {

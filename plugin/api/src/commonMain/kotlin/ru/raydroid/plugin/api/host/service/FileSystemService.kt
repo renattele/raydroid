@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 interface FileSystemService {
+    suspend fun hasAllFilesAccess(): Boolean
+    suspend fun requestAllFilesAccess()
     suspend fun exists(path: String): Boolean
     suspend fun metadata(path: String): FileMetadata?
     suspend fun list(path: String): List<FileEntry>
