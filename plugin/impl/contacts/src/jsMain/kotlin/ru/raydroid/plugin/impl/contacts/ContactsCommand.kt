@@ -98,7 +98,7 @@ class ContactsCommand : CommandService() {
                     return
                 }
                 val contact = contact(action.hoveredId.value) ?: return
-                Host.contacts.dial(contact.primaryPhone() ?: return)
+                Host.contacts.openContact(contact.id)
             }
 
             is CommandAction.OpenCommand -> {
