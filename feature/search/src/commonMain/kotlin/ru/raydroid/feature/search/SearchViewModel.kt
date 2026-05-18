@@ -431,14 +431,20 @@ class SearchViewModel(
                     }
 
                     is SearchResultSet.CachedSearchResult -> {
-                        collectFullscreen(
-                            result = openResult,
-                            fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
-                        )
+                        if (openResultId.commandMode() != Command.Mode.NoView) {
+                            collectFullscreen(
+                                result = openResult,
+                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+                            )
+                        }
                         enterItemUseCase(openResultId)
                     }
 
                     is SearchResultSet.LiveSearchResult -> {
+                        if (openResult.listEntry.quickAction != null) {
+                            enterItemUseCase(openResultId)
+                            return
+                        }
                         val primaryCallback = openResult.presentation.primaryCallback
                         if (primaryCallback != null) {
                             if (openResult.presentation.content.isEmpty()) {

@@ -390,8 +390,8 @@ fun SearchScreen(
                                                     sourceId = searchResult.resultId.contextActionSourceId()
                                                 )
                                             )
-                                        }
                                         },
+
                                         onQuickAction = {
                                             onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
                                         }
