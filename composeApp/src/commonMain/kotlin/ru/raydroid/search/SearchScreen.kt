@@ -162,6 +162,10 @@ fun SearchScreen(
                 emptyList()
             } else {
                 fullscreenFocusedActions ?: overlayState.focusedActions
+                    .takeIf { actions ->
+                        fullscreen == null || actions.all { action -> action.resultId == fullscreen.resultId }
+                    }
+                    .orEmpty()
             }
             val focusedActions = focusedCommandActions.map { focusedAction ->
                 focusedAction.action
@@ -277,6 +281,17 @@ fun SearchScreen(
                                         onEvent(SearchScreenEvent.Submit(searchResult.resultId))
                                     }, focused = index == focusedItemIndex)
                                 } else if (searchResult is SearchResultSet.CommandSearchResult) {
+                                    CommandListItemView(
+                                        listEntry = searchResult.listEntry,
+                                        onClick = {
+                                            onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                        },
+                                        focused = index == focusedItemIndex
+                                    )
+                                } else if (
+                                    searchResult is SearchResultSet.LiveSearchResult &&
+                                    searchResult.presentation.content.isEmpty()
+                                ) {
                                     CommandListItemView(
                                         listEntry = searchResult.listEntry,
                                         onClick = {

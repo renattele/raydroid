@@ -32,6 +32,9 @@ internal data class SearchIndexCacheEntity(
     @ColumnInfo("icon_type")
     val iconType: String?,
 
+    @ColumnInfo("icon_color")
+    val iconColor: String?,
+
     @ColumnInfo("last_used_at_epoch_ms")
     val lastUsedAtEpochMs: Long? = null,
 
@@ -96,6 +99,9 @@ internal data class SearchIndexCacheSearchEntity(
 
     @ColumnInfo("icon_type")
     val iconType: String?,
+
+    @ColumnInfo("icon_color")
+    val iconColor: String?,
 
     @ColumnInfo("title")
     val title: String?,

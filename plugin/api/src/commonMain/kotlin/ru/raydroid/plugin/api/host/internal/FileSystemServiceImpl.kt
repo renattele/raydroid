@@ -12,6 +12,12 @@ import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 internal class FileSystemServiceImpl(
     private val bridge: FileSystemServiceBridge
 ) : FileSystemService {
+    override suspend fun hasAllFilesAccess(): Boolean = bridge.hasAllFilesAccess()
+
+    override suspend fun requestAllFilesAccess() {
+        bridge.requestAllFilesAccess()
+    }
+
     override suspend fun exists(path: String): Boolean = bridge.exists(path)
 
     override suspend fun metadata(path: String): FileMetadata? =

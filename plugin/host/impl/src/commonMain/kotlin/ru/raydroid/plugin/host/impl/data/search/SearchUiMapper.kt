@@ -4,6 +4,7 @@ import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginColor
 import ru.raydroid.plugin.host.api.ui.PluginIcon
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.impl.data.search.cache.SearchIndexCacheSearchEntity
@@ -13,10 +14,15 @@ internal fun SearchIndexCacheSearchEntity.toPluginListEntry(): PluginCommandList
     return PluginCommandListItem(
         id = CommandItemId(itemId),
         icon = icon?.toPluginIcon(pluginId, iconType),
+        iconColor = iconColor?.toPluginColor()
+            ?: PluginColor.OnSurfaceVariant.takeIf { iconType == Icon.Type.Builtin.name },
         title = title?.let(PluginUiText::Plain),
         description = description?.let(PluginUiText::Plain)
     )
 }
+
+private fun String.toPluginColor(): PluginColor? =
+    PluginColor.entries.firstOrNull { color -> color.name == this }
 
 private fun String.toPluginIcon(
     pluginId: PluginId,

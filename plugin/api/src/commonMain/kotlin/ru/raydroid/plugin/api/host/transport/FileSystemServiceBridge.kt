@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
 interface FileSystemServiceBridge : ZiplineService {
+    suspend fun hasAllFilesAccess(): Boolean
+    suspend fun requestAllFilesAccess()
     suspend fun exists(path: String): Boolean
     suspend fun metadata(path: String): RawFileMetadata?
     suspend fun list(path: String): List<RawFileEntry>

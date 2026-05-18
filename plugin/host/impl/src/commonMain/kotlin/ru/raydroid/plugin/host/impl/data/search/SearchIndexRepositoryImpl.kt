@@ -124,7 +124,8 @@ internal class SearchIndexRepositoryImpl(
                 command = resultId.commandName,
                 itemId = listEntry.id.value,
                 icon = resolvedIcon?.value,
-                iconType = resolvedIcon?.type?.name
+                iconType = resolvedIcon?.type?.name,
+                iconColor = listEntry.iconColor?.name
             ),
             content = resolvedContent.map { content ->
                 val titleSearch = SearchQueryNormalizer.searchable(content.title)

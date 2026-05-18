@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.api.host.service.SearchFieldState as ApiSearchFieldState
+import ru.raydroid.plugin.api.manifest.Command
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
@@ -404,7 +405,9 @@ class SearchViewModel(
                     ?.firstOrNull { result -> result.resultId == openResultId }
                 when (openResult) {
                     is SearchResultSet.CommandSearchResult -> {
-                        collectFullscreen(openResult)
+                        if (openResultId.commandMode() != Command.Mode.NoView) {
+                            collectFullscreen(openResult)
+                        }
                         openCommandUseCase(openResultId)
                     }
 
@@ -419,6 +422,12 @@ class SearchViewModel(
                     is SearchResultSet.LiveSearchResult -> {
                         val primaryCallback = openResult.presentation.primaryCallback
                         if (primaryCallback != null) {
+                            if (openResult.presentation.content.isEmpty()) {
+                                collectFullscreenWhenContentAppears(
+                                    result = openResult,
+                                    fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+                                )
+                            }
                             executeCommandCallbackUseCase(
                                 resultId = openResultId,
                                 callback = primaryCallback,
@@ -608,6 +617,13 @@ class SearchViewModel(
         }
     }
 
+    private fun SearchResultId.commandMode(): Command.Mode? {
+        val runtime = backingState.value.plugins[pluginId] ?: return null
+        return runtime.manifest.commands
+            .firstOrNull { command -> command.service == commandName }
+            ?.mode
+    }
+
     private suspend fun collapseAndCloseFullscreen(resultId: SearchResultId) {
         backingState.update { uiState ->
             val fullscreen = uiState.fullscreen ?: return@update uiState
@@ -631,8 +647,18 @@ class SearchViewModel(
         fullscreenJob?.cancel()
         fullscreenJob = null
         closeCommandUseCase(fullscreen.resultId)
+        val focusedActions = uiState.searchResults.actionsForFocused(
+            uiState.focusedItemIndex,
+            uiState.plugins
+        )
         backingState.update { currentState ->
-            currentState.copy(fullscreen = null)
+            currentState.copy(
+                fullscreen = null,
+                focusedActions = focusedActions,
+                showActions = currentState.showActions && focusedActions.isNotEmpty(),
+                contextActions = emptyList(),
+                showContextActions = false
+            )
         }
     }
 
@@ -756,6 +782,42 @@ class SearchViewModel(
                 fullscreen.resultId.commandName,
                 CommandActionBridge.Regular(CommandAction.Enter(itemId))
             )
+        }
+    }
+
+    private fun collectFullscreenWhenContentAppears(
+        result: SearchResultSet.SearchResult,
+        fullscreenResultId: SearchResultId
+    ) {
+        fullscreenJob?.cancel()
+        val runtime = backingState.value.plugins[fullscreenResultId.pluginId]
+        val command = runtime
+            ?.manifest
+            ?.commands
+            ?.firstOrNull { command -> command.service == fullscreenResultId.commandName }
+        fullscreenJob = scope.launch {
+            getCommandFullscreenUseCase(fullscreenResultId).collectLatest { content ->
+                val newContent = content?.content.orEmpty()
+                if (newContent.isEmpty()) return@collectLatest
+                backingState.update { uiState ->
+                    uiState.copy(
+                        fullscreen = SearchFullscreenContentState(
+                            resultId = fullscreenResultId,
+                            title = result.listEntry.title,
+                            placeholder = command?.placeholder?.toPluginUiText(fullscreenResultId.pluginId),
+                            searchFieldState = SearchFieldUiState(),
+                            exitBackspaceCount = 0,
+                            content = newContent,
+                            focusedItemId = null
+                        ),
+                        focusedActions = emptyList(),
+                        showActions = false,
+                        contextActions = emptyList(),
+                        showContextActions = false
+                    )
+                }
+                focusFullscreenItem(backingState.value.fullscreen?.focusedItemId)
+            }
         }
     }
 

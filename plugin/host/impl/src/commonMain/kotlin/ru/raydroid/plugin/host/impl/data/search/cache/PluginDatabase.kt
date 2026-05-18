@@ -14,7 +14,7 @@ import kotlinx.coroutines.IO
         SearchIndexCacheContentEntity::class,
         SearchIndexCacheContentFtsEntity::class
     ],
-    version = 5
+    version = 6
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 internal abstract class PluginDatabase : RoomDatabase() {
