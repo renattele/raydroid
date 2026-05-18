@@ -1,6 +1,6 @@
 package ru.raydroid.plugin.host.api.application.usecase
 
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.collect
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
 import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 
@@ -10,10 +10,8 @@ class SyncCacheUseCase(
 ) {
     suspend operator fun invoke() {
         val runtimeCoordinator = pluginRuntimeRegistry.get()
-        runtimeCoordinator.cachedItems().collectLatest { cachedItems ->
-            cachedItems.forEach { (_, mutations) ->
-                searchIndexRepository.update(mutations)
-            }
+        runtimeCoordinator.cachedItems().collect { mutations ->
+            searchIndexRepository.update(mutations)
         }
     }
 }

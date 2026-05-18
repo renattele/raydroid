@@ -119,7 +119,9 @@ private fun SearchResultSet.SearchResult.decorateAlias(alias: String?): SearchRe
             listEntry = listEntry.copy(alias = alias)
         )
 
-        is SearchResultSet.LiveSearchResult -> this
+        is SearchResultSet.LiveSearchResult -> copy(
+            listEntry = listEntry.copy(alias = alias)
+        )
     }
 }
 

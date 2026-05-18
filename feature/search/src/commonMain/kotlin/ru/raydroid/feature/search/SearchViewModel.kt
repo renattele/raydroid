@@ -1376,11 +1376,7 @@ internal suspend fun SearchResultSet.SearchResult.actions(
 }
 
 private fun SearchResultSet.SearchResult.hostAliasActions(): List<SearchPanelAction> {
-    val alias = when (this) {
-        is SearchResultSet.CachedSearchResult,
-        is SearchResultSet.CommandSearchResult -> listEntry.alias
-        is SearchResultSet.LiveSearchResult -> return emptyList()
-    }
+    val alias = listEntry.alias
     val group = PluginUiText.Plain("Aliases")
     return if (alias == null) {
         listOf(

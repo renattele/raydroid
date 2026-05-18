@@ -141,6 +141,29 @@ class SearchUseCaseTest {
         val commandResult = assertIs<SearchResultSet.CommandSearchResult>(results.first())
         assertEquals(null, commandResult.listEntry.alias)
     }
+
+    @Test
+    fun `decorate aliases adds alias to live result`() = runTest {
+        val fixture = SearchUseCaseFixture(includeCommands = false, includeLive = true)
+        fixture.content.value = listOf(
+            PluginRuntimeCoordinator.ContentItem(
+                runtime = fixture.runtime,
+                presentation = PluginCommandPresentation(
+                    listEntry = fixture.commandEntry(),
+                    primaryCallback = null,
+                    content = emptyList()
+                ),
+                listEntry = fixture.commandEntry(),
+                resultId = fixture.resultId
+            )
+        )
+        fixture.aliasRepository.aliases.value = mapOf(fixture.resultId to "oy")
+
+        val result = fixture.useCase("open").first().results.first()
+
+        val liveResult = assertIs<SearchResultSet.LiveSearchResult>(result)
+        assertEquals("oy", liveResult.listEntry.alias)
+    }
 }
 
 private class SearchUseCaseFixture(
@@ -158,7 +181,7 @@ private class SearchUseCaseFixture(
     )
     val commands = MutableStateFlow<List<PluginRuntimeCoordinator.CommandItem>>(emptyList())
     val content = MutableStateFlow<List<PluginRuntimeCoordinator.ContentItem>>(emptyList())
-    val cachedItems = MutableStateFlow<Map<PluginRuntime, List<SearchIndexMutation>>>(emptyMap())
+    val cachedItems = MutableStateFlow<List<SearchIndexMutation>>(emptyList())
     val searchIndexRepository = SearchUseCaseSearchIndexRepository()
     val aliasRepository = SearchUseCaseAliasRepository()
     private val registry = SearchUseCaseRegistry(
@@ -192,9 +215,9 @@ private class SearchUseCaseFixture(
 private class SearchUseCaseCoordinator(
     private val commands: StateFlow<List<PluginRuntimeCoordinator.CommandItem>>,
     private val content: StateFlow<List<PluginRuntimeCoordinator.ContentItem>>,
-    private val cachedItems: Flow<Map<PluginRuntime, List<SearchIndexMutation>>>
+    private val cachedItems: Flow<List<SearchIndexMutation>>
 ) : PluginRuntimeCoordinator {
-    override fun cachedItems(): Flow<Map<PluginRuntime, List<SearchIndexMutation>>> = cachedItems
+    override fun cachedItems(): Flow<List<SearchIndexMutation>> = cachedItems
     override fun runtimes(): StateFlow<List<PluginRuntime>> = MutableStateFlow(emptyList())
     override fun content(): StateFlow<List<PluginRuntimeCoordinator.ContentItem>> = content
     override fun commands(): StateFlow<List<PluginRuntimeCoordinator.CommandItem>> = commands

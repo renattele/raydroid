@@ -4,12 +4,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.presentation.CommandItemId
@@ -33,9 +34,7 @@ internal class PluginRuntimeCoordinatorImpl(
         emptyList()
     )
 
-    private val cacheItemsFlow = MutableStateFlow<Map<PluginRuntime, List<SearchIndexMutation>>>(
-        mapOf()
-    )
+    private val cacheItemsChannel = Channel<List<SearchIndexMutation>>(Channel.BUFFERED)
     private val commandFlow = MutableStateFlow<List<PluginRuntimeCoordinator.CommandItem>>(
         emptyList()
     )
@@ -45,37 +44,21 @@ internal class PluginRuntimeCoordinatorImpl(
             var previousJob: Job? = null
             pluginRuntimes.collectLatest { runtimes ->
                 previousJob?.cancel()
-                commandFlow.value = runtimes.commandItems()
+                val allContent = runtimes.allContentItems()
+                contentFlow.value = allContent.visibleContentItems()
+                commandFlow.value = runtimes.commandItems(allContent)
                 previousJob = launch {
                     runtimes.forEach { runtime ->
                         launch {
                             runtime.content().collectLatest { _ ->
-                                val newContent = runtimes.flatMap { currentRuntime ->
-                                    val content = currentRuntime.content().value
-                                    content.map { contentItem ->
-                                        PluginRuntimeCoordinator.ContentItem(
-                                            listEntry = contentItem.presentation.listEntry,
-                                            resultId = SearchResultId(
-                                                pluginId = currentRuntime.pluginId,
-                                                commandName = contentItem.commandName,
-                                                itemId = contentItem.presentation.listEntry.id
-                                            ),
-                                            runtime = currentRuntime,
-                                            presentation = contentItem.presentation,
-                                        )
-                                    }
-                                }
-                                contentFlow.value = newContent.filterNot { contentItem ->
-                                    contentItem.resultId.itemId == CommandItemId.CommandRoot
-                                }
-                                commandFlow.value = runtimes.commandItems(newContent)
+                                val allNewContent = runtimes.allContentItems()
+                                contentFlow.value = allNewContent.visibleContentItems()
+                                commandFlow.value = runtimes.commandItems(allNewContent)
                             }
                         }
                         launch {
                             runtime.cachedItems().collectLatest { newCacheItems ->
-                                cacheItemsFlow.update { oldCacheItems ->
-                                    oldCacheItems + (runtime to newCacheItems)
-                                }
+                                cacheItemsChannel.send(newCacheItems)
                             }
                         }
                     }
@@ -84,8 +67,8 @@ internal class PluginRuntimeCoordinatorImpl(
         }
     }
 
-    override fun cachedItems(): Flow<Map<PluginRuntime, List<SearchIndexMutation>>> =
-        cacheItemsFlow
+    override fun cachedItems(): Flow<List<SearchIndexMutation>> =
+        cacheItemsChannel.receiveAsFlow()
 
     override fun runtimes(): StateFlow<List<PluginRuntime>> = pluginRuntimes
 
@@ -128,6 +111,27 @@ internal class PluginRuntimeCoordinatorImpl(
                         resultId = resultId
                     )
                 }
+        }
+
+    private fun List<PluginRuntime>.allContentItems(): List<PluginRuntimeCoordinator.ContentItem> =
+        flatMap { currentRuntime ->
+            currentRuntime.content().value.map { contentItem ->
+                PluginRuntimeCoordinator.ContentItem(
+                    listEntry = contentItem.presentation.listEntry,
+                    resultId = SearchResultId(
+                        pluginId = currentRuntime.pluginId,
+                        commandName = contentItem.commandName,
+                        itemId = contentItem.presentation.listEntry.id
+                    ),
+                    runtime = currentRuntime,
+                    presentation = contentItem.presentation,
+                )
+            }
+        }
+
+    private fun List<PluginRuntimeCoordinator.ContentItem>.visibleContentItems(): List<PluginRuntimeCoordinator.ContentItem> =
+        filterNot { contentItem ->
+            contentItem.resultId.itemId == CommandItemId.CommandRoot
         }
 
     private fun commandListEntry(

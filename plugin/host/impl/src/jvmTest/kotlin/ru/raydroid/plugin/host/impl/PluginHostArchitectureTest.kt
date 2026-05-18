@@ -252,6 +252,44 @@ class PluginHostArchitectureTest {
     }
 
     @Test
+    fun `runtime coordinator applies command root content override to command entry`() = runTest {
+        val rootPresentation = CommandPresentation(
+            listEntry = CommandListItem(
+                id = CommandItemId.CommandRoot,
+                icon = null,
+                title = UiText.Plain("1+1"),
+                description = null,
+                trailingText = UiText.Plain("2")
+            ),
+            content = emptyList()
+        ).toPluginCommandPresentation(PluginId("ru.test.plugin"))
+        val runtime = FakePluginRuntime(
+            manifest = testManifest(),
+            contentItems = MutableStateFlow(
+                listOf(
+                    PluginRuntime.ContentItem(
+                        commandName = "apps",
+                        presentation = rootPresentation
+                    )
+                )
+            )
+        )
+        val pluginRuntimes = MutableStateFlow(emptyList<PluginRuntime>())
+        val coordinator = PluginRuntimeCoordinatorImpl(
+            coroutineScope = backgroundScope,
+            pluginRuntimes = pluginRuntimes,
+        )
+        pluginRuntimes.value = listOf(runtime)
+
+        advanceUntilIdle()
+
+        val command = coordinator.commands().first { commands -> commands.isNotEmpty() }.single()
+        assertEquals("1+1", assertIs<PluginUiText.Plain>(command.listEntry.title).text)
+        assertEquals("2", assertIs<PluginUiText.Plain>(command.listEntry.trailingText).text)
+        assertTrue(coordinator.content().value.isEmpty())
+    }
+
+    @Test
     fun `open command use case dispatches open command action for command root`() = runTest {
         val runtime = FakePluginRuntime(manifest = testManifest())
         val coordinator = FakePluginRuntimeCoordinator(runtimes = MutableStateFlow(listOf(runtime)))
@@ -614,7 +652,7 @@ private class FakePluginRuntime(
 private class FakePluginRuntimeCoordinator(
     private val runtimes: StateFlow<List<PluginRuntime>>,
 ) : PluginRuntimeCoordinator {
-    override fun cachedItems(): Flow<Map<PluginRuntime, List<SearchIndexMutation>>> = emptyFlow()
+    override fun cachedItems(): Flow<List<SearchIndexMutation>> = emptyFlow()
 
     override fun runtimes(): StateFlow<List<PluginRuntime>> = runtimes
 

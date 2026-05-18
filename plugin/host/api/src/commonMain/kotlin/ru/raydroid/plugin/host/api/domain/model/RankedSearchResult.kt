@@ -11,6 +11,7 @@ data class SearchResultScore(
     val usageBoost: Double = 0.0,
     val exact: Boolean = false,
     val prefix: Boolean = false,
+    val inlineResult: Boolean = false,
     val titleMatch: Boolean = false,
     val live: Boolean = false,
     val fieldLength: Int = Int.MAX_VALUE,

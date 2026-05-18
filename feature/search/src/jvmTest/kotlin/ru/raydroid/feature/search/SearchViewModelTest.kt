@@ -62,6 +62,7 @@ import ru.raydroid.plugin.host.api.event.SearchFieldGateway
 import ru.raydroid.plugin.host.api.event.SearchFieldRequest
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
+import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -341,6 +342,64 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `live result with alias exposes host alias actions`() = runTest {
+        val fixture = SearchViewModelFixture(this)
+        val itemId = CommandItemId("file:readme")
+        val result = SearchResultSet.LiveSearchResult(
+            resultId = fixture.resultId.copy(itemId = itemId),
+            listEntry = PluginCommandListItem(
+                id = itemId,
+                icon = null,
+                title = PluginUiText.Plain("README.md"),
+                description = null,
+                alias = "readme"
+            ),
+            presentation = PluginCommandPresentation(
+                listEntry = PluginCommandListItem(
+                    id = itemId,
+                    icon = null,
+                    title = PluginUiText.Plain("README.md"),
+                    description = null
+                ),
+                primaryCallback = null,
+                actions = emptyList(),
+                content = emptyList()
+            )
+        )
+
+        val actions = result.actions(emptyMap()).map { it.title }
+
+        assertEquals(
+            listOf(
+                PluginUiText.Plain("Edit Alias"),
+                PluginUiText.Plain("Remove Alias")
+            ),
+            actions
+        )
+    }
+
+    @Test
+    fun `cached result without plugin actions exposes add alias action`() = runTest {
+        val fixture = SearchViewModelFixture(this)
+        val itemId = CommandItemId("file:readme")
+        val result = SearchResultSet.CachedSearchResult(
+            resultId = fixture.resultId.copy(itemId = itemId),
+            listEntry = PluginCommandListItem(
+                id = itemId,
+                icon = null,
+                title = PluginUiText.Plain("README.md"),
+                description = null
+            ),
+            titleMatches = emptyList(),
+            descriptionMatches = emptyList()
+        )
+
+        val actions = result.actions(emptyMap()).map { it.title }
+
+        assertEquals(listOf(PluginUiText.Plain("Add Alias")), actions)
+    }
+
+    @Test
     fun `duplicate alias keeps editor open with inline error`() = runTest {
         val fixture = SearchViewModelFixture(this)
         val editAction = FocusedCommandAction(
@@ -398,7 +457,7 @@ private class SearchViewModelFixture(testScope: kotlinx.coroutines.test.TestScop
     val runtimes = MutableStateFlow(listOf<PluginRuntime>(runtime))
     val commands = MutableStateFlow<List<PluginRuntimeCoordinator.CommandItem>>(emptyList())
     val content = MutableStateFlow<List<PluginRuntimeCoordinator.ContentItem>>(emptyList())
-    val cachedItems = MutableStateFlow<Map<PluginRuntime, List<SearchIndexMutation>>>(emptyMap())
+    val cachedItems = MutableStateFlow<List<SearchIndexMutation>>(emptyList())
     val eventGateway = FakeEventGateway()
     val events = MutableSharedFlow<PluginEvent<*>>(extraBufferCapacity = 8)
     val searchFieldGateway = FakeSearchFieldGateway()
@@ -446,11 +505,11 @@ private class FakePluginRuntimeCoordinator(
     private val runtimes: StateFlow<List<PluginRuntime>>,
     private val commands: StateFlow<List<PluginRuntimeCoordinator.CommandItem>>,
     private val content: StateFlow<List<PluginRuntimeCoordinator.ContentItem>>,
-    private val cachedItems: Flow<Map<PluginRuntime, List<SearchIndexMutation>>>
+    private val cachedItems: Flow<List<SearchIndexMutation>>
 ) : PluginRuntimeCoordinator {
     val updates = mutableListOf<CommandActionBridge>()
 
-    override fun cachedItems(): Flow<Map<PluginRuntime, List<SearchIndexMutation>>> = cachedItems
+    override fun cachedItems(): Flow<List<SearchIndexMutation>> = cachedItems
 
     override fun runtimes(): StateFlow<List<PluginRuntime>> = runtimes
 

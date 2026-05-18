@@ -9,7 +9,7 @@ import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
 
 interface PluginRuntimeCoordinator {
-    fun cachedItems(): Flow<Map<PluginRuntime, List<SearchIndexMutation>>>
+    fun cachedItems(): Flow<List<SearchIndexMutation>>
 
     fun runtimes(): StateFlow<List<PluginRuntime>>
 

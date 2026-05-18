@@ -235,6 +235,7 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
                 val resultScore = if (commandItem.listEntry.trailingText != null) {
                     score.copy(
                         textScore = score.textScore + INLINE_RESULT_BOOST,
+                        inlineResult = true,
                         prefix = true,
                         titleMatch = true
                     )
@@ -841,6 +842,7 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
 
     private val rankedComparator = compareByDescending<RankedSearchResult> { it.score.exact }
         .thenByDescending { it.score.prefix }
+        .thenByDescending { it.score.inlineResult }
         .thenByDescending { it.score.textScore }
         .thenBy { it.score.editDistance }
         .thenByDescending { it.score.usageBoost }

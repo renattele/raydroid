@@ -157,6 +157,36 @@ class SearchRankingTest {
     }
 
     @Test
+    fun `inline calculator result stays ahead of dense cached expression matches`() {
+        val runtime = FakeSearchRuntime(
+            manifest = manifest(match = "[0-9].*"),
+            contentItems = emptyList()
+        )
+        val commandResults = ranker.rankCommands(
+            query = "1+1",
+            commandsSnapshot = listOf(commandItem(runtime, trailingText = "2")),
+            limit = 10
+        )
+        val cachedResults = ranker.rankCached(
+            query = SearchQueryNormalizer.from("1+1"),
+            ftsCandidates = listOf(cachedCandidate(contentId = 1, itemId = "history", title = "1 1 1")),
+            fallbackCandidates = emptyList(),
+            limit = 10,
+            nowEpochMs = 1_000
+        )
+
+        val merged = ranker.merge(
+            commandResults = commandResults,
+            liveResults = emptyList(),
+            cachedResults = cachedResults,
+            limit = 10
+        )
+
+        val first = assertIs<SearchResultSet.CommandSearchResult>(merged.first())
+        assertEquals(PluginUiText.Plain("2"), first.listEntry.trailingText)
+    }
+
+    @Test
     fun `room fts finds normalized prefix and acronym columns`() = runTest {
         val dbFile = File.createTempFile("raydroid-search", ".db").apply { delete() }
         val database = getAppDatabase(getDatabaseBuilder(dbFile.absolutePath.toPath()))
@@ -246,7 +276,7 @@ class SearchRankingTest {
         }
     }
 
-    private fun commandItem(runtime: PluginRuntime): PluginRuntimeCoordinator.CommandItem {
+    private fun commandItem(runtime: PluginRuntime, trailingText: String? = null): PluginRuntimeCoordinator.CommandItem {
         val command = runtime.manifest.commands.single()
         return PluginRuntimeCoordinator.CommandItem(
             runtime = runtime,
@@ -254,7 +284,8 @@ class SearchRankingTest {
                 id = CommandItemId.CommandRoot,
                 icon = null,
                 title = command.title.toPluginText(runtime.pluginId),
-                description = command.description.toPluginText(runtime.pluginId)
+                description = command.description.toPluginText(runtime.pluginId),
+                trailingText = trailingText?.let(PluginUiText::Plain)
             ),
             resultId = SearchResultId(
                 pluginId = runtime.pluginId,

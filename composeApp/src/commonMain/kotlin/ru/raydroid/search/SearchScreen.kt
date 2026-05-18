@@ -328,7 +328,10 @@ fun SearchScreen(
                         state = listState
                     ) {
                         if (searchResults != null) {
-                            itemsIndexed(searchResults.results) { index, searchResult ->
+                            itemsIndexed(
+                                items = searchResults.results,
+                                key = { _, searchResult -> searchResult.resultRowKey() }
+                            ) { index, searchResult ->
                                 if (searchResult is SearchResultSet.CachedSearchResult) {
                                     SearchListItem(
                                         result = searchResult,
@@ -372,7 +375,16 @@ fun SearchScreen(
                                         onClick = {
                                             onEvent(SearchScreenEvent.Submit(searchResult.resultId))
                                         },
-                                        focused = index == focusedItemIndex
+                                        focused = index == focusedItemIndex,
+                                        contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
+                                        onLongClick = {
+                                            onEvent(
+                                                SearchScreenEvent.ShowResultContextActions(
+                                                    resultId = searchResult.resultId,
+                                                    sourceId = searchResult.resultId.contextActionSourceId()
+                                                )
+                                            )
+                                        }
                                     )
                                 } else if (searchResult is SearchResultSet.LiveSearchResult) {
                                     RayDecorator(
@@ -846,6 +858,15 @@ private data class SearchFieldSnapshot(
     val query: String,
     val selection: SearchFieldSelection
 )
+
+private fun SearchResultSet.SearchResult.resultRowKey(): String {
+    val type = when (this) {
+        is SearchResultSet.CachedSearchResult -> "cached"
+        is SearchResultSet.CommandSearchResult -> "command"
+        is SearchResultSet.LiveSearchResult -> "live"
+    }
+    return "$type:${resultId.pluginId.id}:${resultId.commandName}:${resultId.itemId.value}"
+}
 
 private fun SearchResultId.contextActionSourceId(): String {
     return "search-result:${pluginId.id}:$commandName:${itemId.value}"
