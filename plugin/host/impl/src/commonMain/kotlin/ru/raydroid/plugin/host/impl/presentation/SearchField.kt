@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
@@ -49,20 +50,14 @@ fun SearchField(
         color = PluginColor.OnSurface.toColor(),
         fontSize = PluginFontSize.Small.toTextUnit()
     )
-    val fieldShape = RaydroidTheme.shapes.medium
     Column(modifier) {
         RDivider(color = RaydroidTheme.colorScheme.outlineVariant)
         RTextField(
             state = state.fieldState,
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(fieldShape)
                 .background(RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                .border(
-                    width = RaydroidTheme.spacing.border,
-                    color = RaydroidTheme.colorScheme.outlineVariant.copy(alpha = 0.9f),
-                    shape = fieldShape
-                ),
+                .navigationBarsPadding(),
             textStyle = textStyle,
             keyboardOptions = KeyboardOptions(
                 autoCorrectEnabled = false,
@@ -109,7 +104,8 @@ fun SearchField(
                     placeholderText,
                     style = textStyle,
                     color = PluginColor.OnSurfaceVariant.toColor(),
-                    modifier = Modifier.alpha(0.9f)
+                    modifier = Modifier.alpha(0.9f),
+                    maxLines = 1
                 )
             },
             leadingContent = if (leadingContent != null) {
