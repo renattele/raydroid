@@ -80,6 +80,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PluginHostArchitectureTest {
@@ -95,6 +96,7 @@ class PluginHostArchitectureTest {
                     itemId = "item-1",
                     icon = null,
                     iconType = null,
+                    iconColor = null,
                     title = "Calculator",
                     description = "System app",
                     lastUsedAtEpochMs = null,
@@ -131,6 +133,7 @@ class PluginHostArchitectureTest {
                     itemId = "item-1",
                     icon = "ArrowDropUp",
                     iconType = Icon.Type.Builtin.name,
+                    iconColor = null,
                     title = "Calculator",
                     description = "System app",
                     lastUsedAtEpochMs = null,
@@ -717,6 +720,7 @@ private class FakeSearchIndexCacheDao(
     override suspend fun updateListItem(entity: SearchIndexCacheEntity) = Unit
     override suspend fun insertContent(entities: List<SearchIndexCacheContentEntity>) = Unit
     override suspend fun getSearchIndexId(pluginId: String, command: String, itemId: String): Long? = null
+    override suspend fun getListItem(pluginId: String, command: String, itemId: String): SearchIndexCacheEntity? = null
     override suspend fun deleteContentBySearchIndexCacheId(searchIndexCacheId: Long) = Unit
     override suspend fun deleteContentByCommand(pluginId: String, command: String) = Unit
     override suspend fun deleteCommandListItems(pluginId: String, command: String) = Unit

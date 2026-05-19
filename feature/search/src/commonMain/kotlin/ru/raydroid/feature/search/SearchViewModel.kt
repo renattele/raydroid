@@ -431,17 +431,19 @@ class SearchViewModel(
                     }
 
                     is SearchResultSet.CachedSearchResult -> {
-                        collectFullscreen(
-                            result = openResult,
-                            fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
-                        )
+                        if (shouldOpenFullscreenOnSubmit(openResultId.commandMode())) {
+                            collectFullscreen(
+                                result = openResult,
+                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+                            )
+                        }
                         enterItemUseCase(openResultId)
                     }
 
                     is SearchResultSet.LiveSearchResult -> {
                         val primaryCallback = openResult.presentation.primaryCallback
                         if (primaryCallback != null) {
-                            if (openResult.presentation.content.isEmpty()) {
+                            if (shouldCollectDeferredFullscreenOnSubmit(openResultId.commandMode(), openResult)) {
                                 collectFullscreenWhenContentAppears(
                                     result = openResult,
                                     fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
@@ -450,7 +452,7 @@ class SearchViewModel(
                             executeCommandCallbackUseCase(
                                 resultId = openResultId,
                                 callback = primaryCallback,
-                                updateUsage = false
+                                updateUsage = true
                             )
                         }
                     }
@@ -1389,7 +1391,7 @@ internal suspend fun SearchResultSet.SearchResult.actions(
     plugins: Map<PluginId, PluginRuntime>
 ): List<SearchPanelAction> {
     val pluginActions = when (this) {
-        is SearchResultSet.LiveSearchResult -> presentation.actions.toSearchPanelActions(updateUsage = false)
+        is SearchResultSet.LiveSearchResult -> presentation.actions.toSearchPanelActions(updateUsage = true)
         is SearchResultSet.CachedSearchResult,
         is SearchResultSet.CommandSearchResult -> plugins[resultId.pluginId]?.actions(
             commandName = resultId.commandName,
@@ -1397,6 +1399,17 @@ internal suspend fun SearchResultSet.SearchResult.actions(
         ).orEmpty().toSearchPanelActions(updateUsage = true)
     }
     return pluginActions + hostAliasActions()
+}
+
+internal fun shouldOpenFullscreenOnSubmit(commandMode: Command.Mode?): Boolean {
+    return commandMode != Command.Mode.NoView
+}
+
+internal fun shouldCollectDeferredFullscreenOnSubmit(
+    commandMode: Command.Mode?,
+    result: SearchResultSet.LiveSearchResult
+): Boolean {
+    return result.presentation.content.isEmpty()
 }
 
 private fun SearchResultSet.SearchResult.hostAliasActions(): List<SearchPanelAction> {

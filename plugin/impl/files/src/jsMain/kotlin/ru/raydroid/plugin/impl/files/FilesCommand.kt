@@ -59,7 +59,7 @@ class FilesCommand : CommandService() {
     }
 
     override fun CommandListScope.content() {
-        liveFiles.forEach { file ->
+        emptyList<IndexedFile>().forEach { file ->
             val item = file.toCommandListItem()
             entry(
                 id = item.id,

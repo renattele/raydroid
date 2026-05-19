@@ -264,12 +264,10 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
         val bestById = linkedMapOf<SearchResultId, RankedSearchResult>()
         (commandResults + liveResults + cachedResults).forEach { candidate ->
             val previous = bestById[candidate.result.resultId]
-            if (
-                previous == null ||
-                candidate.result is SearchResultSet.LiveSearchResult && previous.result !is SearchResultSet.LiveSearchResult ||
-                rankedComparator.compare(candidate, previous) < 0
-            ) {
-                bestById[candidate.result.resultId] = candidate
+            bestById[candidate.result.resultId] = if (previous == null) {
+                candidate
+            } else {
+                mergeDuplicateResult(previous = previous, candidate = candidate)
             }
         }
 
@@ -277,6 +275,40 @@ internal class CachedSearchRanker : SearchRanker, SearchResultRanker {
             .sortedWith(rankedComparator)
             .take(limit)
             .map { it.result }
+    }
+
+    private fun mergeDuplicateResult(
+        previous: RankedSearchResult,
+        candidate: RankedSearchResult
+    ): RankedSearchResult {
+        val bestScore = if (rankedComparator.compare(candidate, previous) < 0) {
+            candidate.score
+        } else {
+            previous.score
+        }
+        val preferredResult = when {
+            candidate.result is SearchResultSet.LiveSearchResult && previous.result !is SearchResultSet.LiveSearchResult -> {
+                candidate.result
+            }
+            previous.result is SearchResultSet.LiveSearchResult && candidate.result !is SearchResultSet.LiveSearchResult -> {
+                previous.result
+            }
+            candidate.result is SearchResultSet.CommandSearchResult && previous.result is SearchResultSet.CachedSearchResult -> {
+                candidate.result
+            }
+            previous.result is SearchResultSet.CommandSearchResult && candidate.result is SearchResultSet.CachedSearchResult -> {
+                previous.result
+            }
+            rankedComparator.compare(candidate, previous) < 0 -> candidate.result
+            else -> previous.result
+        }
+
+        return RankedSearchResult(
+            result = preferredResult,
+            score = bestScore.copy(
+                live = preferredResult !is SearchResultSet.CachedSearchResult || bestScore.live
+            )
+        )
     }
 
     private fun scoreCachedCandidate(

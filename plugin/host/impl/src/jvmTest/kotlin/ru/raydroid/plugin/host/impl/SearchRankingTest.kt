@@ -25,8 +25,10 @@ import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandPresentation
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.RankedSearchResult
 import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
+import ru.raydroid.plugin.host.api.domain.model.SearchResultScore
 import ru.raydroid.plugin.host.api.domain.model.SearchResultSet
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
@@ -144,6 +146,47 @@ class SearchRankingTest {
     }
 
     @Test
+    fun `merge keeps live result while applying cached usage history`() {
+        val preferredId = SearchResultId(
+            pluginId = PluginId("ru.test.plugin"),
+            commandName = "apps",
+            itemId = CommandItemId("reddit-app")
+        )
+        val competingId = SearchResultId(
+            pluginId = PluginId("ru.test.plugin"),
+            commandName = "apps",
+            itemId = CommandItemId("reddit-apk")
+        )
+        val merged = ranker.merge(
+            commandResults = emptyList(),
+            liveResults = listOf(
+                rankedLiveResult(
+                    resultId = preferredId,
+                    title = "Reddit",
+                    stableOrder = 1
+                ),
+                rankedLiveResult(
+                    resultId = competingId,
+                    title = "Reddit APK",
+                    stableOrder = 0
+                )
+            ),
+            cachedResults = listOf(
+                rankedCachedResult(
+                    resultId = preferredId,
+                    title = "Reddit",
+                    usageBoost = 0.35,
+                    stableOrder = 100
+                )
+            ),
+            limit = 10
+        )
+
+        val first = assertIs<SearchResultSet.LiveSearchResult>(merged.first())
+        assertEquals("reddit-app", first.resultId.itemId.value)
+    }
+
+    @Test
     fun `command title is searchable even when live regex rejects query`() {
         val runtime = FakeSearchRuntime(
             manifest = manifest(match = "[0-9].*"),
@@ -202,7 +245,8 @@ class SearchRankingTest {
                         command = "apps",
                         itemId = "vscode",
                         icon = null,
-                        iconType = null
+                        iconType = null,
+                        iconColor = null
                     ),
                     content = listOf(
                         SearchIndexCacheContentEntity(
@@ -224,6 +268,73 @@ class SearchRankingTest {
         }
     }
 
+    @Test
+    fun `cache refresh preserves usage history for ranking`() = runTest {
+        val dbFile = File.createTempFile("raydroid-search-usage", ".db").apply { delete() }
+        val database = getAppDatabase(getDatabaseBuilder(dbFile.absolutePath.toPath()))
+        val dao = database.getSearchIndexCacheDao()
+
+        try {
+            dao.insert(
+                SearchIndexCacheWithContent(
+                    searchIndexCache = SearchIndexCacheEntity(
+                        pluginId = "ru.test.plugin",
+                        command = "apps",
+                        itemId = "calc",
+                        icon = null,
+                        iconType = null,
+                        iconColor = null
+                    ),
+                    content = listOf(
+                        SearchIndexCacheContentEntity(
+                            title = "Calculator",
+                            description = "System app",
+                            titleSearch = SearchQueryNormalizer.searchable("Calculator"),
+                            descriptionSearch = SearchQueryNormalizer.searchable("System app"),
+                            acronymSearch = SearchQueryNormalizer.acronym("Calculator")
+                        )
+                    )
+                )
+            )
+            dao.updateUsage(
+                pluginId = "ru.test.plugin",
+                command = "apps",
+                itemId = "calc",
+                nowEpochMs = 1_000L
+            )
+
+            dao.insert(
+                SearchIndexCacheWithContent(
+                    searchIndexCache = SearchIndexCacheEntity(
+                        pluginId = "ru.test.plugin",
+                        command = "apps",
+                        itemId = "calc",
+                        icon = "updated-icon",
+                        iconType = "resource",
+                        iconColor = null
+                    ),
+                    content = listOf(
+                        SearchIndexCacheContentEntity(
+                            title = "Calculator",
+                            description = "Updated app entry",
+                            titleSearch = SearchQueryNormalizer.searchable("Calculator"),
+                            descriptionSearch = SearchQueryNormalizer.searchable("Updated app entry"),
+                            acronymSearch = SearchQueryNormalizer.acronym("Calculator")
+                        )
+                    )
+                )
+            )
+
+            val recent = dao.recent(limit = 10).first().single()
+            assertEquals(1L, recent.usageCount)
+            assertEquals(1_000L, recent.lastUsedAtEpochMs)
+            assertEquals("Updated app entry", recent.description)
+        } finally {
+            database.close()
+            dbFile.delete()
+        }
+    }
+
     private fun cachedCandidate(
         contentId: Long,
         itemId: String,
@@ -238,6 +349,7 @@ class SearchRankingTest {
             itemId = itemId,
             icon = null,
             iconType = null,
+            iconColor = null,
             title = title,
             description = description,
             lastUsedAtEpochMs = null,
@@ -258,6 +370,68 @@ class SearchRankingTest {
                 listEntry = listEntry,
                 content = emptyList()
             ).toPluginCommandPresentation(PluginId("ru.test.plugin"))
+        )
+    }
+
+    private fun rankedLiveResult(
+        resultId: SearchResultId,
+        title: String,
+        stableOrder: Long
+    ): RankedSearchResult {
+        return RankedSearchResult(
+            result = SearchResultSet.LiveSearchResult(
+                resultId = resultId,
+                listEntry = PluginCommandListItem(
+                    id = resultId.itemId,
+                    icon = null,
+                    title = PluginUiText.Plain(title),
+                    description = null
+                ),
+                presentation = CommandPresentation(
+                    listEntry = CommandListItem(
+                        id = resultId.itemId,
+                        icon = null,
+                        title = UiText.Plain(title),
+                        description = null
+                    ),
+                    content = emptyList()
+                ).toPluginCommandPresentation(resultId.pluginId)
+            ),
+            score = SearchResultScore(
+                textScore = 100.0,
+                prefix = true,
+                titleMatch = true,
+                live = true,
+                stableOrder = stableOrder
+            )
+        )
+    }
+
+    private fun rankedCachedResult(
+        resultId: SearchResultId,
+        title: String,
+        usageBoost: Double,
+        stableOrder: Long
+    ): RankedSearchResult {
+        return RankedSearchResult(
+            result = SearchResultSet.CachedSearchResult(
+                resultId = resultId,
+                listEntry = PluginCommandListItem(
+                    id = resultId.itemId,
+                    icon = null,
+                    title = PluginUiText.Plain(title),
+                    description = null
+                ),
+                titleMatches = emptyList(),
+                descriptionMatches = emptyList()
+            ),
+            score = SearchResultScore(
+                textScore = 100.0,
+                usageBoost = usageBoost,
+                prefix = true,
+                titleMatch = true,
+                stableOrder = stableOrder
+            )
         )
     }
 

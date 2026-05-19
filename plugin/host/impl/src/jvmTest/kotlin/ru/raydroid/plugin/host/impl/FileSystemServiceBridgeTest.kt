@@ -15,6 +15,7 @@ import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.manifest.Platform
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.host.impl.permission.PermissionFileSystemServiceBridge
+import ru.raydroid.plugin.host.impl.services.UnsupportedAllFilesAccessGateway
 import ru.raydroid.plugin.host.impl.services.FileSystemServiceBridgeImpl
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -25,7 +26,7 @@ class FileSystemServiceBridgeTest {
     @Test
     fun `filesystem bridge supports file operations`() = runTest {
         val fs = FakeFileSystem()
-        val bridge = FileSystemServiceBridgeImpl(fs)
+        val bridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway())
         fs.createDirectories("/allowed".toPath())
 
         bridge.createFile("/allowed/file.txt")
@@ -44,7 +45,7 @@ class FileSystemServiceBridgeTest {
 
     @Test
     fun `filesystem permission bridge denies missing access`() = runTest {
-        val delegate = FileSystemServiceBridgeImpl(FakeFileSystem())
+        val delegate = FileSystemServiceBridgeImpl(FakeFileSystem(), UnsupportedAllFilesAccessGateway())
         val bridge = PermissionFileSystemServiceBridge(delegate, testManifest())
 
         assertFailsWith<PermissionDenied> {
@@ -61,7 +62,7 @@ class FileSystemServiceBridgeTest {
             Unit
         }
         val bridge = PermissionFileSystemServiceBridge(
-            fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs),
+            fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway()),
             manifest = testManifest(
                 permissions = listOf(
                     FileSystemAccessPermission.Read,
@@ -91,7 +92,7 @@ class FileSystemServiceBridgeTest {
             Unit
         }
         val bridge = PermissionFileSystemServiceBridge(
-            fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs),
+            fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway()),
             manifest = testManifest(
                 permissions = listOf(FileSystemAccessPermission.Manage),
                 allowedPaths = listOf("/allowed(/.*)?")
@@ -111,7 +112,7 @@ class FileSystemServiceBridgeTest {
             writeUtf8("hello")
             Unit
         }
-        val bridge = FileSystemServiceBridgeImpl(fs)
+        val bridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway())
         val deferred = async {
             bridge.watch("/allowed/file.txt").first { event ->
                 event.metadata?.size == 4L

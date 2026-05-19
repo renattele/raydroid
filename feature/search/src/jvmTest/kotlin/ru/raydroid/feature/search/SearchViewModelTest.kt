@@ -430,6 +430,85 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `live result primary action updates usage`() = runTest {
+        val fixture = SearchViewModelFixture(this)
+        val itemId = CommandItemId("app:reddit")
+        val resultId = fixture.resultId.copy(itemId = itemId)
+        val result = SearchResultSet.LiveSearchResult(
+            resultId = resultId,
+            listEntry = PluginCommandListItem(
+                id = itemId,
+                icon = null,
+                title = PluginUiText.Plain("Reddit"),
+                description = PluginUiText.Plain("com.reddit.frontpage")
+            ),
+            presentation = PluginCommandPresentation(
+                listEntry = PluginCommandListItem(
+                    id = itemId,
+                    icon = null,
+                    title = PluginUiText.Plain("Reddit"),
+                    description = PluginUiText.Plain("com.reddit.frontpage")
+                ),
+                primaryCallback = null,
+                actions = listOf(
+                    PluginCommandListAction(
+                        callback = callback("open"),
+                        title = PluginUiText.Plain("Open"),
+                        description = null,
+                        icon = null,
+                        primary = true
+                    )
+                ),
+                content = emptyList()
+            )
+        )
+        val action = result.actions(emptyMap()).first { candidate ->
+            candidate.kind is SearchPanelAction.Kind.PluginCallback
+        }
+        val kind = action.kind as SearchPanelAction.Kind.PluginCallback
+        assertEquals(true, kind.updateUsage)
+    }
+
+    @Test
+    fun `no-view command does not open fullscreen on submit`() = runTest {
+        assertEquals(false, shouldOpenFullscreenOnSubmit(Command.Mode.NoView))
+        assertEquals(true, shouldOpenFullscreenOnSubmit(Command.Mode.View))
+    }
+
+    @Test
+    fun `live no-view result still collects deferred fullscreen on submit`() = runTest {
+        val resultId = SearchResultId(
+            pluginId = PluginId("ru.raydroid.files"),
+            commandName = "files",
+            itemId = CommandItemId("file:reddit-apk")
+        )
+        val itemId = CommandItemId("file:reddit-apk")
+        val result = SearchResultSet.LiveSearchResult(
+            resultId = resultId,
+            listEntry = PluginCommandListItem(
+                id = itemId,
+                icon = null,
+                title = PluginUiText.Plain("Reddit.apk"),
+                description = PluginUiText.Plain("/storage/emulated/0/Download")
+            ),
+            presentation = PluginCommandPresentation(
+                listEntry = PluginCommandListItem(
+                    id = itemId,
+                    icon = null,
+                    title = PluginUiText.Plain("Reddit.apk"),
+                    description = PluginUiText.Plain("/storage/emulated/0/Download")
+                ),
+                primaryCallback = callback("open"),
+                actions = emptyList(),
+                content = emptyList()
+            )
+        )
+
+        assertEquals(true, shouldCollectDeferredFullscreenOnSubmit(Command.Mode.NoView, result))
+        assertEquals(true, shouldCollectDeferredFullscreenOnSubmit(Command.Mode.View, result))
+    }
+
+    @Test
     fun `next focus picks first result when nothing is focused`() {
         assertEquals(0, nextSearchResultsFocusIndex(currentIndex = null, resultCount = 2))
     }
@@ -440,7 +519,10 @@ class SearchViewModelTest {
     }
 }
 
-private class SearchViewModelFixture(testScope: kotlinx.coroutines.test.TestScope) {
+private class SearchViewModelFixture(
+    testScope: kotlinx.coroutines.test.TestScope,
+    commandMode: Command.Mode = Command.Mode.View
+) {
     val pluginId = PluginId("ru.raydroid.calculator")
     val resultId = SearchResultId(
         pluginId = pluginId,
@@ -451,7 +533,8 @@ private class SearchViewModelFixture(testScope: kotlinx.coroutines.test.TestScop
         manifest = manifest(
             pluginId = pluginId,
             commandName = "calculator",
-            placeholder = UiText.Plain("Type a query")
+            placeholder = UiText.Plain("Type a query"),
+            mode = commandMode
         )
     )
     val runtimes = MutableStateFlow(listOf<PluginRuntime>(runtime))
@@ -717,7 +800,8 @@ private class EmptyPluginLoader : PluginLoader {
 private fun manifest(
     pluginId: PluginId,
     commandName: String,
-    placeholder: UiText? = null
+    placeholder: UiText? = null,
+    mode: Command.Mode = Command.Mode.View
 ): Manifest {
     return Manifest(
         name = pluginId.id,
@@ -734,7 +818,7 @@ private fun manifest(
                 title = UiText.Plain("Calculator"),
                 description = UiText.Plain("Calculator extension"),
                 placeholder = placeholder,
-                mode = Command.Mode.View,
+                mode = mode,
                 match = null,
                 searchable = true,
                 arguments = emptyList(),

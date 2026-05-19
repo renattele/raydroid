@@ -25,6 +25,22 @@ internal abstract class SearchIndexCacheDao {
     @Query("SELECT id FROM list_item_cache WHERE plugin_id = :pluginId AND command = :command AND item_id = :itemId LIMIT 1")
     protected abstract suspend fun getSearchIndexId(pluginId: String, command: String, itemId: String): Long?
 
+    @Query(
+        """
+        SELECT *
+        FROM list_item_cache
+        WHERE plugin_id = :pluginId
+            AND command = :command
+            AND item_id = :itemId
+        LIMIT 1
+        """
+    )
+    protected abstract suspend fun getListItem(
+        pluginId: String,
+        command: String,
+        itemId: String
+    ): SearchIndexCacheEntity?
+
     @Query("DELETE FROM list_item_cache_content WHERE list_item_cache_id = :searchIndexCacheId")
     protected abstract suspend fun deleteContentBySearchIndexCacheId(searchIndexCacheId: Long)
 
@@ -143,16 +159,22 @@ internal abstract class SearchIndexCacheDao {
     @Transaction
     open suspend fun insert(entity: SearchIndexCacheWithContent) {
         val searchIndexCache = entity.searchIndexCache.copy(outdated = false)
-        val existingId = getSearchIndexId(
+        val existingEntity = getListItem(
             pluginId = searchIndexCache.pluginId,
             command = searchIndexCache.command,
             itemId = searchIndexCache.itemId
         )
-        val searchIndexCacheId = if (existingId == null) {
+        val searchIndexCacheId = if (existingEntity == null) {
             insertListItem(searchIndexCache)
         } else {
-            updateListItem(searchIndexCache.copy(id = existingId))
-            existingId
+            updateListItem(
+                searchIndexCache.copy(
+                    id = existingEntity.id,
+                    lastUsedAtEpochMs = existingEntity.lastUsedAtEpochMs,
+                    usageCount = existingEntity.usageCount
+                )
+            )
+            existingEntity.id
         }
 
         deleteContentBySearchIndexCacheId(searchIndexCacheId)
