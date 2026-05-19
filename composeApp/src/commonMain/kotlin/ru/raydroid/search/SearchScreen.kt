@@ -147,436 +147,448 @@ fun SearchScreen(
                     .fillMaxSize()
                     .background(RaydroidTheme.colorScheme.background),
             ) {
-            val focus = remember { FocusRequester() }
-            LaunchedEffect(Unit) {
-                focus.requestFocus()
-            }
-            LaunchedEffect(
-                searchField,
-                fullscreen?.resultId,
-                activeSearchFieldState.query,
-                activeSearchFieldState.selection
-            ) {
-                searchField.apply(activeSearchFieldState)
-            }
-            LaunchedEffect(searchField, fullscreen?.resultId) {
-                snapshotFlow {
-                    SearchFieldSnapshot(
-                        query = searchField.text.toString(),
-                        selection = searchField.selection.asSelection(searchField.text.length)
-                    )
+                val focus = remember { FocusRequester() }
+                LaunchedEffect(Unit) {
+                    focus.requestFocus()
                 }
-                    .distinctUntilChanged()
-                    .collectLatest { snapshot ->
-                        if (snapshot != latestSearchFieldState.asSnapshot()) {
-                            onEvent(
-                                SearchScreenEvent.UpdateQuery(
-                                    query = snapshot.query,
-                                    selection = snapshot.selection
-                                )
-                            )
-                        }
-                    }
-            }
-            val listState = rememberLazyListState()
-            val fullscreenFocusedActions = fullscreen
-                ?.content
-                ?.pluginFocusModel(
-                    focusedItemId = fullscreen.focusedItemId,
-                    query = fullscreen.searchFieldState.query
-                )
-                ?.focusedActions
-                ?.takeIf { actions -> actions.isNotEmpty() }
-                ?.map { action ->
-                    FocusedCommandAction(
-                        resultId = fullscreen.resultId,
-                        action = action.toSearchPanelAction(updateUsage = false),
-                        updateUsage = false
-                    )
+                LaunchedEffect(
+                    searchField,
+                    fullscreen?.resultId,
+                    activeSearchFieldState.query,
+                    activeSearchFieldState.selection
+                ) {
+                    searchField.apply(activeSearchFieldState)
                 }
-            val suppressHostActions = fullscreen?.content?.suppressesHostActions() == true
-            val actionPanelHintMode = fullscreen?.content?.actionPanelHintMode()
-                ?: PluginActionPanelHintMode.Full
-            val focusedCommandActions = if (suppressHostActions) {
-                emptyList()
-            } else {
-                fullscreenFocusedActions ?: overlayState.focusedActions
-                    .takeIf { actions ->
-                        fullscreen == null || actions.all { action -> action.resultId == fullscreen.resultId }
-                    }
-                    .orEmpty()
-            }
-            val focusedActions = focusedCommandActions.map { focusedAction ->
-                focusedAction.action
-            }
-            val contextActions = overlayState.contextActions.map { contextAction ->
-                contextAction.action
-            }
-            val overlayFocusedActions = if (overlayState.showContextActions) {
-                overlayState.contextActions
-            } else {
-                focusedCommandActions
-            }
-            val focusedItemIndex = resultsContent?.focusedItemIndex
-            val searchResults = resultsContent?.searchResults
-            LaunchedEffect(focusedItemIndex) {
-                if (fullscreen == null && focusedItemIndex != null) {
-                    listState.scrollToItem(focusedItemIndex)
-                }
-            }
-            LaunchedEffect(listState, overlayState.showContextActions, fullscreen) {
-                if (fullscreen != null) return@LaunchedEffect
-                snapshotFlow { listState.isScrollInProgress }
-                    .distinctUntilChanged()
-                    .collectLatest { isScrolling ->
-                        if (isScrolling && overlayState.showContextActions) {
-                            onEvent(SearchScreenEvent.HideActions)
-                        }
-                    }
-            }
-            state.alerts.forEach { alert ->
-                RAlertDialog(
-                    onDismissRequest = {
-                        if (alert.dismissAction != null) {
-                            onEvent(SearchScreenEvent.DismissAlert(alert))
-                        }
-                    },
-                    confirmButton = {
-                        RButton(onClick = {
-                            onEvent(SearchScreenEvent.ConfirmAlert(alert))
-                        }) {
-                            RText(alert.confirmAction.title.asText())
-                        }
-                    },
-                    dismissButton = if (alert.dismissAction != null) {
-                        {
-                            RTextButton(onClick = {
-                                onEvent(SearchScreenEvent.DismissAlert(alert))
-                            }) {
-                                RText(alert.dismissAction!!.title.asText())
-                            }
-                        }
-                    } else {
-                        null
-                    },
-                    title = {
-                        RText(alert.title.asText())
-                    },
-                    text = {
-                        RText(alert.message.asText())
-                    }
-                )
-            }
-            overlayState.aliasEditor?.let { aliasEditor ->
-                AliasEditorSheet(
-                    state = aliasEditor,
-                    onEvent = onEvent
-                )
-            }
-            Box(
-                Modifier
-                    .weight(1f)
-                    .onGloballyPositioned { coordinates ->
-                        rootBounds = coordinates.boundsInWindow()
-                    }
-            ) {
-                if (fullscreen != null) {
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = spacing.medium, vertical = spacing.small)
-                    ) {
-                        ComposeRayRenderer(
-                            data = fullscreen.content,
-                            query = fullscreen.searchFieldState.query,
-                            focusedItemId = fullscreen.focusedItemId,
-                            onClick = { callback ->
-                                onEvent(
-                                    SearchScreenEvent.EnterCallback(
-                                        resultId = fullscreen.resultId,
-                                        callback = callback,
-                                        updateUsage = false
-                                    )
-                                )
-                            },
-                            onItemEnter = { itemId ->
-                                onEvent(SearchScreenEvent.EnterPluginItem(itemId))
-                            },
-                            onFocus = { itemId ->
-                                onEvent(SearchScreenEvent.FocusPluginItem(itemId))
-                            },
-                            onActions = { sourceId, actions ->
-                                onEvent(
-                                    SearchScreenEvent.ShowContextActions(
-                                        resultId = fullscreen.resultId,
-                                        sourceId = sourceId,
-                                        actions = actions
-                                    )
-                                )
-                            }
+                LaunchedEffect(searchField, fullscreen?.resultId) {
+                    snapshotFlow {
+                        SearchFieldSnapshot(
+                            query = searchField.text.toString(),
+                            selection = searchField.selection.asSelection(searchField.text.length)
                         )
                     }
+                        .distinctUntilChanged()
+                        .collectLatest { snapshot ->
+                            if (snapshot != latestSearchFieldState.asSnapshot()) {
+                                onEvent(
+                                    SearchScreenEvent.UpdateQuery(
+                                        query = snapshot.query,
+                                        selection = snapshot.selection
+                                    )
+                                )
+                            }
+                        }
+                }
+                val listState = rememberLazyListState()
+                val fullscreenFocusedActions = fullscreen
+                    ?.content
+                    ?.pluginFocusModel(
+                        focusedItemId = fullscreen.focusedItemId,
+                        query = fullscreen.searchFieldState.query
+                    )
+                    ?.focusedActions
+                    ?.takeIf { actions -> actions.isNotEmpty() }
+                    ?.map { action ->
+                        FocusedCommandAction(
+                            resultId = fullscreen.resultId,
+                            action = action.toSearchPanelAction(updateUsage = false),
+                            updateUsage = false
+                        )
+                    }
+                val suppressHostActions = fullscreen?.content?.suppressesHostActions() == true
+                val actionPanelHintMode = fullscreen?.content?.actionPanelHintMode()
+                    ?: PluginActionPanelHintMode.Full
+                val focusedCommandActions = if (suppressHostActions) {
+                    emptyList()
                 } else {
-                    LazyColumn(
-                        Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                        contentPadding = PaddingValues(
-                            start = spacing.medium,
-                            end = spacing.medium,
-                            top = spacing.small,
-                            bottom = spacing.extraLarge
-                        ),
-                        reverseLayout = true,
-                        state = listState
-                    ) {
-                        if (searchResults != null) {
-                            itemsIndexed(
-                                items = searchResults.results,
-                                key = { _, searchResult -> searchResult.resultRowKey() }
-                            ) { index, searchResult ->
-                                if (searchResult is SearchResultSet.CachedSearchResult) {
-                                    SearchListItem(
-                                        result = searchResult,
-                                        onClick = {
-                                            onEvent(SearchScreenEvent.Submit(searchResult.resultId))
-                                        },
-                                        focused = index == focusedItemIndex,
-                                        contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
-                                        onLongClick = {
-                                            onEvent(
-                                                SearchScreenEvent.ShowResultContextActions(
-                                                    resultId = searchResult.resultId,
-                                                    sourceId = searchResult.resultId.contextActionSourceId()
-                                                )
-                                            )
-                                        },
-                                        onQuickAction = {
-                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
-                                        }
+                    fullscreenFocusedActions ?: overlayState.focusedActions
+                        .takeIf { actions ->
+                            fullscreen == null || actions.all { action -> action.resultId == fullscreen.resultId }
+                        }
+                        .orEmpty()
+                }
+                val focusedActions = focusedCommandActions.map { focusedAction ->
+                    focusedAction.action
+                }
+                val contextActions = overlayState.contextActions.map { contextAction ->
+                    contextAction.action
+                }
+                val overlayFocusedActions = if (overlayState.showContextActions) {
+                    overlayState.contextActions
+                } else {
+                    focusedCommandActions
+                }
+                val focusedItemIndex = resultsContent?.focusedItemIndex
+                val searchResults = resultsContent?.searchResults
+                LaunchedEffect(state.searchFieldState.query) {
+                    println("HEEEEE")
+                    listState.scrollToItem(0)
+                }
+                LaunchedEffect(listState, overlayState.showContextActions, fullscreen) {
+                    if (fullscreen != null) return@LaunchedEffect
+                    snapshotFlow { listState.isScrollInProgress }
+                        .distinctUntilChanged()
+                        .collectLatest { isScrolling ->
+                            if (isScrolling && overlayState.showContextActions) {
+                                onEvent(SearchScreenEvent.HideActions)
+                            }
+                        }
+                }
+                state.alerts.forEach { alert ->
+                    RAlertDialog(
+                        onDismissRequest = {
+                            if (alert.dismissAction != null) {
+                                onEvent(SearchScreenEvent.DismissAlert(alert))
+                            }
+                        },
+                        confirmButton = {
+                            RButton(onClick = {
+                                onEvent(SearchScreenEvent.ConfirmAlert(alert))
+                            }) {
+                                RText(alert.confirmAction.title.asText())
+                            }
+                        },
+                        dismissButton = if (alert.dismissAction != null) {
+                            {
+                                RTextButton(onClick = {
+                                    onEvent(SearchScreenEvent.DismissAlert(alert))
+                                }) {
+                                    RText(alert.dismissAction!!.title.asText())
+                                }
+                            }
+                        } else {
+                            null
+                        },
+                        title = {
+                            RText(alert.title.asText())
+                        },
+                        text = {
+                            RText(alert.message.asText())
+                        }
+                    )
+                }
+                overlayState.aliasEditor?.let { aliasEditor ->
+                    AliasEditorSheet(
+                        state = aliasEditor,
+                        onEvent = onEvent
+                    )
+                }
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .onGloballyPositioned { coordinates ->
+                            rootBounds = coordinates.boundsInWindow()
+                        }
+                ) {
+                    if (fullscreen != null) {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = spacing.medium, vertical = spacing.small)
+                        ) {
+                            ComposeRayRenderer(
+                                data = fullscreen.content,
+                                query = fullscreen.searchFieldState.query,
+                                focusedItemId = fullscreen.focusedItemId,
+                                onClick = { callback ->
+                                    onEvent(
+                                        SearchScreenEvent.EnterCallback(
+                                            resultId = fullscreen.resultId,
+                                            callback = callback,
+                                            updateUsage = false
+                                        )
                                     )
-                                } else if (searchResult is SearchResultSet.CommandSearchResult) {
-                                    CommandListItemView(
-                                        listEntry = searchResult.listEntry,
-                                        onClick = {
-                                            onEvent(SearchScreenEvent.Submit(searchResult.resultId))
-                                        },
-                                        focused = index == focusedItemIndex,
-                                        contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
-                                        onLongClick = {
-                                            onEvent(
-                                                SearchScreenEvent.ShowResultContextActions(
-                                                    resultId = searchResult.resultId,
-                                                    sourceId = searchResult.resultId.contextActionSourceId()
-                                                )
-                                            )
-                                        },
-                                        onQuickAction = {
-                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
-                                        }
+                                },
+                                onItemEnter = { itemId ->
+                                    onEvent(SearchScreenEvent.EnterPluginItem(itemId))
+                                },
+                                onFocus = { itemId ->
+                                    onEvent(SearchScreenEvent.FocusPluginItem(itemId))
+                                },
+                                onActions = { sourceId, actions ->
+                                    onEvent(
+                                        SearchScreenEvent.ShowContextActions(
+                                            resultId = fullscreen.resultId,
+                                            sourceId = sourceId,
+                                            actions = actions
+                                        )
                                     )
-                                } else if (
-                                    searchResult is SearchResultSet.LiveSearchResult &&
-                                    searchResult.presentation.content.isEmpty()
-                                ) {
-                                    CommandListItemView(
-                                        listEntry = searchResult.listEntry,
-                                        onClick = {
-                                            onEvent(SearchScreenEvent.Submit(searchResult.resultId))
-                                        },
-                                        focused = index == focusedItemIndex,
-                                        contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
-                                        onLongClick = {
-                                            onEvent(
-                                                SearchScreenEvent.ShowResultContextActions(
-                                                    resultId = searchResult.resultId,
-                                                    sourceId = searchResult.resultId.contextActionSourceId()
-                                                )
-                                            )
-                                        },
-                                        onQuickAction = {
-                                            onEvent(SearchScreenEvent.EnterQuickAction(searchResult.resultId))
-                                        }
-                                    )
-                                } else if (searchResult is SearchResultSet.LiveSearchResult) {
-                                    RayDecorator(
-                                        listItem = searchResult.listEntry,
-                                        title = searchResult.rayDecoratorTitle,
-                                        commandName = remember(state.plugins) {
-                                            searchResult.rayDecoratorCommandName(state.plugins)
-                                        },
-                                        pluginName = remember(state.plugins) {
-                                            searchResult.rayDecoratorPluginName(state.plugins)
-                                        },
-                                        focused = index == focusedItemIndex,
-                                        onClick = {
-                                            onEvent(SearchScreenEvent.Submit(searchResult.resultId))
-                                        },
-                                        contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
-                                        onLongClick = {
-                                            onEvent(
-                                                SearchScreenEvent.ShowResultContextActions(
-                                                    resultId = searchResult.resultId,
-                                                    sourceId = searchResult.resultId.contextActionSourceId()
-                                                )
-                                            )
-                                        }
-                                    ) {
-                                        ComposeRayRenderer(
-                                            data = searchResult.presentation.content,
-                                            onClick = { callback ->
+                                }
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
+                            contentPadding = PaddingValues(
+                                start = spacing.medium,
+                                end = spacing.medium,
+                                top = spacing.small,
+                                bottom = spacing.extraLarge
+                            ),
+                            reverseLayout = true,
+                            state = listState
+                        ) {
+                            if (searchResults != null) {
+                                itemsIndexed(
+                                    items = searchResults.results,
+                                    // Commented out because blocks from resetting to zero when typing
+                                    // key = { _, searchResult -> searchResult.resultRowKey() }
+                                ) { index, searchResult ->
+                                    if (searchResult is SearchResultSet.CachedSearchResult) {
+                                        SearchListItem(
+                                            result = searchResult,
+                                            onClick = {
+                                                onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                            },
+                                            focused = index == focusedItemIndex,
+                                            contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
+                                            onLongClick = {
                                                 onEvent(
-                                                    SearchScreenEvent.EnterCallback(
+                                                    SearchScreenEvent.ShowResultContextActions(
                                                         resultId = searchResult.resultId,
-                                                        callback = callback,
-                                                        updateUsage = false
+                                                        sourceId = searchResult.resultId.contextActionSourceId()
                                                     )
                                                 )
                                             },
-                                            onItemEnter = {
-                                                onEvent(SearchScreenEvent.Submit(searchResult.resultId))
-                                            },
-                                            onActions = { sourceId, actions ->
+                                            onQuickAction = {
                                                 onEvent(
-                                                    SearchScreenEvent.ShowContextActions(
-                                                        resultId = searchResult.resultId,
-                                                        sourceId = sourceId,
-                                                        actions = actions
+                                                    SearchScreenEvent.EnterQuickAction(
+                                                        searchResult.resultId
                                                     )
                                                 )
                                             }
                                         )
+                                    } else if (searchResult is SearchResultSet.CommandSearchResult) {
+                                        CommandListItemView(
+                                            listEntry = searchResult.listEntry,
+                                            onClick = {
+                                                onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                            },
+                                            focused = index == focusedItemIndex,
+                                            contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
+                                            onLongClick = {
+                                                onEvent(
+                                                    SearchScreenEvent.ShowResultContextActions(
+                                                        resultId = searchResult.resultId,
+                                                        sourceId = searchResult.resultId.contextActionSourceId()
+                                                    )
+                                                )
+                                            },
+                                            onQuickAction = {
+                                                onEvent(
+                                                    SearchScreenEvent.EnterQuickAction(
+                                                        searchResult.resultId
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    } else if (
+                                        searchResult is SearchResultSet.LiveSearchResult &&
+                                        searchResult.presentation.content.isEmpty()
+                                    ) {
+                                        CommandListItemView(
+                                            listEntry = searchResult.listEntry,
+                                            onClick = {
+                                                onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                            },
+                                            focused = index == focusedItemIndex,
+                                            contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
+                                            onLongClick = {
+                                                onEvent(
+                                                    SearchScreenEvent.ShowResultContextActions(
+                                                        resultId = searchResult.resultId,
+                                                        sourceId = searchResult.resultId.contextActionSourceId()
+                                                    )
+                                                )
+                                            },
+                                            onQuickAction = {
+                                                onEvent(
+                                                    SearchScreenEvent.EnterQuickAction(
+                                                        searchResult.resultId
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    } else if (searchResult is SearchResultSet.LiveSearchResult) {
+                                        RayDecorator(
+                                            listItem = searchResult.listEntry,
+                                            title = searchResult.rayDecoratorTitle,
+                                            commandName = remember(state.plugins) {
+                                                searchResult.rayDecoratorCommandName(state.plugins)
+                                            },
+                                            pluginName = remember(state.plugins) {
+                                                searchResult.rayDecoratorPluginName(state.plugins)
+                                            },
+                                            focused = index == focusedItemIndex,
+                                            onClick = {
+                                                onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                            },
+                                            contextMenuSourceId = searchResult.resultId.contextActionSourceId(),
+                                            onLongClick = {
+                                                onEvent(
+                                                    SearchScreenEvent.ShowResultContextActions(
+                                                        resultId = searchResult.resultId,
+                                                        sourceId = searchResult.resultId.contextActionSourceId()
+                                                    )
+                                                )
+                                            }
+                                        ) {
+                                            ComposeRayRenderer(
+                                                data = searchResult.presentation.content,
+                                                onClick = { callback ->
+                                                    onEvent(
+                                                        SearchScreenEvent.EnterCallback(
+                                                            resultId = searchResult.resultId,
+                                                            callback = callback,
+                                                            updateUsage = false
+                                                        )
+                                                    )
+                                                },
+                                                onItemEnter = {
+                                                    onEvent(SearchScreenEvent.Submit(searchResult.resultId))
+                                                },
+                                                onActions = { sourceId, actions ->
+                                                    onEvent(
+                                                        SearchScreenEvent.ShowContextActions(
+                                                            resultId = searchResult.resultId,
+                                                            sourceId = sourceId,
+                                                            actions = actions
+                                                        )
+                                                    )
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    if (state is SearchScreenState.Loading) {
-                        RText(
-                            text = "Searching...",
-                            modifier = Modifier.align(Alignment.Center),
-                            color = RaydroidTheme.colorScheme.onBackground
-                        )
-                    } else if (resultsContent?.searchResults?.results?.isEmpty() == true && resultsContent.isSearching == false) {
-                        RText(
-                            text = "No results",
-                            modifier = Modifier.align(Alignment.Center),
-                            color = RaydroidTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-                LookaheadScope {
-                    Column(
-                        Modifier
-                            .padding(spacing.medium)
-                            .align(Alignment.BottomEnd)
-                            .rContextActionInactiveLayer(),
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
-                    ) {
-                        ToastsOverlay(
-                            toasts = state.toasts,
-                            Modifier.animateBounds(
-                                this@LookaheadScope,
-                                animateMotionFrameOfReference = true
+                        if (state is SearchScreenState.Loading) {
+                            RText(
+                                text = "Searching...",
+                                modifier = Modifier.align(Alignment.Center),
+                                color = RaydroidTheme.colorScheme.onBackground
                             )
-                        )
-                        ActionsPanelOverlay(
-                            actions = focusedActions,
-                            visible = overlayState.showActions,
-                            onActionClick = { action ->
-                                overlayFocusedActions
-                                    .firstOrNull { focusedAction -> focusedAction.action == action }
-                                    ?.let { focusedAction ->
-                                        onEvent(SearchScreenEvent.EnterAction(focusedAction))
-                                    }
-                            }
-                        )
-                    }
-                }
-                AnchoredActionsOverlay(
-                    actions = contextActions,
-                    anchorBounds = activeContextSourceId?.let(contextAnchors::get),
-                    rootBounds = rootBounds,
-                    visible = overlayState.showContextActions,
-                    onDismiss = {
-                        onEvent(SearchScreenEvent.HideActions)
-                    },
-                    onActionClick = { action ->
-                        overlayFocusedActions
-                            .firstOrNull { focusedAction -> focusedAction.action == action }
-                            ?.let { focusedAction ->
-                                onEvent(SearchScreenEvent.EnterAction(focusedAction))
-                            }
-                    }
-                )
-            }
-            SearchField(
-                activeSearchFieldState.toPresentationState(
-                    fieldState = searchField,
-                    canGoOnEnter = if (fullscreen != null) {
-                        fullscreen.focusedItemId != null
-                    } else {
-                        focusedItemIndex != null
-                    }
-                ),
-                onEvent = { event ->
-                    when (event) {
-                        SearchFieldEvent.Enter -> {
-                            onEvent(SearchScreenEvent.Submit())
+                        } else if (resultsContent?.searchResults?.results?.isEmpty() == true && resultsContent.isSearching == false) {
+                            RText(
+                                text = "No results",
+                                modifier = Modifier.align(Alignment.Center),
+                                color = RaydroidTheme.colorScheme.onBackground
+                            )
                         }
-
-                        SearchFieldEvent.MoveFocusDown -> if (fullscreen != null) {
-                            onEvent(SearchScreenEvent.MoveFocusNext)
-                        } else {
-                            onEvent(SearchScreenEvent.MoveFocusPrevious)
-                        }
-
-                        SearchFieldEvent.MoveFocusUp -> if (fullscreen != null) {
-                            onEvent(SearchScreenEvent.MoveFocusPrevious)
-                        } else {
-                            onEvent(SearchScreenEvent.MoveFocusNext)
-                        }
-
-                        SearchFieldEvent.BackspaceOnEmpty -> onEvent(SearchScreenEvent.BackspaceOnEmpty)
                     }
-                },
-                Modifier
-                    .imePadding()
-                    .focusRequester(focus)
-                    .rContextActionInactiveLayer(),
-                contentPadding = if (fullscreen != null) {
-                    PaddingValues(horizontal = spacing.small, vertical = spacing.large)
-                } else {
-                    PaddingValues(spacing.large)
-                },
-                placeholder = fullscreen?.placeholder,
-                leadingContent = if (fullscreen != null) {
-                    {
-                        FullscreenBackButton(onClick = {
-                            onEvent(SearchScreenEvent.CloseFullscreen)
-                        }, exitBackspaceCount = fullscreen.exitBackspaceCount)
+                    LookaheadScope {
+                        Column(
+                            Modifier
+                                .padding(spacing.medium)
+                                .align(Alignment.BottomEnd)
+                                .rContextActionInactiveLayer(),
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+                        ) {
+                            ToastsOverlay(
+                                toasts = state.toasts,
+                                Modifier.animateBounds(
+                                    this@LookaheadScope,
+                                    animateMotionFrameOfReference = true
+                                )
+                            )
+                            ActionsPanelOverlay(
+                                actions = focusedActions,
+                                visible = overlayState.showActions,
+                                onActionClick = { action ->
+                                    overlayFocusedActions
+                                        .firstOrNull { focusedAction -> focusedAction.action == action }
+                                        ?.let { focusedAction ->
+                                            onEvent(SearchScreenEvent.EnterAction(focusedAction))
+                                        }
+                                }
+                            )
+                        }
                     }
-                } else {
-                    null
-                }
-            ) {
-                if (actionPanelHintMode != PluginActionPanelHintMode.Hidden) {
-                    ActionPanel(
-                        actions = focusedActions,
-                        showActions = overlayState.showActions,
-                        showPrimaryHint = actionPanelHintMode == PluginActionPanelHintMode.Full,
-                        onPrimaryAction = {
-                            onEvent(SearchScreenEvent.Submit())
+                    AnchoredActionsOverlay(
+                        actions = contextActions,
+                        anchorBounds = activeContextSourceId?.let(contextAnchors::get),
+                        rootBounds = rootBounds,
+                        visible = overlayState.showContextActions,
+                        onDismiss = {
+                            onEvent(SearchScreenEvent.HideActions)
                         },
-                        onToggleActions = {
-                            onEvent(SearchScreenEvent.ToggleActions)
+                        onActionClick = { action ->
+                            overlayFocusedActions
+                                .firstOrNull { focusedAction -> focusedAction.action == action }
+                                ?.let { focusedAction ->
+                                    onEvent(SearchScreenEvent.EnterAction(focusedAction))
+                                }
                         }
                     )
+                }
+                SearchField(
+                    activeSearchFieldState.toPresentationState(
+                        fieldState = searchField,
+                        canGoOnEnter = if (fullscreen != null) {
+                            fullscreen.focusedItemId != null
+                        } else {
+                            focusedItemIndex != null
+                        }
+                    ),
+                    onEvent = { event ->
+                        when (event) {
+                            SearchFieldEvent.Enter -> {
+                                onEvent(SearchScreenEvent.Submit())
+                            }
+
+                            SearchFieldEvent.MoveFocusDown -> if (fullscreen != null) {
+                                onEvent(SearchScreenEvent.MoveFocusNext)
+                            } else {
+                                onEvent(SearchScreenEvent.MoveFocusPrevious)
+                            }
+
+                            SearchFieldEvent.MoveFocusUp -> if (fullscreen != null) {
+                                onEvent(SearchScreenEvent.MoveFocusPrevious)
+                            } else {
+                                onEvent(SearchScreenEvent.MoveFocusNext)
+                            }
+
+                            SearchFieldEvent.BackspaceOnEmpty -> onEvent(SearchScreenEvent.BackspaceOnEmpty)
+                        }
+                    },
+                    Modifier
+                        .imePadding()
+                        .focusRequester(focus)
+                        .rContextActionInactiveLayer(),
+                    contentPadding = if (fullscreen != null) {
+                        PaddingValues(horizontal = spacing.small, vertical = spacing.large)
+                    } else {
+                        PaddingValues(spacing.large)
+                    },
+                    placeholder = fullscreen?.placeholder,
+                    leadingContent = if (fullscreen != null) {
+                        {
+                            FullscreenBackButton(onClick = {
+                                onEvent(SearchScreenEvent.CloseFullscreen)
+                            }, exitBackspaceCount = fullscreen.exitBackspaceCount)
+                        }
+                    } else {
+                        null
+                    }
+                ) {
+                    if (actionPanelHintMode != PluginActionPanelHintMode.Hidden) {
+                        ActionPanel(
+                            actions = focusedActions,
+                            showActions = overlayState.showActions,
+                            showPrimaryHint = actionPanelHintMode == PluginActionPanelHintMode.Full,
+                            onPrimaryAction = {
+                                onEvent(SearchScreenEvent.Submit())
+                            },
+                            onToggleActions = {
+                                onEvent(SearchScreenEvent.ToggleActions)
+                            }
+                        )
+                    }
                 }
             }
         }
     }
-}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -693,7 +705,10 @@ private fun AliasEditorSheet(
                         .fillMaxWidth()
                         .clip(RaydroidTheme.shapes.large)
                         .background(colors.surfaceVariant.copy(alpha = 0.24f)),
-                    contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.medium),
+                    contentPadding = PaddingValues(
+                        horizontal = spacing.large,
+                        vertical = spacing.medium
+                    ),
                     placeholder = {
                         RText(
                             text = "e.g. yt",
