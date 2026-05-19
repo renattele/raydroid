@@ -509,6 +509,13 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `cached no-view submit collects deferred fullscreen`() = runTest {
+        assertEquals(true, shouldCollectDeferredFullscreenOnCachedSubmit(Command.Mode.NoView))
+        assertEquals(false, shouldCollectDeferredFullscreenOnCachedSubmit(Command.Mode.View))
+        assertEquals(false, shouldCollectDeferredFullscreenOnCachedSubmit(null))
+    }
+
+    @Test
     fun `next focus picks first result when nothing is focused`() {
         assertEquals(0, nextSearchResultsFocusIndex(currentIndex = null, resultCount = 2))
     }
@@ -621,12 +628,7 @@ private class FakePluginRuntime(
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
     var actionResults: List<PluginCommandListAction> = emptyList()
-    private val fullscreen = MutableStateFlow(
-        PluginRuntime.FullscreenContent(
-            commandName = "calculator",
-            content = emptyList()
-        )
-    )
+    private val fullscreen = MutableStateFlow<PluginRuntime.FullscreenContent?>(null)
     val commandUpdates = mutableListOf<Pair<String, CommandActionBridge>>()
 
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()

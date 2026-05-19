@@ -1,77 +1,61 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Server.
+<p align="center">
+  <img src="./docs/readme/cover.png" alt="Raydroid cover" width="100%" />
+</p>
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+<p align="center">
+  <strong>Raydroid</strong><br />
+  A minimal, plugin-first command surface built with Kotlin Multiplatform.
+</p>
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+<p align="center">
+  Android · iOS · Desktop · Server
+</p>
 
-* [/server](./server/src/main/kotlin) is for the Ktor server application.
+## Overview
 
-* [/shared](./shared/src) is for the code that will be shared between all targets in the project.
-  The most important subfolder is [commonMain](./shared/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
+Raydroid is a cross-platform command launcher and runtime with a shared search core, shared plugin system, and native shells per platform. It is built around one idea: type once, surface actions fast, and let plugins own the experience.
 
-### Build and Run Android Application
+## Highlights
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+- Search-first UI with inline results, fullscreen plugin views, context actions, and overlays
+- Shared plugin runtime powered by Zipline with permission-gated host bridges
+- Built-in commands for calculator, files, contacts, notes, and weather
+- iOS integration for Shortcuts and Spotlight indexing
+- Shared architecture across Android, iOS, desktop, and server modules
 
-### Android Release Signing
+## Stack
 
-Android release builds now default to a committed test keystore at [`/androidApp/signing/test-release.keystore`](./androidApp/signing/test-release.keystore).
-This is only for local QA and non-production CI artifacts.
+- Kotlin 2.3.10
+- Compose Multiplatform + Material 3
+- SwiftUI shell for iOS
+- Ktor for server runtime
+- Koin for dependency injection
+- Zipline for plugin execution
 
-To override it with a real release keystore, provide all four values through environment variables, `-P` Gradle properties, or `local.properties`:
+## Quick Start
 
-```properties
-raydroid.android.release.storeFile=/absolute/path/to/release.keystore
-raydroid.android.release.storePassword=...
-raydroid.android.release.keyAlias=...
-raydroid.android.release.keyPassword=...
+```bash
+./gradlew :composeApp:assembleDebug
+./gradlew :desktopApp:run
+./gradlew :server:run
 ```
 
-Environment variable equivalents:
+For iOS, open [`iosApp`](./iosApp) in Xcode and run the app from there.
 
-```text
-RAYDROID_ANDROID_RELEASE_STORE_FILE
-RAYDROID_ANDROID_RELEASE_STORE_PASSWORD
-RAYDROID_ANDROID_RELEASE_KEY_ALIAS
-RAYDROID_ANDROID_RELEASE_KEY_PASSWORD
-```
+## Project Layout
 
-### Build and Run Server
+- [`androidApp`](./androidApp) Android entry point and packaging
+- [`composeApp`](./composeApp/src) shared Compose UI and Android presentation layer
+- [`iosApp`](./iosApp) native iOS shell and integrations
+- [`desktopApp`](./desktopApp) desktop target
+- [`feature/search`](./feature/search) command search feature and view model flow
+- [`plugin`](./plugin) plugin API, host bridges, and built-in plugins
+- [`core`](./core) shared data, domain, model, and design system modules
+- [`server`](./server/src/main/kotlin) Ktor backend
+- [`shared`](./shared/src) common cross-platform utilities
 
-To build and run the development version of the server, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :server:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :server:run
-  ```
+## Android Release Signing
 
-### Build and Run iOS Application
+Local release builds default to the committed test keystore at [`androidApp/signing/test-release.keystore`](./androidApp/signing/test-release.keystore). Real signing credentials can be supplied through environment variables, Gradle properties, or `local.properties`.
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
-
----
-
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+See [`androidApp/signing/README.md`](./androidApp/signing/README.md) for exact keys and setup.

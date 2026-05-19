@@ -436,6 +436,11 @@ class SearchViewModel(
                                 result = openResult,
                                 fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
                             )
+                        } else if (shouldCollectDeferredFullscreenOnCachedSubmit(openResultId.commandMode())) {
+                            collectFullscreenWhenContentAppears(
+                                result = openResult,
+                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+                            )
                         }
                         enterItemUseCase(openResultId)
                     }
@@ -1403,6 +1408,10 @@ internal suspend fun SearchResultSet.SearchResult.actions(
 
 internal fun shouldOpenFullscreenOnSubmit(commandMode: Command.Mode?): Boolean {
     return commandMode != Command.Mode.NoView
+}
+
+internal fun shouldCollectDeferredFullscreenOnCachedSubmit(commandMode: Command.Mode?): Boolean {
+    return commandMode == Command.Mode.NoView
 }
 
 internal fun shouldCollectDeferredFullscreenOnSubmit(
