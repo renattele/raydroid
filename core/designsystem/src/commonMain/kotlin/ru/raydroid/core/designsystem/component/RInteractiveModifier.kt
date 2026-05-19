@@ -94,7 +94,7 @@ fun Modifier.rInteractable(
             }
         }
         .offset {
-            IntOffset(-overflowPaddingPx, -overflowPaddingPx)
+            IntOffset(0, -overflowPaddingPx)
         }
         .graphicsLayer {
             scaleX = scale

@@ -324,7 +324,7 @@ fun SearchScreen(
                             start = spacing.medium,
                             end = spacing.medium,
                             top = spacing.small,
-                            bottom = spacing.extraLarge * 2
+                            bottom = spacing.extraLarge
                         ),
                         reverseLayout = true,
                         state = listState
