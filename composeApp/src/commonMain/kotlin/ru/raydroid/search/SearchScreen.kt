@@ -220,7 +220,6 @@ fun SearchScreen(
                 val focusedItemIndex = resultsContent?.focusedItemIndex
                 val searchResults = resultsContent?.searchResults
                 LaunchedEffect(state.searchFieldState.query) {
-                    println("HEEEEE")
                     listState.scrollToItem(0)
                 }
                 LaunchedEffect(listState, overlayState.showContextActions, fullscreen) {

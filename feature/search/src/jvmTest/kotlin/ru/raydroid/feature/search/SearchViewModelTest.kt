@@ -547,6 +547,11 @@ private class FakePluginRuntime(
     val commandUpdates = mutableListOf<Pair<String, CommandActionBridge>>()
 
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()
+    override suspend fun cachedItems(
+        commandName: String,
+        requestedItems: List<CommandItemId>,
+        chunkSize: Int
+    ): List<SearchIndexMutation> = emptyList()
 
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = MutableStateFlow(emptyList())
 

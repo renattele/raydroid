@@ -20,6 +20,11 @@ interface PluginRuntime {
     fun cachedItems(
         chunkSize: Int = 100
     ): Flow<List<SearchIndexMutation>>
+    suspend fun cachedItems(
+        commandName: String,
+        requestedItems: List<CommandItemId>,
+        chunkSize: Int = 100
+    ): List<SearchIndexMutation>
 
     fun content(): StateFlow<List<ContentItem>>
     fun fullscreen(commandName: String): StateFlow<FullscreenContent?>
@@ -29,6 +34,12 @@ interface PluginRuntime {
     suspend fun update(commandName: String, action: CommandActionBridge)
     suspend fun back(commandName: String): Boolean
     suspend fun unload()
+
+    data class CommandCacheRequest(
+        val commandName: String,
+        val requestedItems: List<CommandItemId>,
+        val chunkSize: Int
+    )
 
     data class ContentItem(
         val commandName: String,

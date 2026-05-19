@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -169,6 +170,27 @@ internal class PluginRuntimeImpl(
                             )
                         )
                     }
+                }
+            }
+        }
+    }
+
+    override suspend fun cachedItems(
+        commandName: String,
+        requestedItems: List<CommandItemId>,
+        chunkSize: Int
+    ): List<SearchIndexMutation> {
+        if (requestedItems.isEmpty()) return emptyList()
+        return withContext(pluginRuntimeDispatcher) {
+            val command = commandServices.firstOrNull { service ->
+                service.getServiceName() == commandName
+            } ?: return@withContext emptyList()
+            buildList {
+                command.cachedItems(
+                    requestedItems = requestedItems,
+                    chunkSize = chunkSize
+                ).collect { chunk ->
+                    addAll(chunk.map { item -> item.toMutation(commandName) })
                 }
             }
         }

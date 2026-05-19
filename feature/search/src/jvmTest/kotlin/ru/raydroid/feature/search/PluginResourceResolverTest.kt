@@ -105,6 +105,11 @@ private class ResolverTestRuntime(
     override val resources: FakeFileSystem
 ) : PluginRuntime {
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()
+    override suspend fun cachedItems(
+        commandName: String,
+        requestedItems: List<CommandItemId>,
+        chunkSize: Int
+    ): List<SearchIndexMutation> = emptyList()
 
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = MutableStateFlow(emptyList())
 

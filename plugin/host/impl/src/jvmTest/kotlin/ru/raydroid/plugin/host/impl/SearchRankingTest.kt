@@ -330,6 +330,11 @@ private class FakeSearchRuntime(
     private val content = MutableStateFlow(contentItems)
 
     override fun cachedItems(chunkSize: Int) = emptyFlow<List<SearchIndexMutation>>()
+    override suspend fun cachedItems(
+        commandName: String,
+        requestedItems: List<CommandItemId>,
+        chunkSize: Int
+    ): List<SearchIndexMutation> = emptyList()
 
     override fun content() = content
 

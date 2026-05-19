@@ -13,6 +13,7 @@ import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.manifest.Platform
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.domain.model.PluginId
@@ -75,6 +76,33 @@ class SearchUseCaseTest {
         assertEquals(1, results.size)
         val cachedResult = assertIs<SearchResultSet.CachedSearchResult>(results.first())
         assertEquals("oy", cachedResult.listEntry.alias)
+    }
+
+    @Test
+    fun `exact alias refreshes cached item from runtime when preview is missing`() = runTest {
+        val fixture = SearchUseCaseFixture(includeCommands = false, includeLive = false)
+        val cachedResultId = fixture.resultId.copy(itemId = CommandItemId("file:readme"))
+        fixture.aliasRepository.aliases.value = mapOf(cachedResultId to "oy")
+        fixture.runtime.cachedEntries = listOf(
+            fixture.commandEntry().copy(id = cachedResultId.itemId)
+        )
+
+        val results = fixture.useCase("oy").first().results
+
+        assertEquals(1, results.size)
+        val cachedResult = assertIs<SearchResultSet.CachedSearchResult>(results.first())
+        assertEquals("oy", cachedResult.listEntry.alias)
+        assertEquals(cachedResultId, cachedResult.resultId)
+        assertEquals(
+            listOf(
+                PluginRuntime.CommandCacheRequest(
+                    commandName = cachedResultId.commandName,
+                    requestedItems = listOf(cachedResultId.itemId),
+                    chunkSize = 100
+                )
+            ),
+            fixture.runtime.cacheRequests
+        )
     }
 
     @Test
@@ -184,8 +212,10 @@ private class SearchUseCaseFixture(
     val cachedItems = MutableStateFlow<List<SearchIndexMutation>>(emptyList())
     val searchIndexRepository = SearchUseCaseSearchIndexRepository()
     val aliasRepository = SearchUseCaseAliasRepository()
+    val runtimes = MutableStateFlow(listOf<PluginRuntime>(runtime))
     private val registry = SearchUseCaseRegistry(
         coordinator = SearchUseCaseCoordinator(
+            runtimes = runtimes,
             commands = commands,
             content = content,
             cachedItems = cachedItems
@@ -213,12 +243,13 @@ private class SearchUseCaseFixture(
 }
 
 private class SearchUseCaseCoordinator(
+    private val runtimes: StateFlow<List<PluginRuntime>>,
     private val commands: StateFlow<List<PluginRuntimeCoordinator.CommandItem>>,
     private val content: StateFlow<List<PluginRuntimeCoordinator.ContentItem>>,
     private val cachedItems: Flow<List<SearchIndexMutation>>
 ) : PluginRuntimeCoordinator {
     override fun cachedItems(): Flow<List<SearchIndexMutation>> = cachedItems
-    override fun runtimes(): StateFlow<List<PluginRuntime>> = MutableStateFlow(emptyList())
+    override fun runtimes(): StateFlow<List<PluginRuntime>> = runtimes
     override fun content(): StateFlow<List<PluginRuntimeCoordinator.ContentItem>> = content
     override fun commands(): StateFlow<List<PluginRuntimeCoordinator.CommandItem>> = commands
     override suspend fun update(action: CommandActionBridge) = Unit
@@ -237,7 +268,32 @@ private class SearchUseCaseRuntime(
 ) : PluginRuntime {
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
+    val cacheRequests = mutableListOf<PluginRuntime.CommandCacheRequest>()
+    var cachedEntries: List<PluginCommandListItem> = emptyList()
+
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()
+    override suspend fun cachedItems(
+        commandName: String,
+        requestedItems: List<CommandItemId>,
+        chunkSize: Int
+    ): List<SearchIndexMutation> {
+        cacheRequests += PluginRuntime.CommandCacheRequest(
+            commandName = commandName,
+            requestedItems = requestedItems,
+            chunkSize = chunkSize
+        )
+        return cachedEntries.map { entry ->
+            SearchIndexMutation.Upsert(
+                resultId = SearchResultId(
+                    pluginId = pluginId,
+                    commandName = commandName,
+                    itemId = entry.id
+                ),
+                listEntry = entry.toApiListItem()
+            )
+        }
+    }
+
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = MutableStateFlow(emptyList())
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = MutableStateFlow(null)
     override suspend fun actions(commandName: String, itemId: CommandItemId) = emptyList<ru.raydroid.plugin.host.api.ui.PluginCommandListAction>()
@@ -251,7 +307,33 @@ private class SearchUseCaseSearchIndexRepository : SearchIndexRepository {
     val results = MutableStateFlow<List<RankedSearchResult>>(emptyList())
     var preview: RankedSearchResult? = null
 
-    override suspend fun update(mutations: List<SearchIndexMutation>) = Unit
+    override suspend fun update(mutations: List<SearchIndexMutation>) {
+        mutations.forEach { mutation ->
+            when (mutation) {
+                is SearchIndexMutation.Upsert -> {
+                    preview = RankedSearchResult(
+                        result = SearchResultSet.CachedSearchResult(
+                            resultId = mutation.resultId,
+                            listEntry = mutation.listEntry.toPluginListItem(),
+                            titleMatches = emptyList(),
+                            descriptionMatches = emptyList()
+                        ),
+                        score = SearchResultScore(textScore = 0.0)
+                    )
+                }
+
+                is SearchIndexMutation.Delete -> {
+                    if (preview?.result?.resultId == mutation.resultId) {
+                        preview = null
+                    }
+                }
+
+                is SearchIndexMutation.ClearOutdated,
+                is SearchIndexMutation.MarkAllAsOutdated -> Unit
+            }
+        }
+    }
+
     override suspend fun updateUsage(resultId: SearchResultId) = Unit
     override suspend fun getPreview(resultId: SearchResultId): RankedSearchResult? = preview
     override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> = results
@@ -274,6 +356,43 @@ private class SearchUseCaseAliasRepository : SearchAliasRepository {
     override suspend fun resolveExactAlias(alias: String): SearchResultId? {
         return aliases.value.entries.firstOrNull { entry -> entry.value == alias }?.key
     }
+}
+
+private fun PluginCommandListItem.toApiListItem(): CommandListItem {
+    return CommandListItem(
+        id = id,
+        icon = null,
+        title = title?.toApiText(),
+        description = description?.toApiText(),
+        enabled = enabled,
+        iconColor = null,
+        trailingText = trailingText?.toApiText(),
+        quickAction = null
+    )
+}
+
+private fun CommandListItem.toPluginListItem(): PluginCommandListItem {
+    return PluginCommandListItem(
+        id = id,
+        icon = null,
+        title = title?.toPluginText(),
+        description = description?.toPluginText(),
+        enabled = enabled,
+        iconColor = null,
+        trailingText = trailingText?.toPluginText(),
+        alias = null,
+        quickAction = null
+    )
+}
+
+private fun PluginUiText.toApiText(): UiText = when (this) {
+    is PluginUiText.Plain -> UiText.Plain(text)
+    is PluginUiText.Resource -> UiText.Resource(key)
+}
+
+private fun UiText.toPluginText(): PluginUiText = when (type) {
+    UiText.Type.Plain -> PluginUiText.Plain(text)
+    UiText.Type.Resource -> PluginUiText.Resource(pluginId = PluginId("test"), key = text)
 }
 
 private class SearchUseCaseRanker(

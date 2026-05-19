@@ -82,6 +82,7 @@ class SearchUseCase(
         snapshot: SearchSnapshot,
         limit: Int
     ): List<SearchResultSet.SearchResult> {
+        val runtimeCoordinator = pluginRuntimeRegistry.get()
         val aliasResultId = SearchAliasNormalizer.normalizeLookup(query)
             ?.let { alias -> snapshot.aliases.entries.firstOrNull { entry -> entry.value == alias }?.key }
             ?: return snapshot.results
@@ -90,10 +91,27 @@ class SearchUseCase(
                 alias = snapshot.aliases[aliasResultId]
             )
             ?: searchIndexRepository.getPreview(aliasResultId)?.result?.decorateAlias(snapshot.aliases[aliasResultId])
+            ?: refreshCachedAliasResult(runtimeCoordinator, aliasResultId)?.decorateAlias(snapshot.aliases[aliasResultId])
             ?: return snapshot.results
         return listOf(promoted) + snapshot.results
             .filterNot { result -> result.resultId == aliasResultId }
             .take((limit - 1).coerceAtLeast(0))
+    }
+
+    private suspend fun refreshCachedAliasResult(
+        runtimeCoordinator: PluginRuntimeCoordinator,
+        resultId: SearchResultId
+    ): SearchResultSet.SearchResult? {
+        val runtime = runtimeCoordinator.runtimes().value.firstOrNull { candidate ->
+            candidate.pluginId == resultId.pluginId
+        } ?: return null
+        val refreshedMutations = runtime.cachedItems(
+            commandName = resultId.commandName,
+            requestedItems = listOf(resultId.itemId)
+        )
+        if (refreshedMutations.isEmpty()) return null
+        searchIndexRepository.update(refreshedMutations)
+        return searchIndexRepository.getPreview(resultId)?.result
     }
 }
 
