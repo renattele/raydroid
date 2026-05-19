@@ -21,12 +21,12 @@ fun Project.generateKotlinSecret(
 ): GenerateKotlinSecret {
     val taskName = "generate${constantName.replaceFirstChar { it.uppercaseChar() }}Secret"
     val outputDir = layout.buildDirectory.dir("generated/secrets/$sourceSetName/kotlin")
-    val localProperties = providers
-        .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
-        .asText
-        .map { text -> text.localProperty(propertyName) }
-        .orElse("")
-    val secret = providers.environmentVariable(environmentName).orElse(localProperties)
+    val secret = providers.provider {
+        findEnvironmentGradleOrLocalProperty(
+            gradlePropertyName = propertyName,
+            environmentName = environmentName,
+        ).orEmpty()
+    }
 
     val task = tasks.register<GenerateKotlinSecretTask>(taskName) {
         this.packageName.set(packageName)
@@ -81,14 +81,6 @@ abstract class GenerateKotlinSecretTask : DefaultTask() {
         )
     }
 }
-
-private fun String.localProperty(name: String): String =
-    lineSequence()
-        .map { it.trim() }
-        .firstOrNull { line -> line.startsWith("$name=") }
-        ?.substringAfter("=")
-        ?.trim()
-        .orEmpty()
 
 private fun String.escapeKotlinString(): String =
     replace("\\", "\\\\")

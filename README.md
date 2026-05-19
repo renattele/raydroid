@@ -31,6 +31,29 @@ in your IDE’s toolbar or build it directly from the terminal:
   .\gradlew.bat :composeApp:assembleDebug
   ```
 
+### Android Release Signing
+
+Android release builds now default to a committed test keystore at [`/androidApp/signing/test-release.keystore`](./androidApp/signing/test-release.keystore).
+This is only for local QA and non-production CI artifacts.
+
+To override it with a real release keystore, provide all four values through environment variables, `-P` Gradle properties, or `local.properties`:
+
+```properties
+raydroid.android.release.storeFile=/absolute/path/to/release.keystore
+raydroid.android.release.storePassword=...
+raydroid.android.release.keyAlias=...
+raydroid.android.release.keyPassword=...
+```
+
+Environment variable equivalents:
+
+```text
+RAYDROID_ANDROID_RELEASE_STORE_FILE
+RAYDROID_ANDROID_RELEASE_STORE_PASSWORD
+RAYDROID_ANDROID_RELEASE_KEY_ALIAS
+RAYDROID_ANDROID_RELEASE_KEY_PASSWORD
+```
+
 ### Build and Run Server
 
 To build and run the development version of the server, use the run configuration from the run widget
