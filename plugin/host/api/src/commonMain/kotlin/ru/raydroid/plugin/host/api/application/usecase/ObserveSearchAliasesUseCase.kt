@@ -5,7 +5,7 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.repository.SearchAliasRepository
 
 class ObserveSearchAliasesUseCase(
-    private val searchAliasRepository: SearchAliasRepository
+    private val searchAliasRepository: SearchAliasRepository,
 ) {
     operator fun invoke(): Flow<Map<SearchResultId, String>> = searchAliasRepository.observeAliases()
 }

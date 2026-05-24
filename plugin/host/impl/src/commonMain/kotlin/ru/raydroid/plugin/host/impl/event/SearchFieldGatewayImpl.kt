@@ -6,9 +6,10 @@ import ru.raydroid.plugin.host.api.event.SearchFieldGateway
 import ru.raydroid.plugin.host.api.event.SearchFieldRequest
 
 internal class SearchFieldGatewayImpl : SearchFieldGateway {
-    private val requests = MutableSharedFlow<SearchFieldRequest>(
-        extraBufferCapacity = 64
-    )
+    private val requests =
+        MutableSharedFlow<SearchFieldRequest>(
+            extraBufferCapacity = 64,
+        )
 
     override fun get(): Flow<SearchFieldRequest> = requests
 

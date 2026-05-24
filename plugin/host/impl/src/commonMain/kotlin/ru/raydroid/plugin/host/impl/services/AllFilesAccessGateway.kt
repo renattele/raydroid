@@ -2,6 +2,7 @@ package ru.raydroid.plugin.host.impl.services
 
 internal interface AllFilesAccessGateway {
     suspend fun hasAllFilesAccess(): Boolean
+
     suspend fun requestAllFilesAccess()
 }
 

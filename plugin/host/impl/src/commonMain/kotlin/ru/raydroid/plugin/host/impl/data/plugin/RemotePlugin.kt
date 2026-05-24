@@ -5,7 +5,7 @@ import ru.raydroid.plugin.host.api.domain.model.PluginId
 
 data class RemotePlugin(
     val data: ByteArray,
-    val signature: String? = null
+    val signature: String? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -48,7 +48,7 @@ class WeatherCommand : CommandService() {
 
     override suspend fun cachedItems(
         requestedItems: List<CommandItemId>?,
-        chunkSize: Int
+        chunkSize: Int,
     ) = flow<List<CommandListItem>> {
         ensureLoaded()
         refreshSelectedWeather()
@@ -63,7 +63,7 @@ class WeatherCommand : CommandService() {
             title = state.city?.displayName()?.let(UiText::Plain) ?: UiText.Resource("command.weather.title"),
             description = weather?.summary()?.let(UiText::Plain) ?: UiText.Resource("weather.chooseCity"),
             icon = weather?.icon() ?: WeatherIcon,
-            iconColor = WeatherIconColor
+            iconColor = WeatherIconColor,
         )
     }
 
@@ -78,32 +78,35 @@ class WeatherCommand : CommandService() {
         }
         LazyList(
             isLoading = isSearching,
-            searchBarPlaceholder = UiText.Resource("weather.search.placeholder")
+            searchBarPlaceholder = UiText.Resource("weather.search.placeholder"),
         ) {
-            if (query.isNotBlank() && !showSelectedCity) suggestions.forEach { city ->
-                item(
-                    id = city.itemId(),
-                    title = UiText.Plain(city.displayName()),
-                    subtitle = UiText.Plain(city.subtitle()),
-                    icon = Icon.Builtin("LocationCity"),
-                    iconColor = WeatherIconColor,
-                    keywords = city.keywords(),
-                    modifier = Modifier.actions {
-                        action(
-                            title = UiText.Resource("weather.action.choose"),
-                            icon = Icon.Builtin("Check"),
-                            primary = true
-                        ) {
-                            selectCity(city)
-                        }
-                    }
-                )
+            if (query.isNotBlank() && !showSelectedCity) {
+                suggestions.forEach { city ->
+                    item(
+                        id = city.itemId(),
+                        title = UiText.Plain(city.displayName()),
+                        subtitle = UiText.Plain(city.subtitle()),
+                        icon = Icon.Builtin("LocationCity"),
+                        iconColor = WeatherIconColor,
+                        keywords = city.keywords(),
+                        modifier =
+                            Modifier.actions {
+                                action(
+                                    title = UiText.Resource("weather.action.choose"),
+                                    icon = Icon.Builtin("Check"),
+                                    primary = true,
+                                ) {
+                                    selectCity(city)
+                                }
+                            },
+                    )
+                }
             }
             emptyView(
                 title = emptyTitle(),
                 description = emptyDescription(),
                 icon = if (query.isBlank()) WeatherIcon else Icon.Builtin("Search"),
-                iconColor = WeatherIconColor
+                iconColor = WeatherIconColor,
             )
         }
     }
@@ -115,7 +118,7 @@ class WeatherCommand : CommandService() {
             title = UiText.Resource("weather.action.clear"),
             icon = Icon.Builtin("Clear"),
             style = CommandListAction.Style.Destructive,
-            showPrimaryHint = false
+            showPrimaryHint = false,
         ) {
             clearSelection()
         }
@@ -134,11 +137,13 @@ class WeatherCommand : CommandService() {
                 render()
                 renderFullscreen()
             }
+
             is CommandAction.CloseCommand -> {
                 suggestions = emptyList()
                 searchError = null
                 showSelectedCity = false
             }
+
             is CommandAction.Type -> {
                 showSelectedCity = false
                 if (activeApiKey().isBlank()) {
@@ -149,22 +154,27 @@ class WeatherCommand : CommandService() {
                 }
                 renderFullscreen()
             }
+
             is CommandAction.Enter -> {
                 suggestions.firstOrNull { city -> city.itemId() == action.hoveredId }?.let { city ->
                     selectCity(city)
                 }
             }
-            is CommandAction.Focus -> Unit
+
+            is CommandAction.Focus -> {
+                Unit
+            }
         }
     }
 
     private suspend fun ensureLoaded() {
         if (loaded) return
-        state = runCatching {
-            Host.storage[STORAGE_KEY, WeatherState.serializer()] ?: WeatherState()
-        }.getOrElse {
-            WeatherState()
-        }
+        state =
+            runCatching {
+                Host.storage[STORAGE_KEY, WeatherState.serializer()] ?: WeatherState()
+            }.getOrElse {
+                WeatherState()
+            }
         loaded = true
     }
 
@@ -180,24 +190,25 @@ class WeatherCommand : CommandService() {
         isSearching = true
         searchError = null
         renderFullscreen()
-        suggestions = runCatching {
-            val url = "$GEOCODING_ENDPOINT?q=${cityQuery.urlEncode()}&limit=5&appid=${activeApiKey().urlEncode()}"
-            val response = Host.network.request(url)
-            if (!response.statusCode.isSuccess()) {
-                throw openWeatherException(response.statusCode)
+        suggestions =
+            runCatching {
+                val url = "$GEOCODING_ENDPOINT?q=${cityQuery.urlEncode()}&limit=5&appid=${activeApiKey().urlEncode()}"
+                val response = Host.network.request(url)
+                if (!response.statusCode.isSuccess()) {
+                    throw openWeatherException(response.statusCode)
+                }
+                response.body
+                    ?.decodeToString()
+                    ?.let { body -> json.decodeFromString(ListSerializer(GeocodingResult.serializer()), body) }
+                    .orEmpty()
+                    .map { result -> result.toCity() }
+                    .distinctBy { city -> city.itemId().value }
+            }.getOrElse {
+                if (!it.isCancellation()) {
+                    searchError = it.weatherErrorText(UiText.Resource("weather.error.search"))
+                }
+                emptyList()
             }
-            response.body
-                ?.decodeToString()
-                ?.let { body -> json.decodeFromString(ListSerializer(GeocodingResult.serializer()), body) }
-                .orEmpty()
-                .map { result -> result.toCity() }
-                .distinctBy { city -> city.itemId().value }
-        }.getOrElse {
-            if (!it.isCancellation()) {
-                searchError = it.weatherErrorText(UiText.Resource("weather.error.search"))
-            }
-            emptyList()
-        }
         isSearching = false
     }
 
@@ -236,8 +247,9 @@ class WeatherCommand : CommandService() {
         runCatching {
             val apiKey = activeApiKey()
             if (apiKey.isBlank()) error("OpenWeather API key is missing")
-            val url = "$WEATHER_ENDPOINT?lat=${city.latitude}&lon=${city.longitude}" +
-                "&units=metric&lang=en&appid=${apiKey.urlEncode()}"
+            val url =
+                "$WEATHER_ENDPOINT?lat=${city.latitude}&lon=${city.longitude}" +
+                    "&units=metric&lang=en&appid=${apiKey.urlEncode()}"
             val response = Host.network.request(url)
             if (!response.statusCode.isSuccess()) {
                 throw openWeatherException(response.statusCode)
@@ -250,7 +262,7 @@ class WeatherCommand : CommandService() {
                         temperature = it.main.temperature,
                         windSpeed = it.wind.windSpeed * METERS_PER_SECOND_TO_KILOMETERS_PER_HOUR,
                         weatherCode = it.weather.firstOrNull()?.id,
-                        description = it.weather.firstOrNull()?.description
+                        description = it.weather.firstOrNull()?.description,
                     )
                 }
         }.getOrElse {
@@ -264,25 +276,24 @@ class WeatherCommand : CommandService() {
         Host.storage[STORAGE_KEY, WeatherState.serializer()] = state
     }
 
-    private fun activeApiKey(): String =
-        DefaultOpenWeatherApiKey.ifBlank { state.apiKey }
+    private fun activeApiKey(): String = DefaultOpenWeatherApiKey.ifBlank { state.apiKey }
 
     private fun RayScope.ApiKeyForm() {
         Form(
-            suppressHostActions = true
+            suppressHostActions = true,
         ) {
             description(
-                text = UiText.Resource("weather.apiKey.description")
+                text = UiText.Resource("weather.apiKey.description"),
             )
             passwordField(
                 id = API_KEY_FIELD_ID,
                 title = UiText.Resource("weather.apiKey.title"),
                 placeholder = UiText.Resource("weather.apiKey.placeholder"),
-                required = true
+                required = true,
             )
             submit(
                 title = UiText.Resource("weather.action.save"),
-                icon = Icon.Builtin("Save")
+                icon = Icon.Builtin("Save"),
             ) { values ->
                 saveApiKey(values.text(API_KEY_FIELD_ID))
             }
@@ -305,17 +316,17 @@ class WeatherCommand : CommandService() {
     private fun RayScope.WeatherEmptyViewOffset() {
         Column(
             spacing = Spacing.Zero,
-            alignment = Alignment.Center
+            alignment = Alignment.Center,
         ) {
             Text(
                 text = UiText.Plain(" "),
                 fontSize = FontSize.Large,
-                color = Color.Transparent
+                color = Color.Transparent,
             )
             Text(
                 text = UiText.Plain(" "),
                 fontSize = FontSize.Medium,
-                color = Color.Transparent
+                color = Color.Transparent,
             )
         }
     }

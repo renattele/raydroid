@@ -15,12 +15,13 @@ import ru.raydroid.search.SearchScreen
 fun App() {
     RaydroidTheme {
         Column(
-            modifier = Modifier
-                .imePadding()
-                .fillMaxSize()
-                .background(RaydroidTheme.colorScheme.background),
+            modifier =
+                Modifier
+                    .imePadding()
+                    .fillMaxSize()
+                    .background(RaydroidTheme.colorScheme.background),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Bottom
+            verticalArrangement = Arrangement.Bottom,
         ) {
             SearchScreen()
         }

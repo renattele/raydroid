@@ -5,9 +5,9 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberTransition
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.absoluteOffset
@@ -19,8 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -35,15 +35,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import ru.raydroid.core.designsystem.RaydroidMotionToken
 import ru.raydroid.core.designsystem.RaydroidShapeToken
@@ -73,19 +73,19 @@ fun ActionPanel(
     onToggleActions: () -> Unit,
     showPrimaryHint: Boolean = true,
     onPrimaryAction: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val spacing = RaydroidTheme.spacing
     Row(
         modifier
-            .padding(horizontal = spacing.medium)
+            .padding(horizontal = spacing.medium),
     ) {
         Action(
             actions = actions,
             showActions = showActions,
             onToggleActions = onToggleActions,
             showPrimaryHint = showPrimaryHint,
-            onPrimaryAction = onPrimaryAction
+            onPrimaryAction = onPrimaryAction,
         )
     }
 }
@@ -109,12 +109,10 @@ fun ToastsOverlay(
                             invertedIndex / ((1.3.pow(invertedIndex - 1))).toFloat() * 10.dp.toPx()
                         scaleX = scale
                         scaleY = scale
-                    }
-                    .drawWithContent {
+                    }.drawWithContent {
                         drawContent()
                         drawRect(backgroundColor.copy(alpha = invertedIndex / 3f))
-                    }
-                    .padding(end = spacing.extraSmall)
+                    }.padding(end = spacing.extraSmall),
             )
         }
     }
@@ -127,55 +125,59 @@ private fun Action(
     onToggleActions: () -> Unit,
     showPrimaryHint: Boolean,
     onPrimaryAction: (() -> Unit)?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val spacing = RaydroidTheme.spacing
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(
-            spacing.medium,
-            Alignment.End
-        )
+        horizontalArrangement =
+            Arrangement.spacedBy(
+                spacing.medium,
+                Alignment.End,
+            ),
     ) {
-        val primaryAction = remember(actions) {
-            actions.find { it.primary } ?: actions.firstOrNull()
-        }
+        val primaryAction =
+            remember(actions) {
+                actions.find { it.primary } ?: actions.firstOrNull()
+            }
         if (primaryAction != null) {
             if (showPrimaryHint && primaryAction.showPrimaryHint) {
                 TextRenderer(
                     PluginTextData(
                         text = primaryAction.title,
                         color = PluginColor.OnSurfaceVariant,
-                        fontSize = PluginFontSize.ExtraSmall
-                    )
+                        fontSize = PluginFontSize.ExtraSmall,
+                    ),
                 )
                 RKeyHint(onClick = onPrimaryAction) {
                     RIcon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
                         contentDescription = null,
                         modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
-                        tint = PluginColor.OnPrimaryContainer.toColor()
+                        tint = PluginColor.OnPrimaryContainer.toColor(),
                     )
                 }
             }
             RKeyHint(
                 onClick = onToggleActions,
-                color = if (showActions) {
-                    PluginColor.Tertiary.toColor()
-                } else {
-                    PluginColor.TertiaryContainer.toColor()
-                }
+                color =
+                    if (showActions) {
+                        PluginColor.Tertiary.toColor()
+                    } else {
+                        PluginColor.TertiaryContainer.toColor()
+                    },
             ) {
                 RIcon(
                     imageVector = Icons.Filled.KeyboardArrowUp,
                     contentDescription = null,
                     modifier = Modifier.size(PluginIconSize.ExtraSmall.toDp()),
-                    tint = if (showActions) {
-                        PluginColor.OnTertiary.toColor()
-                    } else {
-                        PluginColor.OnTertiaryContainer.toColor()
-                    }
+                    tint =
+                        if (showActions) {
+                            PluginColor.OnTertiary.toColor()
+                        } else {
+                            PluginColor.OnTertiaryContainer.toColor()
+                        },
                 )
             }
         }
@@ -187,37 +189,41 @@ fun ActionsPanelOverlay(
     actions: List<ActionPanelActionUi>,
     visible: Boolean,
     onActionClick: (ActionPanelActionUi) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
     val popupColor = actionPopupSurfaceColor()
     val popupShadowColor = actionPopupShadowColor()
-    val groupedActions = remember(actions) {
-        actions.groupBy { it.group }
-            .entries.toList()
-    }
+    val groupedActions =
+        remember(actions) {
+            actions
+                .groupBy { it.group }
+                .entries
+                .toList()
+        }
     val popupShape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
     val popupRadius = RaydroidTheme.spacing.extraSmall
     AnimatedVisibility(
         visible = visible && actions.isNotEmpty(),
         enter = motion.popupEnter(TransformOrigin(1f, 1f)),
         exit = motion.popupExit(TransformOrigin(1f, 1f)),
-        modifier = modifier
+        modifier = modifier,
     ) {
         RPopupSurface(
-            modifier = Modifier
-                .padding(popupRadius)
-                .heightIn(max = PopupHeight)
-                .width(PopupWidth),
+            modifier =
+                Modifier
+                    .padding(popupRadius)
+                    .heightIn(max = PopupHeight)
+                    .width(PopupWidth),
             shape = popupShape,
             color = popupColor,
-            shadowColor = popupShadowColor
+            shadowColor = popupShadowColor,
         ) {
             LazyColumn {
                 itemsIndexed(groupedActions) { index, (groupName, actionsList) ->
                     Column(
                         Modifier.padding(RaydroidTheme.spacing.small),
-                        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+                        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small),
                     ) {
                         actionsList.forEach { action ->
                             ActionsPopupAction(action, onClick = { onActionClick(action) })
@@ -240,7 +246,7 @@ fun AnchoredActionsOverlay(
     visible: Boolean,
     onDismiss: () -> Unit,
     onActionClick: (ActionPanelActionUi) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val visibilityState = remember { MutableTransitionState(false) }
     LaunchedEffect(visible) {
@@ -272,58 +278,66 @@ fun AnchoredActionsOverlay(
     val motion = RaydroidTheme.motionScheme.spec(RaydroidMotionToken.Fast)
     val popupColor = actionPopupSurfaceColor()
     val popupShadowColor = actionPopupShadowColor()
-    val visibilityTransition = rememberTransition(
-        transitionState = visibilityState,
-        label = "anchoredActionsVisibility"
-    )
+    val visibilityTransition =
+        rememberTransition(
+            transitionState = visibilityState,
+            label = "anchoredActionsVisibility",
+        )
     val backdropAlpha by visibilityTransition.animateFloat(
         transitionSpec = { motion.floatSpec() },
-        label = "anchoredActionsBackdropAlpha"
+        label = "anchoredActionsBackdropAlpha",
     ) { isVisible ->
         if (isVisible) 0.18f else 0f
     }
-    val estimatedHeightPx = with(density) {
-        (groupedActions.sumOf { (_, groupActions) -> groupActions.size } * 44).dp.roundToPx() +
-            (groupedActions.size * 16).dp.roundToPx()
-    }.coerceAtMost(with(density) { PopupHeight.roundToPx() })
-    val popupWidthPx = with(density) {
-        minOf(resolvedAnchorBounds.width, PopupAnchoredMaxWidth.toPx())
-    }
+    val estimatedHeightPx =
+        with(density) {
+            (groupedActions.sumOf { (_, groupActions) -> groupActions.size } * 44).dp.roundToPx() +
+                (groupedActions.size * 16).dp.roundToPx()
+        }.coerceAtMost(with(density) { PopupHeight.roundToPx() })
+    val popupWidthPx =
+        with(density) {
+            minOf(resolvedAnchorBounds.width, PopupAnchoredMaxWidth.toPx())
+        }
     val horizontalMarginPx = with(density) { PopupAnchoredMargin.toPx() }
     val verticalGapPx = with(density) { PopupAnchoredGap.toPx() }
     val availableBottom = resolvedRootBounds.bottom - resolvedAnchorBounds.bottom - verticalGapPx
     val showBelow = availableBottom >= estimatedHeightPx
-    val x = resolvedAnchorBounds.left.coerceIn(
-        resolvedRootBounds.left + horizontalMarginPx,
-        resolvedRootBounds.right - popupWidthPx - horizontalMarginPx
-    )
-    val y = if (showBelow) {
-        resolvedAnchorBounds.bottom + verticalGapPx
-    } else {
-        (resolvedAnchorBounds.top - estimatedHeightPx - verticalGapPx)
-            .coerceAtLeast(resolvedRootBounds.top + horizontalMarginPx)
-    }
-    val offset = IntOffset(
-        x = (x - resolvedRootBounds.left).toInt(),
-        y = (y - resolvedRootBounds.top).toInt()
-    )
+    val x =
+        resolvedAnchorBounds.left.coerceIn(
+            resolvedRootBounds.left + horizontalMarginPx,
+            resolvedRootBounds.right - popupWidthPx - horizontalMarginPx,
+        )
+    val y =
+        if (showBelow) {
+            resolvedAnchorBounds.bottom + verticalGapPx
+        } else {
+            (resolvedAnchorBounds.top - estimatedHeightPx - verticalGapPx)
+                .coerceAtLeast(resolvedRootBounds.top + horizontalMarginPx)
+        }
+    val offset =
+        IntOffset(
+            x = (x - resolvedRootBounds.left).toInt(),
+            y = (y - resolvedRootBounds.top).toInt(),
+        )
     val popupWidth = with(density) { popupWidthPx.toDp() }
-    val anchorPivotX = (
-        ((resolvedAnchorBounds.left + resolvedAnchorBounds.right) / 2f - x) / popupWidthPx
+    val anchorPivotX =
+        (
+            ((resolvedAnchorBounds.left + resolvedAnchorBounds.right) / 2f - x) / popupWidthPx
         ).coerceIn(0f, 1f)
-    val transformOrigin = TransformOrigin(
-        pivotFractionX = anchorPivotX,
-        pivotFractionY = if (showBelow) 0f else 1f
-    )
+    val transformOrigin =
+        TransformOrigin(
+            pivotFractionX = anchorPivotX,
+            pivotFractionY = if (showBelow) 0f else 1f,
+        )
     val popupScale by visibilityTransition.animateFloat(
         transitionSpec = { motion.floatSpec() },
-        label = "anchoredActionsPopupScale"
+        label = "anchoredActionsPopupScale",
     ) { isVisible ->
         if (isVisible) 1f else 1f - motion.scaleDelta
     }
     val popupAlpha by visibilityTransition.animateFloat(
         transitionSpec = { motion.floatSpec() },
-        label = "anchoredActionsPopupAlpha"
+        label = "anchoredActionsPopupAlpha",
     ) { isVisible ->
         if (isVisible) 1f else 0f
     }
@@ -333,33 +347,34 @@ fun AnchoredActionsOverlay(
             .fillMaxSize()
             .pointerInput(onDismiss) {
                 detectTapGestures(onTap = { onDismiss() })
-            }
+            },
     ) {
         Box(
             Modifier
                 .fillMaxSize()
-                .background(RaydroidTheme.colorScheme.scrim.copy(alpha = backdropAlpha))
+                .background(RaydroidTheme.colorScheme.scrim.copy(alpha = backdropAlpha)),
         )
         RPopupSurface(
-            modifier = Modifier
-                .absoluteOffset { offset }
-                .width(popupWidth)
-                .heightIn(max = PopupHeight)
-                .graphicsLayer {
-                    alpha = popupAlpha
-                    scaleX = popupScale
-                    scaleY = popupScale
-                    this.transformOrigin = transformOrigin
-                },
+            modifier =
+                Modifier
+                    .absoluteOffset { offset }
+                    .width(popupWidth)
+                    .heightIn(max = PopupHeight)
+                    .graphicsLayer {
+                        alpha = popupAlpha
+                        scaleX = popupScale
+                        scaleY = popupScale
+                        this.transformOrigin = transformOrigin
+                    },
             shape = RaydroidTheme.shapes.medium,
             color = popupColor,
-            shadowColor = popupShadowColor
+            shadowColor = popupShadowColor,
         ) {
             LazyColumn {
                 itemsIndexed(groupedActions) { index, (_, actionsList) ->
                     Column(
                         Modifier.padding(RaydroidTheme.spacing.small),
-                        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+                        verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small),
                     ) {
                         actionsList.forEach { action ->
                             ActionsPopupAction(action, onClick = { onActionClick(action) })
@@ -378,75 +393,85 @@ fun AnchoredActionsOverlay(
 private fun ActionsPopupAction(
     action: ActionPanelActionUi,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val spacing = RaydroidTheme.spacing
-    val color = if (action.destructive) {
-        PluginColor.Error
-    } else {
-        PluginColor.OnSurface
-    }
+    val color =
+        if (action.destructive) {
+            PluginColor.Error
+        } else {
+            PluginColor.OnSurface
+        }
     Row(
         modifier
             .fillMaxWidth()
             .rInteractable(enabled = action.enabled) {
                 onClick()
-            }
-            .background(Color.Transparent)
+            }.background(Color.Transparent)
             .padding(RaydroidTheme.spacing.extraSmall),
         horizontalArrangement = Arrangement.spacedBy(spacing.small),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         IconRenderer(
             PluginIconData(
                 icon = action.icon ?: PluginIcon.Builtin("Help"),
                 color = color,
-                size = PluginIconSize.Small
-            )
+                size = PluginIconSize.Small,
+            ),
         )
         TextRenderer(
-            data = PluginTextData(
-                text = action.title,
-                fontSize = PluginFontSize.Small,
-                color = color
-            )
+            data =
+                PluginTextData(
+                    text = action.title,
+                    fontSize = PluginFontSize.Small,
+                    color = color,
+                ),
         )
     }
 }
 
 @Composable
-private fun Toast(toast: NotificationEvent.Toast, modifier: Modifier = Modifier) {
+private fun Toast(
+    toast: NotificationEvent.Toast,
+    modifier: Modifier = Modifier,
+) {
     RPopupSurface(
         modifier = modifier.width(PopupWidth),
         shape = RaydroidTheme.shapes.medium,
-        color = RaydroidTheme.colorScheme.surfaceBright
+        color = RaydroidTheme.colorScheme.surfaceBright,
     ) {
         Row(
             Modifier.padding(RaydroidTheme.spacing.small),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+            horizontalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small),
         ) {
             CompositionLocalProvider(LocalContentColor provides PluginColor.OnTertiaryContainer.toColor()) {
                 Box(
                     modifier = Modifier,
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     when (toast.style) {
-                        NotificationEvent.Toast.Style.Animated -> RLoadingIndicator(
-                            Modifier.size(PluginIconSize.Small.toDp())
-                        )
+                        NotificationEvent.Toast.Style.Animated -> {
+                            RLoadingIndicator(
+                                Modifier.size(PluginIconSize.Small.toDp()),
+                            )
+                        }
 
-                        NotificationEvent.Toast.Style.Success -> RIcon(
-                            imageVector = Icons.Default.Done,
-                            contentDescription = null,
-                            modifier = Modifier.size(PluginIconSize.Small.toDp())
-                        )
+                        NotificationEvent.Toast.Style.Success -> {
+                            RIcon(
+                                imageVector = Icons.Default.Done,
+                                contentDescription = null,
+                                modifier = Modifier.size(PluginIconSize.Small.toDp()),
+                            )
+                        }
 
-                        NotificationEvent.Toast.Style.Failure -> RIcon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(PluginIconSize.Small.toDp())
-                        )
+                        NotificationEvent.Toast.Style.Failure -> {
+                            RIcon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = null,
+                                modifier = Modifier.size(PluginIconSize.Small.toDp()),
+                            )
+                        }
                     }
                 }
                 TextRenderer(PluginTextData(toast.message, fontSize = PluginFontSize.Small))
@@ -477,7 +502,7 @@ private fun actionPopupSurfaceColor(): Color {
 private fun actionPopupShadowColor(): Color {
     val colorScheme = RaydroidTheme.colorScheme
     return colorScheme.scrim.copy(
-        alpha = if (colorScheme.surface.luminance() > 0.5f) 0.22f else 0.45f
+        alpha = if (colorScheme.surface.luminance() > 0.5f) 0.22f else 0.45f,
     )
 }
 
@@ -486,35 +511,39 @@ private fun actionPopupShadowColor(): Color {
 private fun ActionPanelPreview() {
     RaydroidPreviewTheme {
         ToastsOverlay(
-            toasts = listOf(
-                NotificationEvent.ShowToast(
-                    PluginId.Invalid,
-                    toastId = "toast-1",
-                    toast = NotificationEvent.Toast(
-                        message = PluginUiText.Plain("Message"),
-                        style = NotificationEvent.Toast.Style.Animated,
-                        autoDismissMillis = null
-                    )
+            toasts =
+                listOf(
+                    NotificationEvent.ShowToast(
+                        PluginId.Invalid,
+                        toastId = "toast-1",
+                        toast =
+                            NotificationEvent.Toast(
+                                message = PluginUiText.Plain("Message"),
+                                style = NotificationEvent.Toast.Style.Animated,
+                                autoDismissMillis = null,
+                            ),
+                    ),
+                    NotificationEvent.ShowToast(
+                        PluginId.Invalid,
+                        toastId = "toast-2",
+                        toast =
+                            NotificationEvent.Toast(
+                                message = PluginUiText.Plain("Message2"),
+                                style = NotificationEvent.Toast.Style.Success,
+                                autoDismissMillis = 5_000L,
+                            ),
+                    ),
+                    NotificationEvent.ShowToast(
+                        PluginId.Invalid,
+                        toastId = "toast-3",
+                        toast =
+                            NotificationEvent.Toast(
+                                message = PluginUiText.Plain("Message3"),
+                                style = NotificationEvent.Toast.Style.Success,
+                                autoDismissMillis = 5_000L,
+                            ),
+                    ),
                 ),
-                NotificationEvent.ShowToast(
-                    PluginId.Invalid,
-                    toastId = "toast-2",
-                    toast = NotificationEvent.Toast(
-                        message = PluginUiText.Plain("Message2"),
-                        style = NotificationEvent.Toast.Style.Success,
-                        autoDismissMillis = 5_000L
-                    )
-                ),
-                NotificationEvent.ShowToast(
-                    PluginId.Invalid,
-                    toastId = "toast-3",
-                    toast = NotificationEvent.Toast(
-                        message = PluginUiText.Plain("Message3"),
-                        style = NotificationEvent.Toast.Style.Success,
-                        autoDismissMillis = 5_000L
-                    )
-                )
-            )
         )
     }
 }

@@ -18,28 +18,29 @@ import org.koin.dsl.module
 
 private const val PREFERENCES_FILE_NAME = "raydroid.preferences_pb"
 
-val coreDataModule = module {
-    single<Json> {
-        Json {
-            ignoreUnknownKeys = true
+val coreDataModule =
+    module {
+        single<Json> {
+            Json {
+                ignoreUnknownKeys = true
+            }
         }
-    }
 
-    single<HttpClient> {
-        HttpClient {
-            install(ContentNegotiation) {
-                json(get(), contentType = ContentType.Any)
+        single<HttpClient> {
+            HttpClient {
+                install(ContentNegotiation) {
+                    json(get(), contentType = ContentType.Any)
+                }
+            }
+        }
+
+        single<CoroutineScope> {
+            CoroutineScope(Dispatchers.IO + SupervisorJob())
+        }
+
+        single<DataStore<Preferences>> {
+            PreferenceDataStoreFactory.createWithPath {
+                get<Path>(named("localPath")) / PREFERENCES_FILE_NAME
             }
         }
     }
-
-    single<CoroutineScope> {
-        CoroutineScope(Dispatchers.IO + SupervisorJob())
-    }
-
-    single<DataStore<Preferences>> {
-        PreferenceDataStoreFactory.createWithPath {
-            get<Path>(named("localPath")) / PREFERENCES_FILE_NAME
-        }
-    }
-}

@@ -7,7 +7,7 @@ import ru.raydroid.plugin.api.manifest.readable
 
 internal class PermissionContactsServiceBridge(
     private val contactsServiceBridge: ContactsServiceBridge,
-    private val manifest: Manifest
+    private val manifest: Manifest,
 ) : ContactsServiceBridge {
     override suspend fun hasContactsAccess(): Boolean {
         requireReadAccess()
@@ -45,7 +45,10 @@ internal class PermissionContactsServiceBridge(
     }
 
     private fun requireReadAccess() {
-        if (manifest.access.contacts?.permissions?.readable() != true) {
+        if (manifest.access.contacts
+                ?.permissions
+                ?.readable() != true
+        ) {
             throw PermissionDenied()
         }
     }

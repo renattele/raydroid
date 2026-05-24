@@ -18,28 +18,29 @@ import java.io.File
 import java.net.URLConnection
 
 internal class SystemServiceBridgeImpl(
-    private val activityContext: Context
-): SystemServiceBridge {
+    private val activityContext: Context,
+) : SystemServiceBridge {
     private val packageManager by lazy {
         activityContext.packageManager
     }
 
-    override suspend fun getApps(): List<SystemServiceBridge.RawApplication> = withContext(Dispatchers.Default) {
-        queryLaunchableApps()
-            .distinctBy { it.activityInfo?.packageName }
-            .mapNotNull { resolveInfo ->
-                val packageName = resolveInfo.activityInfo?.packageName ?: return@mapNotNull null
-                SystemServiceBridge.RawApplication(
-                    name = resolveName(resolveInfo, packageName),
-                    id = packageName,
-                    icon = resolveIcon(resolveInfo)
-                )
-            }
-    }
+    override suspend fun getApps(): List<SystemServiceBridge.RawApplication> =
+        withContext(Dispatchers.Default) {
+            queryLaunchableApps()
+                .distinctBy { it.activityInfo?.packageName }
+                .mapNotNull { resolveInfo ->
+                    val packageName = resolveInfo.activityInfo?.packageName ?: return@mapNotNull null
+                    SystemServiceBridge.RawApplication(
+                        name = resolveName(resolveInfo, packageName),
+                        id = packageName,
+                        icon = resolveIcon(resolveInfo),
+                    )
+                }
+        }
 
     override suspend fun openApp(
         appId: String,
-        options: SystemServiceBridge.OpenOptions
+        options: SystemServiceBridge.OpenOptions,
     ) {
         val intent = packageManager.getLaunchIntentForPackage(appId) ?: return
         intent.apply {
@@ -51,25 +52,28 @@ internal class SystemServiceBridgeImpl(
 
     override suspend fun open(
         target: String,
-        options: SystemServiceBridge.OpenOptions
+        options: SystemServiceBridge.OpenOptions,
     ) {
         val file = File(target.removePrefix("file://"))
-        val uri = FileProvider.getUriForFile(
-            activityContext,
-            "${activityContext.packageName}.fileprovider",
-            file
-        )
+        val uri =
+            FileProvider.getUriForFile(
+                activityContext,
+                "${activityContext.packageName}.fileprovider",
+                file,
+            )
         val contentType = URLConnection.guessContentTypeFromName(file.name) ?: "*/*"
-        val intent = Intent().apply {
-            setAction(Intent.ACTION_VIEW)
-            setDataAndType(uri, contentType)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            applyOptions(options)
-        }
-        val chooser = Intent.createChooser(intent, null).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
+        val intent =
+            Intent().apply {
+                setAction(Intent.ACTION_VIEW)
+                setDataAndType(uri, contentType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                applyOptions(options)
+            }
+        val chooser =
+            Intent.createChooser(intent, null).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
         activityContext.startActivity(chooser)
     }
 
@@ -82,38 +86,45 @@ internal class SystemServiceBridgeImpl(
     }
 
     private fun queryLaunchableApps(): List<ResolveInfo> {
-        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        }
+        val launcherIntent =
+            Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+            }
 
         return packageManager.queryIntentActivities(launcherIntent, 0)
     }
 
-    private fun resolveName(resolveInfo: ResolveInfo, packageName: String): String {
-        return resolveInfo.loadLabel(packageManager)
+    private fun resolveName(
+        resolveInfo: ResolveInfo,
+        packageName: String,
+    ): String =
+        resolveInfo
+            .loadLabel(packageManager)
             .normalizeLabel()
-            ?: resolveInfo.activityInfo?.applicationInfo
+            ?: resolveInfo.activityInfo
+                ?.applicationInfo
                 ?.loadLabel(packageManager)
                 .normalizeLabel()
             ?: packageName
-    }
 
     private fun resolveIcon(resolveInfo: ResolveInfo): Icon {
-        val drawable = try {
-            resolveInfo.loadIcon(packageManager)
-        } catch (_: Exception) {
+        val drawable =
             try {
-                resolveInfo.activityInfo?.applicationInfo?.loadIcon(packageManager)
-                    ?: packageManager.defaultActivityIcon
+                resolveInfo.loadIcon(packageManager)
             } catch (_: Exception) {
-                packageManager.defaultActivityIcon
+                try {
+                    resolveInfo.activityInfo?.applicationInfo?.loadIcon(packageManager)
+                        ?: packageManager.defaultActivityIcon
+                } catch (_: Exception) {
+                    packageManager.defaultActivityIcon
+                }
             }
-        }
 
-        val base64 = drawable
-            .toBitmap()
-            .toBase64Png()
-            ?: return Icon.Url(DEFAULT_APP_ICON_URI)
+        val base64 =
+            drawable
+                .toBitmap()
+                .toBase64Png()
+                ?: return Icon.Url(DEFAULT_APP_ICON_URI)
 
         return Icon.Url("data:image/png;base64,$base64")
     }
@@ -132,21 +143,19 @@ internal class SystemServiceBridgeImpl(
         return bitmap
     }
 
-    private fun Bitmap.toBase64Png(): String? {
-        return try {
-            val bytes = ByteArrayOutputStream().use { output ->
-                compress(Bitmap.CompressFormat.PNG, 100, output)
-                output.toByteArray()
-            }
+    private fun Bitmap.toBase64Png(): String? =
+        try {
+            val bytes =
+                ByteArrayOutputStream().use { output ->
+                    compress(Bitmap.CompressFormat.PNG, 100, output)
+                    output.toByteArray()
+                }
             Base64.encodeToString(bytes, Base64.NO_WRAP)
         } catch (_: Exception) {
             null
         }
-    }
 
-    private fun CharSequence?.normalizeLabel(): String? {
-        return this?.toString()?.trim()?.takeIf { it.isNotEmpty() }
-    }
+    private fun CharSequence?.normalizeLabel(): String? = this?.toString()?.trim()?.takeIf { it.isNotEmpty() }
 
     private companion object {
         private const val DEFAULT_ICON_SIZE_PX = 128

@@ -70,67 +70,79 @@ fun PluginColor.toColor(): Color {
     }
 }
 
-fun PluginSpacing.toSpacingToken(): RaydroidSpacingToken = when (this) {
-    PluginSpacing.Zero -> RaydroidSpacingToken.Zero
-    PluginSpacing.Minimal -> RaydroidSpacingToken.Minimal
-    PluginSpacing.Border -> RaydroidSpacingToken.Border
-    PluginSpacing.ExtraSmall -> RaydroidSpacingToken.ExtraSmall
-    PluginSpacing.Small -> RaydroidSpacingToken.Small
-    PluginSpacing.Medium -> RaydroidSpacingToken.Medium
-    PluginSpacing.Large -> RaydroidSpacingToken.Large
-    PluginSpacing.ExtraLarge -> RaydroidSpacingToken.ExtraLarge
-}
+fun PluginSpacing.toSpacingToken(): RaydroidSpacingToken =
+    when (this) {
+        PluginSpacing.Zero -> RaydroidSpacingToken.Zero
+        PluginSpacing.Minimal -> RaydroidSpacingToken.Minimal
+        PluginSpacing.Border -> RaydroidSpacingToken.Border
+        PluginSpacing.ExtraSmall -> RaydroidSpacingToken.ExtraSmall
+        PluginSpacing.Small -> RaydroidSpacingToken.Small
+        PluginSpacing.Medium -> RaydroidSpacingToken.Medium
+        PluginSpacing.Large -> RaydroidSpacingToken.Large
+        PluginSpacing.ExtraLarge -> RaydroidSpacingToken.ExtraLarge
+    }
 
 @Composable
-fun PluginSpacing.toDp(): Dp = ru.raydroid.core.designsystem.RaydroidTheme.spacing.value(toSpacingToken())
+fun PluginSpacing.toDp(): Dp =
+    ru.raydroid.core.designsystem.RaydroidTheme.spacing
+        .value(toSpacingToken())
 
-private fun PluginFontSize.toFontSizeToken(): RaydroidFontSizeToken = when (this) {
-    PluginFontSize.ExtraSmall -> RaydroidFontSizeToken.ExtraSmall
-    PluginFontSize.Small -> RaydroidFontSizeToken.Small
-    PluginFontSize.Medium -> RaydroidFontSizeToken.Medium
-    PluginFontSize.Large -> RaydroidFontSizeToken.Large
-    PluginFontSize.ExtraLarge -> RaydroidFontSizeToken.ExtraLarge
-}
+private fun PluginFontSize.toFontSizeToken(): RaydroidFontSizeToken =
+    when (this) {
+        PluginFontSize.ExtraSmall -> RaydroidFontSizeToken.ExtraSmall
+        PluginFontSize.Small -> RaydroidFontSizeToken.Small
+        PluginFontSize.Medium -> RaydroidFontSizeToken.Medium
+        PluginFontSize.Large -> RaydroidFontSizeToken.Large
+        PluginFontSize.ExtraLarge -> RaydroidFontSizeToken.ExtraLarge
+    }
 
 @Composable
 fun PluginFontSize.toTextUnit(): TextUnit =
-    ru.raydroid.core.designsystem.RaydroidTheme.typographyScale.fontSize(toFontSizeToken())
+    ru.raydroid.core.designsystem.RaydroidTheme.typographyScale
+        .fontSize(toFontSizeToken())
 
-private fun PluginIconSize.toIconSizeToken(): RaydroidIconSizeToken = when (this) {
-    PluginIconSize.ExtraSmall -> RaydroidIconSizeToken.ExtraSmall
-    PluginIconSize.Small -> RaydroidIconSizeToken.Small
-    PluginIconSize.Medium -> RaydroidIconSizeToken.Medium
-    PluginIconSize.Large -> RaydroidIconSizeToken.Large
-    PluginIconSize.ExtraLarge -> RaydroidIconSizeToken.ExtraLarge
-}
+private fun PluginIconSize.toIconSizeToken(): RaydroidIconSizeToken =
+    when (this) {
+        PluginIconSize.ExtraSmall -> RaydroidIconSizeToken.ExtraSmall
+        PluginIconSize.Small -> RaydroidIconSizeToken.Small
+        PluginIconSize.Medium -> RaydroidIconSizeToken.Medium
+        PluginIconSize.Large -> RaydroidIconSizeToken.Large
+        PluginIconSize.ExtraLarge -> RaydroidIconSizeToken.ExtraLarge
+    }
 
 @Composable
-fun PluginIconSize.toDp(): Dp = ru.raydroid.core.designsystem.RaydroidTheme.iconSizes.value(toIconSizeToken())
+fun PluginIconSize.toDp(): Dp =
+    ru.raydroid.core.designsystem.RaydroidTheme.iconSizes
+        .value(toIconSizeToken())
 
-fun PluginShapeToken.toRaydroidShapeToken(): RaydroidShapeToken = when (this) {
-    PluginShapeToken.None -> RaydroidShapeToken.None
-    PluginShapeToken.ExtraSmall -> RaydroidShapeToken.ExtraSmall
-    PluginShapeToken.Small -> RaydroidShapeToken.Small
-    PluginShapeToken.Medium -> RaydroidShapeToken.Medium
-    PluginShapeToken.Large -> RaydroidShapeToken.Large
-    PluginShapeToken.ExtraLarge -> RaydroidShapeToken.ExtraLarge
-    PluginShapeToken.Full -> RaydroidShapeToken.Full
-}
+fun PluginShapeToken.toRaydroidShapeToken(): RaydroidShapeToken =
+    when (this) {
+        PluginShapeToken.None -> RaydroidShapeToken.None
+        PluginShapeToken.ExtraSmall -> RaydroidShapeToken.ExtraSmall
+        PluginShapeToken.Small -> RaydroidShapeToken.Small
+        PluginShapeToken.Medium -> RaydroidShapeToken.Medium
+        PluginShapeToken.Large -> RaydroidShapeToken.Large
+        PluginShapeToken.ExtraLarge -> RaydroidShapeToken.ExtraLarge
+        PluginShapeToken.Full -> RaydroidShapeToken.Full
+    }
 
 @Composable
 fun PluginShapeToken.toShape(): Shape =
-    ru.raydroid.core.designsystem.RaydroidTheme.shapes.shape(toRaydroidShapeToken())
+    ru.raydroid.core.designsystem.RaydroidTheme.shapes
+        .shape(toRaydroidShapeToken())
 
-fun PluginMotionToken.toRaydroidMotionToken(): RaydroidMotionToken = when (this) {
-    PluginMotionToken.None -> RaydroidMotionToken.None
-    PluginMotionToken.Fast -> RaydroidMotionToken.Fast
-    PluginMotionToken.Default -> RaydroidMotionToken.Default
-    PluginMotionToken.Emphasized -> RaydroidMotionToken.Emphasized
-}
+fun PluginMotionToken.toRaydroidMotionToken(): RaydroidMotionToken =
+    when (this) {
+        PluginMotionToken.None -> RaydroidMotionToken.None
+        PluginMotionToken.Fast -> RaydroidMotionToken.Fast
+        PluginMotionToken.Default -> RaydroidMotionToken.Default
+        PluginMotionToken.Emphasized -> RaydroidMotionToken.Emphasized
+    }
 
 @Composable
 fun PluginMotionToken.toMotionSpec(): RaydroidMotionSpec =
-    ru.raydroid.core.designsystem.RaydroidTheme.motionScheme.spec(toRaydroidMotionToken())
+    ru.raydroid.core.designsystem.RaydroidTheme.motionScheme
+        .spec(toRaydroidMotionToken())
 
 @Composable
 fun RaydroidPreviewTheme(content: @Composable () -> Unit) {

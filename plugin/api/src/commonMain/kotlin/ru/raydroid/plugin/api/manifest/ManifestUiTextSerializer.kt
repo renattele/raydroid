@@ -12,10 +12,12 @@ object ManifestUiTextSerializer : KSerializer<UiText> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("ManifestUiText", PrimitiveKind.STRING)
 
-    override fun deserialize(decoder: Decoder): UiText =
-        UiText.Resource(decoder.decodeString())
+    override fun deserialize(decoder: Decoder): UiText = UiText.Resource(decoder.decodeString())
 
-    override fun serialize(encoder: Encoder, value: UiText) {
+    override fun serialize(
+        encoder: Encoder,
+        value: UiText,
+    ) {
         encoder.encodeString(value.text)
     }
 }

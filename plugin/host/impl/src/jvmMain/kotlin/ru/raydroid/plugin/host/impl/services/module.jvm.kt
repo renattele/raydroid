@@ -9,18 +9,19 @@ import ru.raydroid.plugin.host.impl.DesktopPlatform
 import ru.raydroid.plugin.host.impl.detectDesktopPlatform
 import ru.raydroid.plugin.host.impl.services.mac.MacSystemServiceBridgeImpl
 
-internal actual val platformHostServiceModule = module {
-    single<DesktopPlatform> { detectDesktopPlatform() }
-    factory<AllFilesAccessGateway> { UnsupportedAllFilesAccessGateway() }
-    factory<ClipboardServiceBridge> { ClipboardServiceBridgeImpl() }
-    factory<ContactsServiceBridge> { UnsupportedContactsServiceBridge() }
-    factory<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
-    factory<SystemServiceBridge> {
-        when (get<DesktopPlatform>()) {
-            DesktopPlatform.MAC -> MacSystemServiceBridgeImpl()
-            DesktopPlatform.WINDOWS -> TODO()
-            DesktopPlatform.LINUX -> TODO()
-            DesktopPlatform.OTHER -> TODO()
+internal actual val platformHostServiceModule =
+    module {
+        single<DesktopPlatform> { detectDesktopPlatform() }
+        factory<AllFilesAccessGateway> { UnsupportedAllFilesAccessGateway() }
+        factory<ClipboardServiceBridge> { ClipboardServiceBridgeImpl() }
+        factory<ContactsServiceBridge> { UnsupportedContactsServiceBridge() }
+        factory<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
+        factory<SystemServiceBridge> {
+            when (get<DesktopPlatform>()) {
+                DesktopPlatform.MAC -> MacSystemServiceBridgeImpl()
+                DesktopPlatform.WINDOWS -> TODO()
+                DesktopPlatform.LINUX -> TODO()
+                DesktopPlatform.OTHER -> TODO()
+            }
         }
     }
-}

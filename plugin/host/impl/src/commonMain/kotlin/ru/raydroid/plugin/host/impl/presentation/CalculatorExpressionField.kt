@@ -9,24 +9,27 @@ internal fun calculatorExpressionOutputTransformation(): OutputTransformation =
         if (displayValue != rawValue) {
             replaceWithCommonAffixes(
                 rawValue = rawValue,
-                displayValue = displayValue
+                displayValue = displayValue,
             )
         }
     }
 
-internal fun staticOutputTransformation(rawValue: String, displayValue: String): OutputTransformation =
+internal fun staticOutputTransformation(
+    rawValue: String,
+    displayValue: String,
+): OutputTransformation =
     OutputTransformation {
         if (toString() == rawValue) {
             replaceWithCommonAffixes(
                 rawValue = rawValue,
-                displayValue = displayValue
+                displayValue = displayValue,
             )
         }
     }
 
 private fun androidx.compose.foundation.text.input.TextFieldBuffer.replaceWithCommonAffixes(
     rawValue: String,
-    displayValue: String
+    displayValue: String,
 ) {
     val prefixLength = rawValue.commonPrefixWith(displayValue).length
     var suffixLength = 0
@@ -40,12 +43,17 @@ private fun androidx.compose.foundation.text.input.TextFieldBuffer.replaceWithCo
     replace(
         start = prefixLength,
         end = rawValue.length - suffixLength,
-        text = displayValue.substring(prefixLength, displayValue.length - suffixLength)
+        text = displayValue.substring(prefixLength, displayValue.length - suffixLength),
     )
 }
 
 private fun String.toCalculatorDisplayExpression(): String =
-    formatPowers().formatSquareRoots().formatLogarithms().formatNumberSystemLiterals().formatConstants().formatDegrees()
+    formatPowers()
+        .formatSquareRoots()
+        .formatLogarithms()
+        .formatNumberSystemLiterals()
+        .formatConstants()
+        .formatDegrees()
 
 private fun String.formatPowers(): String {
     val result = StringBuilder(length)
@@ -84,7 +92,7 @@ private fun String.exponentAfter(powerIndex: Int): FormattedRange? {
         FormattedRange(
             range = (start + 1) until end,
             nextIndex = if (end < length) end + 1 else end,
-            openParenthesisUnclosed = end == length
+            openParenthesisUnclosed = end == length,
         )
     } else {
         var index = start
@@ -98,7 +106,7 @@ private fun String.exponentAfter(powerIndex: Int): FormattedRange? {
         if (index == digitStart) return null
         FormattedRange(
             range = start until index,
-            nextIndex = index
+            nextIndex = index,
         )
     }
 }
@@ -196,8 +204,14 @@ private fun String.formatNumberSystemLiterals(): String {
     while (index < length) {
         val literal = numberSystemLiteralAt(index)
         if (literal != null) {
-            result.append(literal.digits)
-                .append(literal.base.toString().toSubscript().orEmpty())
+            result
+                .append(literal.digits)
+                .append(
+                    literal.base
+                        .toString()
+                        .toSubscript()
+                        .orEmpty(),
+                )
             index = literal.nextIndex
         } else {
             result.append(this[index])
@@ -216,7 +230,7 @@ private fun String.numberSystemLiteralAt(index: Int): NumberSystemLiteral? {
             return NumberSystemLiteral(
                 digits = substring(index, digitEnd),
                 base = suffix.base,
-                nextIndex = suffix.nextIndex
+                nextIndex = suffix.nextIndex,
             )
         }
         digitEnd++
@@ -224,41 +238,58 @@ private fun String.numberSystemLiteralAt(index: Int): NumberSystemLiteral? {
     return null
 }
 
-private fun String.numberSystemSuffixAt(index: Int): NumberSystemSuffix? = when {
-    startsWith(BinFunction, startIndex = index, ignoreCase = true) -> NumberSystemSuffix(
-        base = BinaryBase,
-        nextIndex = index + BinFunction.length
-    )
-    startsWith(OctFunction, startIndex = index, ignoreCase = true) -> NumberSystemSuffix(
-        base = OctalBase,
-        nextIndex = index + OctFunction.length
-    )
-    startsWith(HexFunction, startIndex = index, ignoreCase = true) -> NumberSystemSuffix(
-        base = HexBase,
-        nextIndex = index + HexFunction.length
-    )
-    startsWith(NumberSystemFunction, startIndex = index, ignoreCase = true) -> {
-        val baseStart = index + NumberSystemFunction.length
-        if (getOrNull(baseStart) == '(') {
-            val closeIndex = findMatchingParenthesis(baseStart) ?: return null
-            val base = substring(baseStart + 1, closeIndex).toIntOrNull()
-                ?.takeIf { it in MinBase..MaxBase }
-                ?: return null
-            NumberSystemSuffix(base = base, nextIndex = closeIndex + 1)
-        } else {
-            var baseEnd = baseStart
-            while (getOrNull(baseEnd)?.isDigit() == true) {
-                baseEnd++
+private fun String.numberSystemSuffixAt(index: Int): NumberSystemSuffix? =
+    when {
+        startsWith(BinFunction, startIndex = index, ignoreCase = true) -> {
+            NumberSystemSuffix(
+                base = BinaryBase,
+                nextIndex = index + BinFunction.length,
+            )
+        }
+
+        startsWith(OctFunction, startIndex = index, ignoreCase = true) -> {
+            NumberSystemSuffix(
+                base = OctalBase,
+                nextIndex = index + OctFunction.length,
+            )
+        }
+
+        startsWith(HexFunction, startIndex = index, ignoreCase = true) -> {
+            NumberSystemSuffix(
+                base = HexBase,
+                nextIndex = index + HexFunction.length,
+            )
+        }
+
+        startsWith(NumberSystemFunction, startIndex = index, ignoreCase = true) -> {
+            val baseStart = index + NumberSystemFunction.length
+            if (getOrNull(baseStart) == '(') {
+                val closeIndex = findMatchingParenthesis(baseStart) ?: return null
+                val base =
+                    substring(baseStart + 1, closeIndex)
+                        .toIntOrNull()
+                        ?.takeIf { it in MinBase..MaxBase }
+                        ?: return null
+                NumberSystemSuffix(base = base, nextIndex = closeIndex + 1)
+            } else {
+                var baseEnd = baseStart
+                while (getOrNull(baseEnd)?.isDigit() == true) {
+                    baseEnd++
+                }
+                if (baseEnd == baseStart) return null
+                val base =
+                    substring(baseStart, baseEnd)
+                        .toIntOrNull()
+                        ?.takeIf { it in MinBase..MaxBase }
+                        ?: return null
+                NumberSystemSuffix(base = base, nextIndex = baseEnd)
             }
-            if (baseEnd == baseStart) return null
-            val base = substring(baseStart, baseEnd).toIntOrNull()
-                ?.takeIf { it in MinBase..MaxBase }
-                ?: return null
-            NumberSystemSuffix(base = base, nextIndex = baseEnd)
+        }
+
+        else -> {
+            null
         }
     }
-    else -> null
-}
 
 private fun String.baseAfter(closeIndex: Int): FormattedRange? {
     val start = closeIndex + 1
@@ -279,7 +310,7 @@ private fun String.baseAfter(closeIndex: Int): FormattedRange? {
     if (index == digitStart) return null
     return FormattedRange(
         range = start until index,
-        nextIndex = index
+        nextIndex = index,
     )
 }
 
@@ -287,7 +318,10 @@ private fun String.findMatchingParenthesis(openIndex: Int): Int? {
     var depth = 0
     for (index in openIndex until length) {
         when (this[index]) {
-            '(' -> depth++
+            '(' -> {
+                depth++
+            }
+
             ')' -> {
                 depth--
                 if (depth == 0) return index
@@ -321,18 +355,18 @@ private fun String.isSimpleRadicand(): Boolean =
 private data class FormattedRange(
     val range: IntRange,
     val nextIndex: Int,
-    val openParenthesisUnclosed: Boolean = false
+    val openParenthesisUnclosed: Boolean = false,
 )
 
 private data class NumberSystemLiteral(
     val digits: String,
     val base: Int,
-    val nextIndex: Int
+    val nextIndex: Int,
 )
 
 private data class NumberSystemSuffix(
     val base: Int,
-    val nextIndex: Int
+    val nextIndex: Int,
 )
 
 private const val SqrtFunction = "sqrt"
@@ -352,33 +386,35 @@ private const val RootSymbol = '\u221A'
 private const val DegreeSymbol = '\u00B0'
 private const val PiSymbol = '\u03C0'
 private const val SuperscriptOpenParenthesis = '\u207D'
-private val SuperscriptChars = mapOf(
-    '0' to '\u2070',
-    '1' to '\u00B9',
-    '2' to '\u00B2',
-    '3' to '\u00B3',
-    '4' to '\u2074',
-    '5' to '\u2075',
-    '6' to '\u2076',
-    '7' to '\u2077',
-    '8' to '\u2078',
-    '9' to '\u2079',
-    '+' to '\u207A',
-    '-' to '\u207B',
-    '(' to '\u207D',
-    ')' to '\u207E'
-)
-private val SubscriptChars = mapOf(
-    '0' to '\u2080',
-    '1' to '\u2081',
-    '2' to '\u2082',
-    '3' to '\u2083',
-    '4' to '\u2084',
-    '5' to '\u2085',
-    '6' to '\u2086',
-    '7' to '\u2087',
-    '8' to '\u2088',
-    '9' to '\u2089',
-    '+' to '\u208A',
-    '-' to '\u208B'
-)
+private val SuperscriptChars =
+    mapOf(
+        '0' to '\u2070',
+        '1' to '\u00B9',
+        '2' to '\u00B2',
+        '3' to '\u00B3',
+        '4' to '\u2074',
+        '5' to '\u2075',
+        '6' to '\u2076',
+        '7' to '\u2077',
+        '8' to '\u2078',
+        '9' to '\u2079',
+        '+' to '\u207A',
+        '-' to '\u207B',
+        '(' to '\u207D',
+        ')' to '\u207E',
+    )
+private val SubscriptChars =
+    mapOf(
+        '0' to '\u2080',
+        '1' to '\u2081',
+        '2' to '\u2082',
+        '3' to '\u2083',
+        '4' to '\u2084',
+        '5' to '\u2085',
+        '6' to '\u2086',
+        '7' to '\u2087',
+        '8' to '\u2088',
+        '9' to '\u2089',
+        '+' to '\u208A',
+        '-' to '\u208B',
+    )

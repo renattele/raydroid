@@ -8,7 +8,7 @@ import ru.raydroid.plugin.api.manifest.Manifest
 
 internal class PermissionFileSystemServiceBridge(
     private val fileSystemServiceBridge: FileSystemServiceBridge,
-    private val manifest: Manifest
+    private val manifest: Manifest,
 ) : FileSystemServiceBridge {
     override suspend fun hasAllFilesAccess(): Boolean {
         requireFileSystemReadAccess()
@@ -40,7 +40,10 @@ internal class PermissionFileSystemServiceBridge(
         return fileSystemServiceBridge.read(path)
     }
 
-    override suspend fun write(path: String, content: ByteArray) {
+    override suspend fun write(
+        path: String,
+        content: ByteArray,
+    ) {
         requireWrite(path)
         fileSystemServiceBridge.write(path, content)
     }
@@ -88,7 +91,10 @@ internal class PermissionFileSystemServiceBridge(
         }
     }
 
-    private fun requireAccess(path: String, permission: FileSystemAccessPermission) {
+    private fun requireAccess(
+        path: String,
+        permission: FileSystemAccessPermission,
+    ) {
         val access = manifest.access.filesystem ?: throw PermissionDenied()
         val permissions = access.permissions ?: throw PermissionDenied()
         if (permission !in permissions) {

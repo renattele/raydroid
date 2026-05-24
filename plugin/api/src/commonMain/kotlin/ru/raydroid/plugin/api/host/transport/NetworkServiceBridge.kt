@@ -4,9 +4,7 @@ import app.cash.zipline.ZiplineService
 import kotlinx.serialization.Serializable
 
 interface NetworkServiceBridge : ZiplineService {
-    suspend fun request(
-        request: RawNetworkRequest
-    ): RawNetworkResponse
+    suspend fun request(request: RawNetworkRequest): RawNetworkResponse
 
     @Serializable
     data class RawNetworkRequest(
@@ -41,7 +39,7 @@ interface NetworkServiceBridge : ZiplineService {
     @Serializable
     data class RawNetworkResponse(
         val statusCode: Int,
-        val body: ByteArray
+        val body: ByteArray,
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -62,4 +60,3 @@ interface NetworkServiceBridge : ZiplineService {
         }
     }
 }
-

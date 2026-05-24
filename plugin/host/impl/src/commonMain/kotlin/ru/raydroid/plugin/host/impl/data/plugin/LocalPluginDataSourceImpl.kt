@@ -9,40 +9,44 @@ import ru.raydroid.plugin.host.api.domain.model.PluginId
 
 class LocalPluginDataSourceImpl(
     private val localFs: FileSystem,
-    private val basePath: Path
+    private val basePath: Path,
 ) : LocalPluginDataSource {
     override suspend fun add(
         pluginId: PluginId,
         data: ByteArray,
-        signature: String?
-    ): Unit = withContext(Dispatchers.IO) {
-        localFs.write(getPluginPath(pluginId)) {
-            write(data)
-        }
-        val signaturePath = getSignaturePath(pluginId)
-        if (signature == null) {
-            localFs.delete(signaturePath, mustExist = false)
-        } else {
-            localFs.write(signaturePath) {
-                writeUtf8(signature)
+        signature: String?,
+    ): Unit =
+        withContext(Dispatchers.IO) {
+            localFs.write(getPluginPath(pluginId)) {
+                write(data)
+            }
+            val signaturePath = getSignaturePath(pluginId)
+            if (signature == null) {
+                localFs.delete(signaturePath, mustExist = false)
+            } else {
+                localFs.write(signaturePath) {
+                    writeUtf8(signature)
+                }
             }
         }
-    }
 
-    override suspend fun load(pluginId: PluginId): ByteArray? = withContext(Dispatchers.IO) {
-        if (!pluginExists(pluginId)) return@withContext null
-        localFs.read(getPluginPath(pluginId)) {
-            readByteArray()
+    override suspend fun load(pluginId: PluginId): ByteArray? =
+        withContext(Dispatchers.IO) {
+            if (!pluginExists(pluginId)) return@withContext null
+            localFs.read(getPluginPath(pluginId)) {
+                readByteArray()
+            }
         }
-    }
 
-    override suspend fun hash(pluginId: PluginId): String? = withContext(Dispatchers.IO) {
-        if (!pluginExists(pluginId)) return@withContext null
-        val data = localFs.read(getPluginPath(pluginId)) {
-            readByteString()
+    override suspend fun hash(pluginId: PluginId): String? =
+        withContext(Dispatchers.IO) {
+            if (!pluginExists(pluginId)) return@withContext null
+            val data =
+                localFs.read(getPluginPath(pluginId)) {
+                    readByteString()
+                }
+            return@withContext data.sha256().hex()
         }
-        return@withContext data.sha256().hex()
-    }
 
     override suspend fun signature(pluginId: PluginId): String? {
         return withContext(Dispatchers.IO) {
@@ -54,28 +58,26 @@ class LocalPluginDataSourceImpl(
         }
     }
 
-    override suspend fun listPlugins(): List<PluginId> = withContext(Dispatchers.IO) {
-        localFs.list(basePath).filter { path ->
-            path.name.endsWith(".rext")
-        }.map { path ->
-            PluginId(path.name.drop(5))
+    override suspend fun listPlugins(): List<PluginId> =
+        withContext(Dispatchers.IO) {
+            localFs
+                .list(basePath)
+                .filter { path ->
+                    path.name.endsWith(".rext")
+                }.map { path ->
+                    PluginId(path.name.drop(5))
+                }
         }
-    }
 
-    override suspend fun delete(pluginId: PluginId) = withContext(Dispatchers.IO) {
-        localFs.delete(getPluginPath(pluginId))
-        localFs.delete(getSignaturePath(pluginId), mustExist = false)
-    }
+    override suspend fun delete(pluginId: PluginId) =
+        withContext(Dispatchers.IO) {
+            localFs.delete(getPluginPath(pluginId))
+            localFs.delete(getSignaturePath(pluginId), mustExist = false)
+        }
 
-    private fun pluginExists(pluginId: PluginId): Boolean {
-        return localFs.exists(getPluginPath(pluginId))
-    }
+    private fun pluginExists(pluginId: PluginId): Boolean = localFs.exists(getPluginPath(pluginId))
 
-    private fun getPluginPath(
-        pluginId: PluginId
-    ): Path = basePath / (pluginId.id + ".rext")
+    private fun getPluginPath(pluginId: PluginId): Path = basePath / (pluginId.id + ".rext")
 
-    private fun getSignaturePath(
-        pluginId: PluginId
-    ): Path = basePath / (pluginId.id + ".sig")
+    private fun getSignaturePath(pluginId: PluginId): Path = basePath / (pluginId.id + ".sig")
 }

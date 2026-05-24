@@ -6,12 +6,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,15 +34,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
@@ -58,11 +58,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import ru.raydroid.core.designsystem.RaydroidTheme
+import ru.raydroid.core.designsystem.component.LocalRContextActionOverlayState
 import ru.raydroid.core.designsystem.component.RAlertDialog
 import ru.raydroid.core.designsystem.component.RButton
-import ru.raydroid.core.designsystem.component.LocalRContextActionOverlayState
-import ru.raydroid.core.designsystem.component.RIcon
 import ru.raydroid.core.designsystem.component.RContextActionOverlayState
+import ru.raydroid.core.designsystem.component.RIcon
 import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.core.designsystem.component.RTextField
@@ -70,10 +70,10 @@ import ru.raydroid.core.designsystem.component.rContextActionInactiveLayer
 import ru.raydroid.feature.search.FocusedCommandAction
 import ru.raydroid.feature.search.SearchAliasEditorState
 import ru.raydroid.feature.search.SearchFieldUiState
-import ru.raydroid.feature.search.toSearchPanelAction
 import ru.raydroid.feature.search.SearchScreenEvent
 import ru.raydroid.feature.search.SearchScreenState
 import ru.raydroid.feature.search.SearchViewModel
+import ru.raydroid.feature.search.toSearchPanelAction
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
@@ -87,8 +87,8 @@ import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.api.ui.suppressesHostActions
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
 import ru.raydroid.plugin.host.impl.presentation.ActionPanel
-import ru.raydroid.plugin.host.impl.presentation.AnchoredActionsOverlay
 import ru.raydroid.plugin.host.impl.presentation.ActionsPanelOverlay
+import ru.raydroid.plugin.host.impl.presentation.AnchoredActionsOverlay
 import ru.raydroid.plugin.host.impl.presentation.CommandListItemView
 import ru.raydroid.plugin.host.impl.presentation.ComposeRayRenderer
 import ru.raydroid.plugin.host.impl.presentation.RayDecorator
@@ -108,7 +108,7 @@ fun SearchScreen(modifier: Modifier = Modifier) {
     SearchScreen(
         state = state,
         onEvent = viewModel::onEvent,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
@@ -116,7 +116,7 @@ fun SearchScreen(modifier: Modifier = Modifier) {
 fun SearchScreen(
     state: SearchScreenState,
     onEvent: (SearchScreenEvent) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     ResourceResolverProvider(state.plugins) {
         val contextAnchors = remember { mutableStateMapOf<String, Rect>() }
@@ -125,22 +125,24 @@ fun SearchScreen(
         val fullscreen = state.fullscreenContent
         val resultsContent = state.resultsContent
         val overlayState = state.overlayState
-        val activeContextSourceId = overlayState.activeContextSourceId
-            ?.takeIf { overlayState.showContextActions }
+        val activeContextSourceId =
+            overlayState.activeContextSourceId
+                ?.takeIf { overlayState.showContextActions }
         val activeSearchFieldState = state.searchFieldState
         val latestSearchFieldState by rememberUpdatedState(activeSearchFieldState)
         val searchField = remember(fullscreen?.resultId) { TextFieldState() }
         CompositionLocalProvider(
-            LocalRContextActionOverlayState provides RContextActionOverlayState(
-                activeSourceId = activeContextSourceId,
-                visible = overlayState.showContextActions,
-                registerAnchor = { sourceId, bounds ->
-                    contextAnchors[sourceId] = bounds
-                },
-                unregisterAnchor = { sourceId ->
-                    contextAnchors.remove(sourceId)
-                }
-            )
+            LocalRContextActionOverlayState provides
+                RContextActionOverlayState(
+                    activeSourceId = activeContextSourceId,
+                    visible = overlayState.showContextActions,
+                    registerAnchor = { sourceId, bounds ->
+                        contextAnchors[sourceId] = bounds
+                    },
+                    unregisterAnchor = { sourceId ->
+                        contextAnchors.remove(sourceId)
+                    },
+                ),
         ) {
             Column(
                 modifier
@@ -155,7 +157,7 @@ fun SearchScreen(
                     searchField,
                     fullscreen?.resultId,
                     activeSearchFieldState.query,
-                    activeSearchFieldState.selection
+                    activeSearchFieldState.selection,
                 ) {
                     searchField.apply(activeSearchFieldState)
                 }
@@ -163,60 +165,63 @@ fun SearchScreen(
                     snapshotFlow {
                         SearchFieldSnapshot(
                             query = searchField.text.toString(),
-                            selection = searchField.selection.asSelection(searchField.text.length)
+                            selection = searchField.selection.asSelection(searchField.text.length),
                         )
-                    }
-                        .distinctUntilChanged()
+                    }.distinctUntilChanged()
                         .collectLatest { snapshot ->
                             if (snapshot != latestSearchFieldState.asSnapshot()) {
                                 onEvent(
                                     SearchScreenEvent.UpdateQuery(
                                         query = snapshot.query,
-                                        selection = snapshot.selection
-                                    )
+                                        selection = snapshot.selection,
+                                    ),
                                 )
                             }
                         }
                 }
                 val listState = rememberLazyListState()
-                val fullscreenFocusedActions = fullscreen
-                    ?.content
-                    ?.pluginFocusModel(
-                        focusedItemId = fullscreen.focusedItemId,
-                        query = fullscreen.searchFieldState.query
-                    )
-                    ?.focusedActions
-                    ?.takeIf { actions -> actions.isNotEmpty() }
-                    ?.map { action ->
-                        FocusedCommandAction(
-                            resultId = fullscreen.resultId,
-                            action = action.toSearchPanelAction(updateUsage = false),
-                            updateUsage = false
-                        )
-                    }
-                val suppressHostActions = fullscreen?.content?.suppressesHostActions() == true
-                val actionPanelHintMode = fullscreen?.content?.actionPanelHintMode()
-                    ?: PluginActionPanelHintMode.Full
-                val focusedCommandActions = if (suppressHostActions) {
-                    emptyList()
-                } else {
-                    fullscreenFocusedActions ?: overlayState.focusedActions
-                        .takeIf { actions ->
-                            fullscreen == null || actions.all { action -> action.resultId == fullscreen.resultId }
+                val fullscreenFocusedActions =
+                    fullscreen
+                        ?.content
+                        ?.pluginFocusModel(
+                            focusedItemId = fullscreen.focusedItemId,
+                            query = fullscreen.searchFieldState.query,
+                        )?.focusedActions
+                        ?.takeIf { actions -> actions.isNotEmpty() }
+                        ?.map { action ->
+                            FocusedCommandAction(
+                                resultId = fullscreen.resultId,
+                                action = action.toSearchPanelAction(updateUsage = false),
+                                updateUsage = false,
+                            )
                         }
-                        .orEmpty()
-                }
-                val focusedActions = focusedCommandActions.map { focusedAction ->
-                    focusedAction.action
-                }
-                val contextActions = overlayState.contextActions.map { contextAction ->
-                    contextAction.action
-                }
-                val overlayFocusedActions = if (overlayState.showContextActions) {
-                    overlayState.contextActions
-                } else {
-                    focusedCommandActions
-                }
+                val suppressHostActions = fullscreen?.content?.suppressesHostActions() == true
+                val actionPanelHintMode =
+                    fullscreen?.content?.actionPanelHintMode()
+                        ?: PluginActionPanelHintMode.Full
+                val focusedCommandActions =
+                    if (suppressHostActions) {
+                        emptyList()
+                    } else {
+                        fullscreenFocusedActions ?: overlayState.focusedActions
+                            .takeIf { actions ->
+                                fullscreen == null || actions.all { action -> action.resultId == fullscreen.resultId }
+                            }.orEmpty()
+                    }
+                val focusedActions =
+                    focusedCommandActions.map { focusedAction ->
+                        focusedAction.action
+                    }
+                val contextActions =
+                    overlayState.contextActions.map { contextAction ->
+                        contextAction.action
+                    }
+                val overlayFocusedActions =
+                    if (overlayState.showContextActions) {
+                        overlayState.contextActions
+                    } else {
+                        focusedCommandActions
+                    }
                 val focusedItemIndex = resultsContent?.focusedItemIndex
                 val searchResults = resultsContent?.searchResults
                 LaunchedEffect(state.searchFieldState.query) {
@@ -246,29 +251,30 @@ fun SearchScreen(
                                 RText(alert.confirmAction.title.asText())
                             }
                         },
-                        dismissButton = if (alert.dismissAction != null) {
-                            {
-                                RTextButton(onClick = {
-                                    onEvent(SearchScreenEvent.DismissAlert(alert))
-                                }) {
-                                    RText(alert.dismissAction!!.title.asText())
+                        dismissButton =
+                            if (alert.dismissAction != null) {
+                                {
+                                    RTextButton(onClick = {
+                                        onEvent(SearchScreenEvent.DismissAlert(alert))
+                                    }) {
+                                        RText(alert.dismissAction!!.title.asText())
+                                    }
                                 }
-                            }
-                        } else {
-                            null
-                        },
+                            } else {
+                                null
+                            },
                         title = {
                             RText(alert.title.asText())
                         },
                         text = {
                             RText(alert.message.asText())
-                        }
+                        },
                     )
                 }
                 overlayState.aliasEditor?.let { aliasEditor ->
                     AliasEditorSheet(
                         state = aliasEditor,
-                        onEvent = onEvent
+                        onEvent = onEvent,
                     )
                 }
                 Box(
@@ -276,13 +282,13 @@ fun SearchScreen(
                         .weight(1f)
                         .onGloballyPositioned { coordinates ->
                             rootBounds = coordinates.boundsInWindow()
-                        }
+                        },
                 ) {
                     if (fullscreen != null) {
                         Box(
                             Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = spacing.medium, vertical = spacing.small)
+                                .padding(horizontal = spacing.medium, vertical = spacing.small),
                         ) {
                             ComposeRayRenderer(
                                 data = fullscreen.content,
@@ -293,8 +299,8 @@ fun SearchScreen(
                                         SearchScreenEvent.EnterCallback(
                                             resultId = fullscreen.resultId,
                                             callback = callback,
-                                            updateUsage = false
-                                        )
+                                            updateUsage = false,
+                                        ),
                                     )
                                 },
                                 onItemEnter = { itemId ->
@@ -308,24 +314,25 @@ fun SearchScreen(
                                         SearchScreenEvent.ShowContextActions(
                                             resultId = fullscreen.resultId,
                                             sourceId = sourceId,
-                                            actions = actions
-                                        )
+                                            actions = actions,
+                                        ),
                                     )
-                                }
+                                },
                             )
                         }
                     } else {
                         LazyColumn(
                             Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                            contentPadding = PaddingValues(
-                                start = spacing.medium,
-                                end = spacing.medium,
-                                top = spacing.small,
-                                bottom = spacing.extraLarge
-                            ),
+                            contentPadding =
+                                PaddingValues(
+                                    start = spacing.medium,
+                                    end = spacing.medium,
+                                    top = spacing.small,
+                                    bottom = spacing.extraLarge,
+                                ),
                             reverseLayout = true,
-                            state = listState
+                            state = listState,
                         ) {
                             if (searchResults != null) {
                                 itemsIndexed(
@@ -345,17 +352,17 @@ fun SearchScreen(
                                                 onEvent(
                                                     SearchScreenEvent.ShowResultContextActions(
                                                         resultId = searchResult.resultId,
-                                                        sourceId = searchResult.resultId.contextActionSourceId()
-                                                    )
+                                                        sourceId = searchResult.resultId.contextActionSourceId(),
+                                                    ),
                                                 )
                                             },
                                             onQuickAction = {
                                                 onEvent(
                                                     SearchScreenEvent.EnterQuickAction(
-                                                        searchResult.resultId
-                                                    )
+                                                        searchResult.resultId,
+                                                    ),
                                                 )
-                                            }
+                                            },
                                         )
                                     } else if (searchResult is SearchResultSet.CommandSearchResult) {
                                         CommandListItemView(
@@ -369,17 +376,17 @@ fun SearchScreen(
                                                 onEvent(
                                                     SearchScreenEvent.ShowResultContextActions(
                                                         resultId = searchResult.resultId,
-                                                        sourceId = searchResult.resultId.contextActionSourceId()
-                                                    )
+                                                        sourceId = searchResult.resultId.contextActionSourceId(),
+                                                    ),
                                                 )
                                             },
                                             onQuickAction = {
                                                 onEvent(
                                                     SearchScreenEvent.EnterQuickAction(
-                                                        searchResult.resultId
-                                                    )
+                                                        searchResult.resultId,
+                                                    ),
                                                 )
-                                            }
+                                            },
                                         )
                                     } else if (
                                         searchResult is SearchResultSet.LiveSearchResult &&
@@ -396,28 +403,30 @@ fun SearchScreen(
                                                 onEvent(
                                                     SearchScreenEvent.ShowResultContextActions(
                                                         resultId = searchResult.resultId,
-                                                        sourceId = searchResult.resultId.contextActionSourceId()
-                                                    )
+                                                        sourceId = searchResult.resultId.contextActionSourceId(),
+                                                    ),
                                                 )
                                             },
                                             onQuickAction = {
                                                 onEvent(
                                                     SearchScreenEvent.EnterQuickAction(
-                                                        searchResult.resultId
-                                                    )
+                                                        searchResult.resultId,
+                                                    ),
                                                 )
-                                            }
+                                            },
                                         )
                                     } else if (searchResult is SearchResultSet.LiveSearchResult) {
                                         RayDecorator(
                                             listItem = searchResult.listEntry,
                                             title = searchResult.rayDecoratorTitle,
-                                            commandName = remember(state.plugins) {
-                                                searchResult.rayDecoratorCommandName(state.plugins)
-                                            },
-                                            pluginName = remember(state.plugins) {
-                                                searchResult.rayDecoratorPluginName(state.plugins)
-                                            },
+                                            commandName =
+                                                remember(state.plugins) {
+                                                    searchResult.rayDecoratorCommandName(state.plugins)
+                                                },
+                                            pluginName =
+                                                remember(state.plugins) {
+                                                    searchResult.rayDecoratorPluginName(state.plugins)
+                                                },
                                             focused = index == focusedItemIndex,
                                             onClick = {
                                                 onEvent(SearchScreenEvent.Submit(searchResult.resultId))
@@ -427,10 +436,10 @@ fun SearchScreen(
                                                 onEvent(
                                                     SearchScreenEvent.ShowResultContextActions(
                                                         resultId = searchResult.resultId,
-                                                        sourceId = searchResult.resultId.contextActionSourceId()
-                                                    )
+                                                        sourceId = searchResult.resultId.contextActionSourceId(),
+                                                    ),
                                                 )
-                                            }
+                                            },
                                         ) {
                                             ComposeRayRenderer(
                                                 data = searchResult.presentation.content,
@@ -439,8 +448,8 @@ fun SearchScreen(
                                                         SearchScreenEvent.EnterCallback(
                                                             resultId = searchResult.resultId,
                                                             callback = callback,
-                                                            updateUsage = false
-                                                        )
+                                                            updateUsage = false,
+                                                        ),
                                                     )
                                                 },
                                                 onItemEnter = {
@@ -451,10 +460,10 @@ fun SearchScreen(
                                                         SearchScreenEvent.ShowContextActions(
                                                             resultId = searchResult.resultId,
                                                             sourceId = sourceId,
-                                                            actions = actions
-                                                        )
+                                                            actions = actions,
+                                                        ),
                                                     )
-                                                }
+                                                },
                                             )
                                         }
                                     }
@@ -465,13 +474,13 @@ fun SearchScreen(
                             RText(
                                 text = "Searching...",
                                 modifier = Modifier.align(Alignment.Center),
-                                color = RaydroidTheme.colorScheme.onBackground
+                                color = RaydroidTheme.colorScheme.onBackground,
                             )
                         } else if (resultsContent?.searchResults?.results?.isEmpty() == true && resultsContent.isSearching == false) {
                             RText(
                                 text = "No results",
                                 modifier = Modifier.align(Alignment.Center),
-                                color = RaydroidTheme.colorScheme.onBackground
+                                color = RaydroidTheme.colorScheme.onBackground,
                             )
                         }
                     }
@@ -482,14 +491,14 @@ fun SearchScreen(
                                 .align(Alignment.BottomEnd)
                                 .rContextActionInactiveLayer(),
                             horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small)
+                            verticalArrangement = Arrangement.spacedBy(RaydroidTheme.spacing.small),
                         ) {
                             ToastsOverlay(
                                 toasts = state.toasts,
                                 Modifier.animateBounds(
                                     this@LookaheadScope,
-                                    animateMotionFrameOfReference = true
-                                )
+                                    animateMotionFrameOfReference = true,
+                                ),
                             )
                             ActionsPanelOverlay(
                                 actions = focusedActions,
@@ -500,7 +509,7 @@ fun SearchScreen(
                                         ?.let { focusedAction ->
                                             onEvent(SearchScreenEvent.EnterAction(focusedAction))
                                         }
-                                }
+                                },
                             )
                         }
                     }
@@ -518,17 +527,18 @@ fun SearchScreen(
                                 ?.let { focusedAction ->
                                     onEvent(SearchScreenEvent.EnterAction(focusedAction))
                                 }
-                        }
+                        },
                     )
                 }
                 SearchField(
                     activeSearchFieldState.toPresentationState(
                         fieldState = searchField,
-                        canGoOnEnter = if (fullscreen != null) {
-                            fullscreen.focusedItemId != null
-                        } else {
-                            focusedItemIndex != null
-                        }
+                        canGoOnEnter =
+                            if (fullscreen != null) {
+                                fullscreen.focusedItemId != null
+                            } else {
+                                focusedItemIndex != null
+                            },
                     ),
                     onEvent = { event ->
                         when (event) {
@@ -536,40 +546,48 @@ fun SearchScreen(
                                 onEvent(SearchScreenEvent.Submit())
                             }
 
-                            SearchFieldEvent.MoveFocusDown -> if (fullscreen != null) {
-                                onEvent(SearchScreenEvent.MoveFocusNext)
-                            } else {
-                                onEvent(SearchScreenEvent.MoveFocusPrevious)
+                            SearchFieldEvent.MoveFocusDown -> {
+                                if (fullscreen != null) {
+                                    onEvent(SearchScreenEvent.MoveFocusNext)
+                                } else {
+                                    onEvent(SearchScreenEvent.MoveFocusPrevious)
+                                }
                             }
 
-                            SearchFieldEvent.MoveFocusUp -> if (fullscreen != null) {
-                                onEvent(SearchScreenEvent.MoveFocusPrevious)
-                            } else {
-                                onEvent(SearchScreenEvent.MoveFocusNext)
+                            SearchFieldEvent.MoveFocusUp -> {
+                                if (fullscreen != null) {
+                                    onEvent(SearchScreenEvent.MoveFocusPrevious)
+                                } else {
+                                    onEvent(SearchScreenEvent.MoveFocusNext)
+                                }
                             }
 
-                            SearchFieldEvent.BackspaceOnEmpty -> onEvent(SearchScreenEvent.BackspaceOnEmpty)
+                            SearchFieldEvent.BackspaceOnEmpty -> {
+                                onEvent(SearchScreenEvent.BackspaceOnEmpty)
+                            }
                         }
                     },
                     Modifier
                         .imePadding()
                         .focusRequester(focus)
                         .rContextActionInactiveLayer(),
-                    contentPadding = if (fullscreen != null) {
-                        PaddingValues(horizontal = spacing.small, vertical = spacing.large)
-                    } else {
-                        PaddingValues(spacing.large)
-                    },
+                    contentPadding =
+                        if (fullscreen != null) {
+                            PaddingValues(horizontal = spacing.small, vertical = spacing.large)
+                        } else {
+                            PaddingValues(spacing.large)
+                        },
                     placeholder = fullscreen?.placeholder,
-                    leadingContent = if (fullscreen != null) {
-                        {
-                            FullscreenBackButton(onClick = {
-                                onEvent(SearchScreenEvent.CloseFullscreen)
-                            }, exitBackspaceCount = fullscreen.exitBackspaceCount)
-                        }
-                    } else {
-                        null
-                    }
+                    leadingContent =
+                        if (fullscreen != null) {
+                            {
+                                FullscreenBackButton(onClick = {
+                                    onEvent(SearchScreenEvent.CloseFullscreen)
+                                }, exitBackspaceCount = fullscreen.exitBackspaceCount)
+                            }
+                        } else {
+                            null
+                        },
                 ) {
                     if (actionPanelHintMode != PluginActionPanelHintMode.Hidden) {
                         ActionPanel(
@@ -581,7 +599,7 @@ fun SearchScreen(
                             },
                             onToggleActions = {
                                 onEvent(SearchScreenEvent.ToggleActions)
-                            }
+                            },
                         )
                     }
                 }
@@ -594,15 +612,16 @@ fun SearchScreen(
 @Composable
 private fun AliasEditorSheet(
     state: SearchAliasEditorState,
-    onEvent: (SearchScreenEvent) -> Unit
+    onEvent: (SearchScreenEvent) -> Unit,
 ) {
     val spacing = RaydroidTheme.spacing
     val colors = RaydroidTheme.colorScheme
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
-    val fieldState = remember(state.resultId) {
-        TextFieldState(state.input)
-    }
+    val fieldState =
+        remember(state.resultId) {
+            TextFieldState(state.input)
+        }
     val canSave = state.input.isNotBlank()
     val latestState by rememberUpdatedState(state)
     val dismissSheet: () -> Unit = {
@@ -626,7 +645,9 @@ private fun AliasEditorSheet(
         if (fieldState.text.toString() != state.input) {
             fieldState.edit {
                 replace(0, length, state.input)
-                selection = androidx.compose.ui.text.TextRange(state.input.length)
+                selection =
+                    androidx.compose.ui.text
+                        .TextRange(state.input.length)
             }
         }
     }
@@ -639,14 +660,15 @@ private fun AliasEditorSheet(
         contentColor = colors.onSurface,
         dragHandle = {
             Box(
-                modifier = Modifier
-                    .padding(top = spacing.small)
-                    .width(48.dp)
-                    .height(5.dp)
-                    .clip(RaydroidTheme.shapes.full)
-                    .background(colors.onSurface.copy(alpha = 0.18f))
+                modifier =
+                    Modifier
+                        .padding(top = spacing.small)
+                        .width(48.dp)
+                        .height(5.dp)
+                        .clip(RaydroidTheme.shapes.full)
+                        .background(colors.onSurface.copy(alpha = 0.18f)),
             )
-        }
+        },
     ) {
         Column(
             Modifier
@@ -655,40 +677,41 @@ private fun AliasEditorSheet(
                     start = spacing.large,
                     end = spacing.large,
                     top = spacing.small,
-                    bottom = spacing.extraLarge
+                    bottom = spacing.extraLarge,
                 ),
-            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+            verticalArrangement = Arrangement.spacedBy(spacing.medium),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
                 RText(
                     text = if (state.existingAlias == null) "Add Alias" else "Edit Alias",
                     color = colors.onSurface,
-                    fontSize = RaydroidTheme.typographyScale.large
+                    fontSize = RaydroidTheme.typographyScale.large,
                 )
                 RText(
                     text = "Create a short keyboard-friendly shortcut for this result.",
                     color = colors.onSurfaceVariant,
-                    fontSize = RaydroidTheme.typographyScale.extraSmall
+                    fontSize = RaydroidTheme.typographyScale.extraSmall,
                 )
             }
             state.title?.let { title ->
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RaydroidTheme.shapes.large)
-                        .background(colors.surfaceVariant.copy(alpha = 0.16f))
-                        .padding(horizontal = spacing.medium, vertical = spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RaydroidTheme.shapes.large)
+                            .background(colors.surfaceVariant.copy(alpha = 0.16f))
+                            .padding(horizontal = spacing.medium, vertical = spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
                 ) {
                     RText(
                         text = "For",
                         color = colors.onSurfaceVariant,
-                        fontSize = RaydroidTheme.typographyScale.extraSmall
+                        fontSize = RaydroidTheme.typographyScale.extraSmall,
                     )
                     RText(
                         text = title.asText(),
                         color = colors.onSurface,
-                        fontSize = RaydroidTheme.typographyScale.medium
+                        fontSize = RaydroidTheme.typographyScale.medium,
                     )
                 }
             }
@@ -696,46 +719,48 @@ private fun AliasEditorSheet(
                 RText(
                     text = "Alias",
                     color = colors.onSurfaceVariant,
-                    fontSize = RaydroidTheme.typographyScale.extraSmall
+                    fontSize = RaydroidTheme.typographyScale.extraSmall,
                 )
                 RTextField(
                     state = fieldState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RaydroidTheme.shapes.large)
-                        .background(colors.surfaceVariant.copy(alpha = 0.24f)),
-                    contentPadding = PaddingValues(
-                        horizontal = spacing.large,
-                        vertical = spacing.medium
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RaydroidTheme.shapes.large)
+                            .background(colors.surfaceVariant.copy(alpha = 0.24f)),
+                    contentPadding =
+                        PaddingValues(
+                            horizontal = spacing.large,
+                            vertical = spacing.medium,
+                        ),
                     placeholder = {
                         RText(
                             text = "e.g. yt",
-                            color = colors.onSurfaceVariant.copy(alpha = 0.72f)
+                            color = colors.onSurfaceVariant.copy(alpha = 0.72f),
                         )
-                    }
+                    },
                 )
                 RText(
                     text = "ASCII only. No spaces.",
                     color = colors.onSurfaceVariant,
-                    fontSize = RaydroidTheme.typographyScale.extraSmall
+                    fontSize = RaydroidTheme.typographyScale.extraSmall,
                 )
             }
             state.error?.let { error ->
                 RText(
                     text = error.asText(),
                     color = colors.error,
-                    fontSize = RaydroidTheme.typographyScale.extraSmall
+                    fontSize = RaydroidTheme.typographyScale.extraSmall,
                 )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (state.existingAlias != null) {
                     RTextButton(
-                        onClick = { onEvent(SearchScreenEvent.RemoveAlias) }
+                        onClick = { onEvent(SearchScreenEvent.RemoveAlias) },
                     ) {
                         RText("Remove", color = colors.error)
                     }
@@ -747,7 +772,7 @@ private fun AliasEditorSheet(
                 RButton(
                     onClick = { onEvent(SearchScreenEvent.SaveAliasEditor) },
                     enabled = canSave,
-                    modifier = Modifier.clip(RaydroidTheme.shapes.full)
+                    modifier = Modifier.clip(RaydroidTheme.shapes.full),
                 ) {
                     RText("Save")
                 }
@@ -759,7 +784,7 @@ private fun AliasEditorSheet(
 @Composable
 private fun FullscreenBackButton(
     exitBackspaceCount: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val motion = RaydroidTheme.motionScheme.fast
     var entered by remember { mutableStateOf(false) }
@@ -767,71 +792,77 @@ private fun FullscreenBackButton(
         entered = true
     }
     val slotWidth by animateDpAsState(
-        targetValue = if (!entered) {
-            0.dp
-        } else {
-            when (exitBackspaceCount) {
-                0 -> 48.dp
-                1 -> 40.dp
-                else -> 0.dp
-            }
-        },
+        targetValue =
+            if (!entered) {
+                0.dp
+            } else {
+                when (exitBackspaceCount) {
+                    0 -> 48.dp
+                    1 -> 40.dp
+                    else -> 0.dp
+                }
+            },
         animationSpec = motion.dpSpec(),
-        label = "FullscreenBackButtonSlotWidth"
+        label = "FullscreenBackButtonSlotWidth",
     )
     val buttonWidth by animateDpAsState(
-        targetValue = if (!entered) {
-            0.dp
-        } else {
-            when (exitBackspaceCount) {
-                0 -> 40.dp
-                1 -> 32.dp
-                else -> 0.dp
-            }
-        },
+        targetValue =
+            if (!entered) {
+                0.dp
+            } else {
+                when (exitBackspaceCount) {
+                    0 -> 40.dp
+                    1 -> 32.dp
+                    else -> 0.dp
+                }
+            },
         animationSpec = motion.dpSpec(),
-        label = "FullscreenBackButtonWidth"
+        label = "FullscreenBackButtonWidth",
     )
     val iconSize by animateDpAsState(
-        targetValue = if (!entered) {
-            0.dp
-        } else {
-            when (exitBackspaceCount) {
-                0 -> 22.dp
-                1 -> 18.dp
-                else -> 0.dp
-            }
-        },
+        targetValue =
+            if (!entered) {
+                0.dp
+            } else {
+                when (exitBackspaceCount) {
+                    0 -> 22.dp
+                    1 -> 18.dp
+                    else -> 0.dp
+                }
+            },
         animationSpec = motion.dpSpec(),
-        label = "FullscreenBackButtonIconSize"
+        label = "FullscreenBackButtonIconSize",
     )
     val iconAlpha by animateFloatAsState(
         targetValue = if (!entered || exitBackspaceCount >= 2) 0f else 1f,
         animationSpec = motion.floatSpec(),
-        label = "FullscreenBackButtonIconAlpha"
+        label = "FullscreenBackButtonIconAlpha",
     )
     Box(
-        modifier = Modifier
-            .width(slotWidth)
-            .height(40.dp),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .width(slotWidth)
+                .height(40.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .width(buttonWidth)
-                .height(40.dp)
-                .clip(RaydroidTheme.shapes.small)
-                .background(RaydroidTheme.colorScheme.primaryContainer)
-                .clickable(enabled = exitBackspaceCount < 2, onClick = onClick),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .width(buttonWidth)
+                    .height(40.dp)
+                    .clip(RaydroidTheme.shapes.small)
+                    .background(RaydroidTheme.colorScheme.primaryContainer)
+                    .clickable(enabled = exitBackspaceCount < 2, onClick = onClick),
+            contentAlignment = Alignment.Center,
         ) {
             RIcon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "Back",
-                modifier = Modifier
-                    .size(iconSize)
-                    .alpha(iconAlpha),
-                tint = RaydroidTheme.colorScheme.onPrimaryContainer
+                modifier =
+                    Modifier
+                        .size(iconSize)
+                        .alpha(iconAlpha),
+                tint = RaydroidTheme.colorScheme.onPrimaryContainer,
             )
         }
     }
@@ -841,9 +872,14 @@ private fun FullscreenBackButton(
 @Composable
 fun SearchScreenPreview() {
     RaydroidPreviewTheme {
-        val state = remember {
-            SearchScreenState.Results(content = ru.raydroid.feature.search.SearchResultsContentState())
-        }
+        val state =
+            remember {
+                SearchScreenState.Results(
+                    content =
+                        ru.raydroid.feature.search
+                            .SearchResultsContentState(),
+                )
+            }
         SearchScreen(state = state, onEvent = {})
     }
 }
@@ -851,9 +887,7 @@ fun SearchScreenPreview() {
 private val SearchResultSet.LiveSearchResult.rayDecoratorTitle: PluginUiText?
     get() = listEntry.title
 
-private fun SearchResultSet.LiveSearchResult.rayDecoratorCommandName(
-    plugins: Map<PluginId, PluginRuntime>
-): PluginUiText =
+private fun SearchResultSet.LiveSearchResult.rayDecoratorCommandName(plugins: Map<PluginId, PluginRuntime>): PluginUiText =
     plugins[resultId.pluginId]
         ?.manifest
         ?.commands
@@ -862,9 +896,7 @@ private fun SearchResultSet.LiveSearchResult.rayDecoratorCommandName(
         ?.toPluginUiText(resultId.pluginId)
         .orUnknown()
 
-private fun SearchResultSet.LiveSearchResult.rayDecoratorPluginName(
-    plugins: Map<PluginId, PluginRuntime>
-): PluginUiText =
+private fun SearchResultSet.LiveSearchResult.rayDecoratorPluginName(plugins: Map<PluginId, PluginRuntime>): PluginUiText =
     plugins[resultId.pluginId]
         ?.manifest
         ?.title
@@ -873,33 +905,30 @@ private fun SearchResultSet.LiveSearchResult.rayDecoratorPluginName(
 
 private fun SearchFieldUiState.toPresentationState(
     fieldState: TextFieldState,
-    canGoOnEnter: Boolean
-) =
-    ru.raydroid.plugin.host.impl.presentation.SearchFieldState(
-        fieldState = fieldState,
-        canGoOnEnter = canGoOnEnter
-    )
+    canGoOnEnter: Boolean,
+) = ru.raydroid.plugin.host.impl.presentation.SearchFieldState(
+    fieldState = fieldState,
+    canGoOnEnter = canGoOnEnter,
+)
 
 private data class SearchFieldSnapshot(
     val query: String,
-    val selection: SearchFieldSelection
+    val selection: SearchFieldSelection,
 )
 
 private fun SearchResultSet.SearchResult.resultRowKey(): String {
-    val type = when (this) {
-        is SearchResultSet.CachedSearchResult -> "cached"
-        is SearchResultSet.CommandSearchResult -> "command"
-        is SearchResultSet.LiveSearchResult -> "live"
-    }
+    val type =
+        when (this) {
+            is SearchResultSet.CachedSearchResult -> "cached"
+            is SearchResultSet.CommandSearchResult -> "command"
+            is SearchResultSet.LiveSearchResult -> "live"
+        }
     return "$type:${resultId.pluginId.id}:${resultId.commandName}:${resultId.itemId.value}"
 }
 
-private fun SearchResultId.contextActionSourceId(): String {
-    return "search-result:${pluginId.id}:$commandName:${itemId.value}"
-}
+private fun SearchResultId.contextActionSourceId(): String = "search-result:${pluginId.id}:$commandName:${itemId.value}"
 
-private fun SearchFieldUiState.asSnapshot(): SearchFieldSnapshot =
-    SearchFieldSnapshot(query = query, selection = selection)
+private fun SearchFieldUiState.asSnapshot(): SearchFieldSnapshot = SearchFieldSnapshot(query = query, selection = selection)
 
 private fun TextRange.asSelection(textLength: Int): SearchFieldSelection =
     when {
@@ -912,10 +941,11 @@ private fun TextRange.asSelection(textLength: Int): SearchFieldSelection =
 private fun TextFieldState.apply(state: SearchFieldUiState) {
     edit {
         replace(0, length, state.query)
-        selection = when (state.selection) {
-            SearchFieldSelection.CursorAtStart -> TextRange(0)
-            SearchFieldSelection.CursorAtEnd -> TextRange(state.query.length)
-            SearchFieldSelection.SelectAll -> TextRange(0, state.query.length)
-        }
+        selection =
+            when (state.selection) {
+                SearchFieldSelection.CursorAtStart -> TextRange(0)
+                SearchFieldSelection.CursorAtEnd -> TextRange(state.query.length)
+                SearchFieldSelection.SelectAll -> TextRange(0, state.query.length)
+            }
     }
 }

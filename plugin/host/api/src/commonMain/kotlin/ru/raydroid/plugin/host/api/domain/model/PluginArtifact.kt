@@ -4,7 +4,7 @@ import kotlin.jvm.JvmInline
 
 data class PluginArtifact(
     val data: ByteArray,
-    val signature: String? = null
+    val signature: String? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -29,7 +29,7 @@ private val PLUGIN_REGEX = "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$".
 
 @JvmInline
 value class PluginId(
-    val id: String
+    val id: String,
 ) {
     init {
         require(id.matches(PLUGIN_REGEX)) {

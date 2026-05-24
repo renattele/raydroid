@@ -18,25 +18,27 @@ import ru.raydroid.plugin.host.impl.services.EnvironmentServiceBridgeImpl
 import ru.raydroid.plugin.host.impl.services.SystemServiceBridgeImpl
 
 private fun getLocalFilesPath(): Path {
-    val documents = NSSearchPathForDirectoriesInDomains(
-        directory = NSDocumentDirectory,
-        domainMask = NSUserDomainMask,
-        expandTilde = true
-    ).firstOrNull() as? String ?: ""
+    val documents =
+        NSSearchPathForDirectoriesInDomains(
+            directory = NSDocumentDirectory,
+            domainMask = NSUserDomainMask,
+            expandTilde = true,
+        ).firstOrNull() as? String ?: ""
     return documents.toPath()
 }
 
-internal actual val pluginPlatformModule = module {
-    single<ClipboardServiceBridge> { ClipboardServiceBridgeImpl() }
-    single<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
-    single<SystemServiceBridge> { SystemServiceBridgeImpl() }
-    single<FileSystem>(named("localFileSystem")) {
-        FileSystem.SYSTEM
+internal actual val pluginPlatformModule =
+    module {
+        single<ClipboardServiceBridge> { ClipboardServiceBridgeImpl() }
+        single<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
+        single<SystemServiceBridge> { SystemServiceBridgeImpl() }
+        single<FileSystem>(named("localFileSystem")) {
+            FileSystem.SYSTEM
+        }
+        single<Path>(named("localPath")) {
+            getLocalFilesPath()
+        }
+        factory<CoroutineDispatcher> {
+            Dispatchers.Main
+        }
     }
-    single<Path>(named("localPath")) {
-        getLocalFilesPath()
-    }
-    factory<CoroutineDispatcher> {
-        Dispatchers.Main
-    }
-}

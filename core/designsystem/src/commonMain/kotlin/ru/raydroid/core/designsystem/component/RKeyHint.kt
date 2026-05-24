@@ -26,9 +26,8 @@ fun RKeyHint(
             .clip(shape)
             .clickable(enabled = onClick != null) {
                 onClick?.invoke()
-            }
-            .background(color)
+            }.background(color)
             .padding(spacing.small),
-        content = content
+        content = content,
     )
 }

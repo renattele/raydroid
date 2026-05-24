@@ -9,17 +9,18 @@ import org.jetbrains.compose.ComposeExtension
 import org.jetbrains.compose.resources.ResourcesExtension
 
 class RaydroidKmpComposeAndroidLibraryConventionPlugin : Plugin<Project> {
-    override fun apply(target: Project) = with(target) {
-        applyKmpBaseConvention()
-        pluginManager.apply("com.android.kotlin.multiplatform.library")
-        configureMultiplatformTargetsWhenKmpIsPresent()
-        configureKmpAndroidDefaultsWhenPresent()
-        pluginManager.apply("org.jetbrains.compose")
-        pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
+    override fun apply(target: Project) =
+        with(target) {
+            applyKmpBaseConvention()
+            pluginManager.apply("com.android.kotlin.multiplatform.library")
+            configureMultiplatformTargetsWhenKmpIsPresent()
+            configureKmpAndroidDefaultsWhenPresent()
+            pluginManager.apply("org.jetbrains.compose")
+            pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
 
-        configureComposeResources()
-        configureAndroidComposeResourceTaskWorkaround()
-    }
+            configureComposeResources()
+            configureAndroidComposeResourceTaskWorkaround()
+        }
 }
 
 private fun Project.configureComposeResources() {
@@ -33,13 +34,14 @@ private fun Project.configureAndroidComposeResourceTaskWorkaround() {
     tasks.configureEach {
         if (!name.startsWith("copy") || !name.endsWith("ComposeResourcesToAndroidAssets")) return@configureEach
 
-        val outputDirectoryGetter = javaClass.methods.firstOrNull { method ->
-            method.name == "getOutputDirectory" && method.parameterCount == 0
-        } ?: return@configureEach
+        val outputDirectoryGetter =
+            javaClass.methods.firstOrNull { method ->
+                method.name == "getOutputDirectory" && method.parameterCount == 0
+            } ?: return@configureEach
 
         val outputDirectory = outputDirectoryGetter.invoke(this) as? DirectoryProperty ?: return@configureEach
         outputDirectory.convention(
-            layout.buildDirectory.dir("generated/compose/resourceGenerator/androidAssets/$name")
+            layout.buildDirectory.dir("generated/compose/resourceGenerator/androidAssets/$name"),
         )
     }
 }

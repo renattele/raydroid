@@ -4,12 +4,13 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 internal expect val dbPlatformModule: Module
-internal val dbModule = module {
-    includes(dbPlatformModule)
-    single<PluginDatabase> {
-        getAppDatabase(get())
+internal val dbModule =
+    module {
+        includes(dbPlatformModule)
+        single<PluginDatabase> {
+            getAppDatabase(get())
+        }
+        single<SearchIndexCacheDao> {
+            get<PluginDatabase>().getSearchIndexCacheDao()
+        }
     }
-    single<SearchIndexCacheDao> {
-        get<PluginDatabase>().getSearchIndexCacheDao()
-    }
-}

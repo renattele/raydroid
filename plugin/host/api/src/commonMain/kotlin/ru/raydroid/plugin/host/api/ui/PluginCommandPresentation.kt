@@ -16,23 +16,17 @@ interface ActionPanelActionUi {
 
 class PluginCommandCallback(
     val ref: CommandCallbackRef,
-    private val dispatch: suspend (CommandCallbackRef) -> Unit
+    private val dispatch: suspend (CommandCallbackRef) -> Unit,
 ) {
     suspend operator fun invoke() {
         dispatch(ref)
     }
 
-    override fun equals(other: Any?): Boolean {
-        return other is PluginCommandCallback && ref == other.ref
-    }
+    override fun equals(other: Any?): Boolean = other is PluginCommandCallback && ref == other.ref
 
-    override fun hashCode(): Int {
-        return ref.hashCode()
-    }
+    override fun hashCode(): Int = ref.hashCode()
 
-    override fun toString(): String {
-        return "PluginCommandCallback(ref=$ref)"
-    }
+    override fun toString(): String = "PluginCommandCallback(ref=$ref)"
 }
 
 data class PluginCommandListItem(
@@ -49,7 +43,7 @@ data class PluginCommandListItem(
 
 data class PluginCommandListQuickAction(
     val title: PluginUiText,
-    val icon: PluginIcon
+    val icon: PluginIcon,
 )
 
 data class PluginCommandListAction(
@@ -65,7 +59,7 @@ data class PluginCommandListAction(
 ) : ActionPanelActionUi {
     enum class Style {
         Default,
-        Destructive
+        Destructive,
     }
 
     override val destructive: Boolean
@@ -76,5 +70,5 @@ data class PluginCommandPresentation(
     val listEntry: PluginCommandListItem,
     val primaryCallback: PluginCommandCallback?,
     val actions: List<PluginCommandListAction> = emptyList(),
-    val content: List<PluginRayNodeData>
+    val content: List<PluginRayNodeData>,
 )

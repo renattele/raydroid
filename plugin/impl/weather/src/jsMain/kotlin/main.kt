@@ -3,6 +3,7 @@ import ru.raydroid.plugin.impl.weather.WeatherCommand
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-fun main() = plugin {
-    command(WeatherCommand())
-}
+fun main() =
+    plugin {
+        command(WeatherCommand())
+    }

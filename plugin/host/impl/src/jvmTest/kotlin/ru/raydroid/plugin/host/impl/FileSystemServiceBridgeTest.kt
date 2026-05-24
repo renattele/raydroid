@@ -15,8 +15,8 @@ import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.manifest.Platform
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.host.impl.permission.PermissionFileSystemServiceBridge
-import ru.raydroid.plugin.host.impl.services.UnsupportedAllFilesAccessGateway
 import ru.raydroid.plugin.host.impl.services.FileSystemServiceBridgeImpl
+import ru.raydroid.plugin.host.impl.services.UnsupportedAllFilesAccessGateway
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -24,112 +24,123 @@ import kotlin.test.assertFailsWith
 
 class FileSystemServiceBridgeTest {
     @Test
-    fun `filesystem bridge supports file operations`() = runTest {
-        val fs = FakeFileSystem()
-        val bridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway())
-        fs.createDirectories("/allowed".toPath())
+    fun `filesystem bridge supports file operations`() =
+        runTest {
+            val fs = FakeFileSystem()
+            val bridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway())
+            fs.createDirectories("/allowed".toPath())
 
-        bridge.createFile("/allowed/file.txt")
-        bridge.write("/allowed/file.txt", "hello".encodeToByteArray())
-        bridge.createDirectories("/allowed/nested")
+            bridge.createFile("/allowed/file.txt")
+            bridge.write("/allowed/file.txt", "hello".encodeToByteArray())
+            bridge.createDirectories("/allowed/nested")
 
-        assertEquals(true, bridge.exists("/allowed/file.txt"))
-        assertContentEquals("hello".encodeToByteArray(), bridge.read("/allowed/file.txt"))
-        assertEquals(FileSystemServiceBridge.RawFileKind.File, bridge.metadata("/allowed/file.txt")?.kind)
-        assertEquals(listOf("file.txt", "nested"), bridge.list("/allowed").map { it.name }.sorted())
+            assertEquals(true, bridge.exists("/allowed/file.txt"))
+            assertContentEquals("hello".encodeToByteArray(), bridge.read("/allowed/file.txt"))
+            assertEquals(FileSystemServiceBridge.RawFileKind.File, bridge.metadata("/allowed/file.txt")?.kind)
+            assertEquals(listOf("file.txt", "nested"), bridge.list("/allowed").map { it.name }.sorted())
 
-        bridge.delete("/allowed/file.txt")
-
-        assertEquals(false, bridge.exists("/allowed/file.txt"))
-    }
-
-    @Test
-    fun `filesystem permission bridge denies missing access`() = runTest {
-        val delegate = FileSystemServiceBridgeImpl(FakeFileSystem(), UnsupportedAllFilesAccessGateway())
-        val bridge = PermissionFileSystemServiceBridge(delegate, testManifest())
-
-        assertFailsWith<PermissionDenied> {
-            bridge.exists("/allowed/file.txt")
-        }
-    }
-
-    @Test
-    fun `filesystem permission bridge gates operations and allowed paths`() = runTest {
-        val fs = FakeFileSystem()
-        fs.createDirectories("/allowed".toPath())
-        fs.write("/allowed/file.txt".toPath()) {
-            writeUtf8("hello")
-            Unit
-        }
-        val bridge = PermissionFileSystemServiceBridge(
-            fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway()),
-            manifest = testManifest(
-                permissions = listOf(
-                    FileSystemAccessPermission.Read,
-                    FileSystemAccessPermission.Write
-                ),
-                allowedPaths = listOf("/allowed(/.*)?")
-            )
-        )
-
-        assertEquals(true, bridge.exists("/allowed/file.txt"))
-        bridge.write("/allowed/file.txt", "next".encodeToByteArray())
-
-        assertFailsWith<PermissionDenied> {
             bridge.delete("/allowed/file.txt")
+
+            assertEquals(false, bridge.exists("/allowed/file.txt"))
         }
-        assertFailsWith<PermissionDenied> {
-            bridge.exists("/blocked/file.txt")
-        }
-    }
 
     @Test
-    fun `filesystem permission bridge allows manage for delete`() = runTest {
-        val fs = FakeFileSystem()
-        fs.createDirectories("/allowed".toPath())
-        fs.write("/allowed/file.txt".toPath()) {
-            writeUtf8("hello")
-            Unit
-        }
-        val bridge = PermissionFileSystemServiceBridge(
-            fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway()),
-            manifest = testManifest(
-                permissions = listOf(FileSystemAccessPermission.Manage),
-                allowedPaths = listOf("/allowed(/.*)?")
-            )
-        )
+    fun `filesystem permission bridge denies missing access`() =
+        runTest {
+            val delegate = FileSystemServiceBridgeImpl(FakeFileSystem(), UnsupportedAllFilesAccessGateway())
+            val bridge = PermissionFileSystemServiceBridge(delegate, testManifest())
 
-        bridge.delete("/allowed/file.txt")
-
-        assertEquals(false, fs.exists("/allowed/file.txt".toPath()))
-    }
-
-    @Test
-    fun `filesystem watch emits changes`() = runTest {
-        val fs = FakeFileSystem()
-        fs.createDirectories("/allowed".toPath())
-        fs.write("/allowed/file.txt".toPath()) {
-            writeUtf8("hello")
-            Unit
-        }
-        val bridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway())
-        val deferred = async {
-            bridge.watch("/allowed/file.txt").first { event ->
-                event.metadata?.size == 4L
+            assertFailsWith<PermissionDenied> {
+                bridge.exists("/allowed/file.txt")
             }
         }
 
-        fs.write("/allowed/file.txt".toPath()) {
-            writeUtf8("next")
-            Unit
+    @Test
+    fun `filesystem permission bridge gates operations and allowed paths`() =
+        runTest {
+            val fs = FakeFileSystem()
+            fs.createDirectories("/allowed".toPath())
+            fs.write("/allowed/file.txt".toPath()) {
+                writeUtf8("hello")
+                Unit
+            }
+            val bridge =
+                PermissionFileSystemServiceBridge(
+                    fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway()),
+                    manifest =
+                        testManifest(
+                            permissions =
+                                listOf(
+                                    FileSystemAccessPermission.Read,
+                                    FileSystemAccessPermission.Write,
+                                ),
+                            allowedPaths = listOf("/allowed(/.*)?"),
+                        ),
+                )
+
+            assertEquals(true, bridge.exists("/allowed/file.txt"))
+            bridge.write("/allowed/file.txt", "next".encodeToByteArray())
+
+            assertFailsWith<PermissionDenied> {
+                bridge.delete("/allowed/file.txt")
+            }
+            assertFailsWith<PermissionDenied> {
+                bridge.exists("/blocked/file.txt")
+            }
         }
 
-        assertEquals(4, deferred.await().metadata?.size)
-    }
+    @Test
+    fun `filesystem permission bridge allows manage for delete`() =
+        runTest {
+            val fs = FakeFileSystem()
+            fs.createDirectories("/allowed".toPath())
+            fs.write("/allowed/file.txt".toPath()) {
+                writeUtf8("hello")
+                Unit
+            }
+            val bridge =
+                PermissionFileSystemServiceBridge(
+                    fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway()),
+                    manifest =
+                        testManifest(
+                            permissions = listOf(FileSystemAccessPermission.Manage),
+                            allowedPaths = listOf("/allowed(/.*)?"),
+                        ),
+                )
+
+            bridge.delete("/allowed/file.txt")
+
+            assertEquals(false, fs.exists("/allowed/file.txt".toPath()))
+        }
+
+    @Test
+    fun `filesystem watch emits changes`() =
+        runTest {
+            val fs = FakeFileSystem()
+            fs.createDirectories("/allowed".toPath())
+            fs.write("/allowed/file.txt".toPath()) {
+                writeUtf8("hello")
+                Unit
+            }
+            val bridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway())
+            val deferred =
+                async {
+                    bridge.watch("/allowed/file.txt").first { event ->
+                        event.metadata?.size == 4L
+                    }
+                }
+
+            fs.write("/allowed/file.txt".toPath()) {
+                writeUtf8("next")
+                Unit
+            }
+
+            assertEquals(4, deferred.await().metadata?.size)
+        }
 
     private fun testManifest(
         permissions: List<FileSystemAccessPermission> = emptyList(),
-        allowedPaths: List<String> = emptyList()
+        allowedPaths: List<String> = emptyList(),
     ): Manifest =
         Manifest(
             name = "ru.test.plugin",
@@ -140,23 +151,26 @@ class FileSystemServiceBridgeTest {
             platforms = listOf(Platform.MacOS),
             categories = emptyList(),
             license = "MIT",
-            commands = listOf(
-                Command(
-                    service = "apps",
-                    title = UiText.Plain("Apps"),
-                    description = UiText.Plain("Apps command"),
-                    mode = Command.Mode.View,
-                    match = null,
-                    arguments = emptyList(),
-                    preferences = emptyList(),
-                )
-            ),
+            commands =
+                listOf(
+                    Command(
+                        service = "apps",
+                        title = UiText.Plain("Apps"),
+                        description = UiText.Plain("Apps command"),
+                        mode = Command.Mode.View,
+                        match = null,
+                        arguments = emptyList(),
+                        preferences = emptyList(),
+                    ),
+                ),
             resources = emptyMap(),
-            access = Access(
-                filesystem = FileSystemAccess(
-                    permissions = permissions,
-                    allowedPaths = allowedPaths
-                )
-            )
+            access =
+                Access(
+                    filesystem =
+                        FileSystemAccess(
+                            permissions = permissions,
+                            allowedPaths = allowedPaths,
+                        ),
+                ),
         )
 }

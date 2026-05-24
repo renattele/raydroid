@@ -9,33 +9,34 @@ import org.koin.mp.KoinPlatformTools
 import ru.raydroid.core.data.coreDataModule
 import ru.raydroid.plugin.host.impl.pluginHostModule
 
-val raydroidSearchModule = module {
-    includes(coreDataModule)
-    includes(pluginHostModule)
+val raydroidSearchModule =
+    module {
+        includes(coreDataModule)
+        includes(pluginHostModule)
 
-    factoryOf(::GetCommandCatalogUseCase)
-    factoryOf(::CommandCatalogProvider)
-    factory {
-        SearchViewModel(
-            syncCacheUseCase = get(),
-            loadRuntimesUseCase = get(),
-            searchUseCase = get(),
-            getPluginsUseCase = get(),
-            openCommandUseCase = get(),
-            enterItemUseCase = get(),
-            closeCommandUseCase = get(),
-            backCommandUseCase = get(),
-            executeCommandCallbackUseCase = get(),
-            getCommandFullscreenUseCase = get(),
-            getEventsUseCase = get(),
-            emitEventUseCase = get(),
-            getSearchFieldRequestsUseCase = get(),
-            updateCommandQueryUseCase = get(),
-            saveSearchAliasUseCase = get(),
-            removeSearchAliasUseCase = get()
-        )
+        factoryOf(::GetCommandCatalogUseCase)
+        factoryOf(::CommandCatalogProvider)
+        factory {
+            SearchViewModel(
+                syncCacheUseCase = get(),
+                loadRuntimesUseCase = get(),
+                searchUseCase = get(),
+                getPluginsUseCase = get(),
+                openCommandUseCase = get(),
+                enterItemUseCase = get(),
+                closeCommandUseCase = get(),
+                backCommandUseCase = get(),
+                executeCommandCallbackUseCase = get(),
+                getCommandFullscreenUseCase = get(),
+                getEventsUseCase = get(),
+                emitEventUseCase = get(),
+                getSearchFieldRequestsUseCase = get(),
+                updateCommandQueryUseCase = get(),
+                saveSearchAliasUseCase = get(),
+                removeSearchAliasUseCase = get(),
+            )
+        }
     }
-}
 
 fun initKoin(configuration: KoinAppDeclaration? = null) {
     if (KoinPlatformTools.defaultContext().getOrNull() != null) return
@@ -47,26 +48,19 @@ fun initKoin(configuration: KoinAppDeclaration? = null) {
 
 object RaydroidBootstrap {
     fun initKoin() {
-        ru.raydroid.feature.search.initKoin()
+        ru.raydroid.feature.search
+            .initKoin()
     }
 
-    fun createSearchViewModel(): SearchViewModel {
-        return KoinPlatformTools.defaultContext().get().get()
-    }
+    fun createSearchViewModel(): SearchViewModel = KoinPlatformTools.defaultContext().get().get()
 
-    fun createCommandCatalogProvider(): CommandCatalogProvider {
-        return KoinPlatformTools.defaultContext().get().get()
-    }
+    fun createCommandCatalogProvider(): CommandCatalogProvider = KoinPlatformTools.defaultContext().get().get()
 }
 
 fun InitKoin() {
     RaydroidBootstrap.initKoin()
 }
 
-fun CreateSearchViewModel(): SearchViewModel {
-    return RaydroidBootstrap.createSearchViewModel()
-}
+fun CreateSearchViewModel(): SearchViewModel = RaydroidBootstrap.createSearchViewModel()
 
-fun CreateCommandCatalogProvider(): CommandCatalogProvider {
-    return RaydroidBootstrap.createCommandCatalogProvider()
-}
+fun CreateCommandCatalogProvider(): CommandCatalogProvider = RaydroidBootstrap.createCommandCatalogProvider()

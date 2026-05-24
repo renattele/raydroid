@@ -23,12 +23,12 @@ interface PluginRuntimeCoordinator {
         val runtime: PluginRuntime,
         val presentation: PluginCommandPresentation,
         val listEntry: PluginCommandListItem,
-        val resultId: SearchResultId
+        val resultId: SearchResultId,
     )
 
     data class CommandItem(
         val runtime: PluginRuntime,
         val listEntry: PluginCommandListItem,
-        val resultId: SearchResultId
+        val resultId: SearchResultId,
     )
 }

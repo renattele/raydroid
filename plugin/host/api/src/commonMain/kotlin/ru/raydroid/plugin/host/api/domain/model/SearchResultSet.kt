@@ -15,17 +15,17 @@ data class SearchResultSet(
         override val resultId: SearchResultId,
         override val listEntry: PluginCommandListItem,
         val titleMatches: List<IntRange>,
-        val descriptionMatches: List<IntRange>
+        val descriptionMatches: List<IntRange>,
     ) : SearchResult
 
     data class CommandSearchResult(
         override val resultId: SearchResultId,
-        override val listEntry: PluginCommandListItem
+        override val listEntry: PluginCommandListItem,
     ) : SearchResult
 
     data class LiveSearchResult(
         override val resultId: SearchResultId,
         override val listEntry: PluginCommandListItem,
-        val presentation: PluginCommandPresentation
+        val presentation: PluginCommandPresentation,
     ) : SearchResult
 }

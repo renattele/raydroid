@@ -56,7 +56,7 @@ fun SearchListItem(
     focused: Boolean = false,
     contextMenuSourceId: String? = null,
     onLongClick: (() -> Unit)? = null,
-    onQuickAction: (() -> Unit)? = null
+    onQuickAction: (() -> Unit)? = null,
 ) {
     val spacing = RaydroidTheme.spacing
     Row(
@@ -64,41 +64,43 @@ fun SearchListItem(
             .rInteractable(
                 focused = focused,
                 contextMenuSourceId = contextMenuSourceId,
-                onLongClick = onLongClick
+                onLongClick = onLongClick,
             ) { onClick() }
             .fillMaxWidth()
             .padding(horizontal = spacing.medium, vertical = spacing.small),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+        horizontalArrangement = Arrangement.spacedBy(spacing.medium),
     ) {
         val icon = result.listEntry.icon
         if (icon != null) {
             IconRenderer(
-                data = PluginIconData(
-                    icon = icon
-                )
+                data =
+                    PluginIconData(
+                        icon = icon,
+                    ),
             )
         }
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
         ) {
-            val highlightStyle = SpanStyle(
-                color = PluginColor.Primary.toColor(),
-                fontWeight = FontWeight.SemiBold
-            )
+            val highlightStyle =
+                SpanStyle(
+                    color = PluginColor.Primary.toColor(),
+                    fontWeight = FontWeight.SemiBold,
+                )
             val title = result.listEntry.title
             if (title != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RText(
                         text = title.asText().highlight(result.titleMatches, highlightStyle),
                         fontSize = PluginFontSize.Large.toTextUnit(),
                         color = PluginColor.OnSurface.toColor(),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     result.listEntry.alias?.let { alias ->
                         AliasBadge(alias)
@@ -110,7 +112,7 @@ fun SearchListItem(
                 RText(
                     text = description.asText().highlight(result.descriptionMatches, highlightStyle),
                     fontSize = PluginFontSize.Small.toTextUnit(),
-                    color = PluginColor.OnSurfaceVariant.toColor()
+                    color = PluginColor.OnSurfaceVariant.toColor(),
                 )
             }
         }
@@ -130,7 +132,7 @@ fun CommandListItemView(
     focused: Boolean = false,
     contextMenuSourceId: String? = null,
     onLongClick: (() -> Unit)? = null,
-    onQuickAction: (() -> Unit)? = null
+    onQuickAction: (() -> Unit)? = null,
 ) {
     val spacing = RaydroidTheme.spacing
     val shape = RaydroidTheme.shapes.shape(RaydroidShapeToken.Medium)
@@ -140,7 +142,7 @@ fun CommandListItemView(
             .rInteractable(
                 focused = focused,
                 contextMenuSourceId = contextMenuSourceId,
-                onLongClick = onLongClick
+                onLongClick = onLongClick,
             ) { onClick() }
             .fillMaxWidth()
             .background(
@@ -149,19 +151,19 @@ fun CommandListItemView(
                 } else {
                     androidx.compose.ui.graphics.Color.Transparent
                 },
-                shape = shape
-            )
-            .padding(horizontal = spacing.medium, vertical = spacing.small),
+                shape = shape,
+            ).padding(horizontal = spacing.medium, vertical = spacing.small),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+        horizontalArrangement = Arrangement.spacedBy(spacing.medium),
     ) {
         val icon = listEntry.icon
         if (icon != null) {
             IconRenderer(
-                data = PluginIconData(
-                    icon = icon,
-                    color = listEntry.iconColor
-                )
+                data =
+                    PluginIconData(
+                        icon = icon,
+                        color = listEntry.iconColor,
+                    ),
             )
         }
         val title = listEntry.title
@@ -171,34 +173,36 @@ fun CommandListItemView(
         val placeTrailingBelow = shouldPlaceTrailingBelow(titleText.orEmpty(), trailingValue)
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
         ) {
             if (title != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                    verticalAlignment = if (placeTrailingBelow) Alignment.Top else Alignment.CenterVertically
+                    verticalAlignment = if (placeTrailingBelow) Alignment.Top else Alignment.CenterVertically,
                 ) {
                     if (trailingValue == null || titleText == null) {
                         TextRenderer(
-                            data = PluginTextData(
-                                text = title,
-                                fontSize = PluginFontSize.Large
-                            ),
-                            modifier = Modifier.weight(1f)
+                            data =
+                                PluginTextData(
+                                    text = title,
+                                    fontSize = PluginFontSize.Large,
+                                ),
+                            modifier = Modifier.weight(1f),
                         )
                     } else {
-                        val expressionModifier = if (placeTrailingBelow) {
-                            Modifier
-                                .heightIn(max = CalculationExpressionMaxHeight)
-                        } else {
-                            Modifier
-                        }
+                        val expressionModifier =
+                            if (placeTrailingBelow) {
+                                Modifier
+                                    .heightIn(max = CalculationExpressionMaxHeight)
+                            } else {
+                                Modifier
+                            }
                         val scrollState = rememberScrollState()
                         Row(
                             modifier = Modifier.weight(1f).then(expressionModifier),
                             horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                            verticalAlignment = Alignment.Top
+                            verticalAlignment = Alignment.Top,
                         ) {
                             RText(
                                 text = titleText.withCalculationBreaks(),
@@ -206,13 +210,14 @@ fun CommandListItemView(
                                 color = PluginColor.OnSurface.toColor(),
                                 maxLines = if (placeTrailingBelow) Int.MAX_VALUE else 2,
                                 overflow = TextOverflow.Clip,
-                                modifier = if (placeTrailingBelow) {
-                                    Modifier
-                                        .weight(1f)
-                                        .verticalScroll(scrollState)
-                                } else {
-                                    Modifier.weight(1f)
-                                }
+                                modifier =
+                                    if (placeTrailingBelow) {
+                                        Modifier
+                                            .weight(1f)
+                                            .verticalScroll(scrollState)
+                                    } else {
+                                        Modifier.weight(1f)
+                                    },
                             )
                             if (placeTrailingBelow) {
                                 CalculationScrollHandle(scrollState)
@@ -227,11 +232,12 @@ fun CommandListItemView(
             val description = listEntry.description
             if (description != null) {
                 TextRenderer(
-                    data = PluginTextData(
-                        text = description,
-                        fontSize = PluginFontSize.Small,
-                        color = PluginColor.OnSurfaceVariant
-                    )
+                    data =
+                        PluginTextData(
+                            text = description,
+                            fontSize = PluginFontSize.Small,
+                            color = PluginColor.OnSurfaceVariant,
+                        ),
                 )
             }
             if (placeTrailingBelow) {
@@ -242,7 +248,7 @@ fun CommandListItemView(
                     textAlign = TextAlign.End,
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
-                    modifier = Modifier.align(Alignment.End)
+                    modifier = Modifier.align(Alignment.End),
                 )
             }
         }
@@ -254,7 +260,7 @@ fun CommandListItemView(
                 textAlign = TextAlign.End,
                 maxLines = 1,
                 overflow = TextOverflow.Visible,
-                modifier = Modifier.widthIn(min = 40.dp)
+                modifier = Modifier.widthIn(min = 40.dp),
             )
         }
         listEntry.quickAction?.let { quickAction ->
@@ -269,7 +275,7 @@ fun CommandListItemView(
 private fun QuickActionButton(
     quickAction: PluginCommandListQuickAction,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier
@@ -277,31 +283,36 @@ private fun QuickActionButton(
             .clip(RaydroidTheme.shapes.full)
             .background(PluginColor.TertiaryContainer.toColor())
             .rInteractable { onClick() },
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         IconRenderer(
-            data = PluginIconData(
-                icon = quickAction.icon,
-                contentDescription = quickAction.title.asText(),
-                size = PluginIconSize.Small,
-                color = PluginColor.OnTertiaryContainer
-            )
+            data =
+                PluginIconData(
+                    icon = quickAction.icon,
+                    contentDescription = quickAction.title.asText(),
+                    size = PluginIconSize.Small,
+                    color = PluginColor.OnTertiaryContainer,
+                ),
         )
     }
 }
 
 @Composable
-private fun AliasBadge(alias: String, modifier: Modifier = Modifier) {
+private fun AliasBadge(
+    alias: String,
+    modifier: Modifier = Modifier,
+) {
     RText(
         text = alias,
         fontSize = PluginFontSize.ExtraSmall.toTextUnit(),
         color = PluginColor.OnSecondaryContainer.toColor(),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = modifier
-            .clip(RaydroidTheme.shapes.small)
-            .background(PluginColor.SecondaryContainer.toColor().copy(alpha = 0.72f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+        modifier =
+            modifier
+                .clip(RaydroidTheme.shapes.small)
+                .background(PluginColor.SecondaryContainer.toColor().copy(alpha = 0.72f))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
     )
 }
 
@@ -325,20 +336,22 @@ private fun CalculationScrollHandle(scrollState: ScrollState) {
     val thumbOffset = CalculationScrollThumbTravel * progress.coerceIn(0f, 1f)
 
     Box(
-        modifier = Modifier
-            .width(CalculationScrollTrackWidth)
-            .height(CalculationExpressionMaxHeight)
-            .clip(shape)
-            .background(PluginColor.OnSurfaceVariant.toColor().copy(alpha = 0.16f))
+        modifier =
+            Modifier
+                .width(CalculationScrollTrackWidth)
+                .height(CalculationExpressionMaxHeight)
+                .clip(shape)
+                .background(PluginColor.OnSurfaceVariant.toColor().copy(alpha = 0.16f)),
     ) {
         Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = thumbOffset)
-                .width(CalculationScrollTrackWidth)
-                .height(CalculationScrollThumbHeight)
-                .clip(shape)
-                .background(PluginColor.Primary.toColor().copy(alpha = 0.72f))
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = thumbOffset)
+                    .width(CalculationScrollTrackWidth)
+                    .height(CalculationScrollThumbHeight)
+                    .clip(shape)
+                    .background(PluginColor.Primary.toColor().copy(alpha = 0.72f)),
         )
     }
 }
@@ -348,46 +361,53 @@ private fun CalculationScrollHandle(scrollState: ScrollState) {
 private fun ListItemPreview() {
     RaydroidPreviewTheme {
         CommandListItemView(
-            listEntry = PluginCommandListItem(
-                id = CommandItemId("1"),
-                icon = PluginIcon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
-                title = PluginUiText.Plain("123"),
-                description = PluginUiText.Resource(PluginId.Invalid, "456")
-            ),
-            onClick = {}
+            listEntry =
+                PluginCommandListItem(
+                    id = CommandItemId("1"),
+                    icon = PluginIcon.Url("https://i.imgur.com/UVpA9a0.jpeg"),
+                    title = PluginUiText.Plain("123"),
+                    description = PluginUiText.Resource(PluginId.Invalid, "456"),
+                ),
+            onClick = {},
         )
     }
 }
 
 private fun String.highlight(
     ranges: List<IntRange>,
-    style: SpanStyle
+    style: SpanStyle,
 ): AnnotatedString {
     if (ranges.isEmpty()) return AnnotatedString(this)
-    return AnnotatedString.Builder(this).apply {
-        ranges.forEach { range ->
-            val start = range.first.coerceIn(0, length)
-            val endExclusive = (range.last + 1).coerceIn(0, length)
-            if (start < endExclusive) {
-                addStyle(style, start, endExclusive)
+    return AnnotatedString
+        .Builder(this)
+        .apply {
+            ranges.forEach { range ->
+                val start = range.first.coerceIn(0, length)
+                val endExclusive = (range.last + 1).coerceIn(0, length)
+                if (start < endExclusive) {
+                    addStyle(style, start, endExclusive)
+                }
             }
-        }
-    }.toAnnotatedString()
+        }.toAnnotatedString()
 }
 
-private fun shouldPlaceTrailingBelow(title: String, trailing: String?): Boolean {
+private fun shouldPlaceTrailingBelow(
+    title: String,
+    trailing: String?,
+): Boolean {
     if (trailing == null) return false
     return title.length > InlineTrailingTitleThreshold ||
         trailing.length > InlineTrailingValueThreshold ||
         title.length + trailing.length > InlineCombinedTrailingThreshold
 }
 
-private fun String.trailingTitleFontSize(compact: Boolean): PluginFontSize = when {
-    compact && length > InlineTrailingTitleThreshold -> PluginFontSize.Small
-    length <= InlineTrailingTitleThreshold -> PluginFontSize.Large
-    length <= CompactTrailingTitleThreshold -> PluginFontSize.Medium
-    else -> PluginFontSize.Small
-}
+private fun String.trailingTitleFontSize(compact: Boolean): PluginFontSize =
+    when {
+        compact && length > InlineTrailingTitleThreshold -> PluginFontSize.Small
+        length <= InlineTrailingTitleThreshold -> PluginFontSize.Large
+        length <= CompactTrailingTitleThreshold -> PluginFontSize.Medium
+        else -> PluginFontSize.Small
+    }
 
 private fun String.withCalculationBreaks(): String {
     if (length <= InlineTrailingTitleThreshold) return this

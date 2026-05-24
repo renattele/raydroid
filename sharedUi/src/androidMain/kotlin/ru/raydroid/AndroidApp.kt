@@ -5,11 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -32,54 +32,57 @@ fun AndroidApp() {
     RaydroidTheme {
         val activity = LocalContext.current as? Activity
         val dismissInteractionSource = remember { MutableInteractionSource() }
-        val surfaceShape = RoundedCornerShape(
-            topStart = RaydroidTheme.spacing.extraLarge,
-            topEnd = RaydroidTheme.spacing.extraLarge,
-            bottomStart = 0.dp,
-            bottomEnd = 0.dp
-        )
+        val surfaceShape =
+            RoundedCornerShape(
+                topStart = RaydroidTheme.spacing.extraLarge,
+                topEnd = RaydroidTheme.spacing.extraLarge,
+                bottomStart = 0.dp,
+                bottomEnd = 0.dp,
+            )
         BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         ) {
             val panelMaxHeight = maxHeight * 0.82f
             Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .windowInsetsPadding(
-                        WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-                    )
-                    .background(RaydroidTheme.colorScheme.background)
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .windowInsetsPadding(
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
+                        ).background(RaydroidTheme.colorScheme.background),
             )
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        interactionSource = dismissInteractionSource,
-                        indication = null
-                    ) {
-                        activity?.finish()
-                    }
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = dismissInteractionSource,
+                            indication = null,
+                        ) {
+                            activity?.finish()
+                        },
             )
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 12.dp),
-                contentAlignment = Alignment.BottomCenter
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(top = 12.dp),
+                contentAlignment = Alignment.BottomCenter,
             ) {
                 RPopupSurface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = panelMaxHeight)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {}
-                        )
-                        .clip(surfaceShape),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = panelMaxHeight)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {},
+                            ).clip(surfaceShape),
                     shape = surfaceShape,
                     color = RaydroidTheme.colorScheme.background,
-                    shadowColor = RaydroidTheme.colorScheme.scrim.copy(alpha = 0.55f)
+                    shadowColor = RaydroidTheme.colorScheme.scrim.copy(alpha = 0.55f),
                 ) {
                     SearchScreen(Modifier.fillMaxSize())
                 }

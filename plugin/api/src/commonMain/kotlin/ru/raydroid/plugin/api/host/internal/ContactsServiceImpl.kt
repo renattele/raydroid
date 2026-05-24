@@ -4,10 +4,9 @@ import ru.raydroid.plugin.api.host.service.ContactsService
 import ru.raydroid.plugin.api.host.transport.ContactsServiceBridge
 
 internal class ContactsServiceImpl(
-    private val bridge: ContactsServiceBridge
+    private val bridge: ContactsServiceBridge,
 ) : ContactsService {
-    override suspend fun hasContactsAccess(): Boolean =
-        bridge.hasContactsAccess()
+    override suspend fun hasContactsAccess(): Boolean = bridge.hasContactsAccess()
 
     override suspend fun requestContactsAccess() {
         bridge.requestContactsAccess()
@@ -17,8 +16,7 @@ internal class ContactsServiceImpl(
         bridge.openContactsSettings()
     }
 
-    override suspend fun getContacts(): List<ContactsService.Contact> =
-        bridge.getContacts().map { contact -> contact.toServiceContact() }
+    override suspend fun getContacts(): List<ContactsService.Contact> = bridge.getContacts().map { contact -> contact.toServiceContact() }
 
     override suspend fun openContact(contactId: String) {
         bridge.openContact(contactId)
@@ -36,6 +34,6 @@ internal class ContactsServiceImpl(
         ContactsService.Contact(
             id = id,
             name = name,
-            phones = phones
+            phones = phones,
         )
 }

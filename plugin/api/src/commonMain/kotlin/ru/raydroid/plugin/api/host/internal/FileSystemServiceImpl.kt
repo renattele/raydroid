@@ -10,7 +10,7 @@ import ru.raydroid.plugin.api.host.service.FileSystemService
 import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 
 internal class FileSystemServiceImpl(
-    private val bridge: FileSystemServiceBridge
+    private val bridge: FileSystemServiceBridge,
 ) : FileSystemService {
     override suspend fun hasAllFilesAccess(): Boolean = bridge.hasAllFilesAccess()
 
@@ -20,15 +20,16 @@ internal class FileSystemServiceImpl(
 
     override suspend fun exists(path: String): Boolean = bridge.exists(path)
 
-    override suspend fun metadata(path: String): FileMetadata? =
-        bridge.metadata(path)?.toServiceMetadata()
+    override suspend fun metadata(path: String): FileMetadata? = bridge.metadata(path)?.toServiceMetadata()
 
-    override suspend fun list(path: String): List<FileEntry> =
-        bridge.list(path).map { it.toServiceEntry() }
+    override suspend fun list(path: String): List<FileEntry> = bridge.list(path).map { it.toServiceEntry() }
 
     override suspend fun read(path: String): ByteArray = bridge.read(path)
 
-    override suspend fun write(path: String, content: ByteArray) {
+    override suspend fun write(
+        path: String,
+        content: ByteArray,
+    ) {
         bridge.write(path, content)
     }
 
@@ -44,8 +45,7 @@ internal class FileSystemServiceImpl(
         bridge.delete(path)
     }
 
-    override suspend fun watch(path: String): Flow<FileChangeEvent> =
-        bridge.watch(path).map { it.toServiceEvent() }
+    override suspend fun watch(path: String): Flow<FileChangeEvent> = bridge.watch(path).map { it.toServiceEvent() }
 }
 
 private fun FileSystemServiceBridge.RawFileMetadata.toServiceMetadata(): FileMetadata =
@@ -53,7 +53,7 @@ private fun FileSystemServiceBridge.RawFileMetadata.toServiceMetadata(): FileMet
         kind = kind.toServiceKind(),
         size = size,
         createdAtEpochMillis = createdAtEpochMillis,
-        lastModifiedAtEpochMillis = lastModifiedAtEpochMillis
+        lastModifiedAtEpochMillis = lastModifiedAtEpochMillis,
     )
 
 private fun FileSystemServiceBridge.RawFileKind.toServiceKind(): FileKind =
@@ -68,11 +68,11 @@ private fun FileSystemServiceBridge.RawFileEntry.toServiceEntry(): FileEntry =
     FileEntry(
         path = path,
         name = name,
-        metadata = metadata.toServiceMetadata()
+        metadata = metadata.toServiceMetadata(),
     )
 
 private fun FileSystemServiceBridge.RawFileChangeEvent.toServiceEvent(): FileChangeEvent =
     FileChangeEvent(
         path = path,
-        metadata = metadata?.toServiceMetadata()
+        metadata = metadata?.toServiceMetadata(),
     )

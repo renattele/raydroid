@@ -12,9 +12,9 @@ import kotlinx.coroutines.IO
     entities = [
         SearchIndexCacheEntity::class,
         SearchIndexCacheContentEntity::class,
-        SearchIndexCacheContentFtsEntity::class
+        SearchIndexCacheContentFtsEntity::class,
     ],
-    version = 6
+    version = 6,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 internal abstract class PluginDatabase : RoomDatabase() {
@@ -26,12 +26,9 @@ internal expect object AppDatabaseConstructor : RoomDatabaseConstructor<PluginDa
     override fun initialize(): PluginDatabase
 }
 
-internal fun getAppDatabase(
-    builder: RoomDatabase.Builder<PluginDatabase>
-): PluginDatabase {
-    return builder
+internal fun getAppDatabase(builder: RoomDatabase.Builder<PluginDatabase>): PluginDatabase =
+    builder
         .fallbackToDestructiveMigration(dropAllTables = true)
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
-}

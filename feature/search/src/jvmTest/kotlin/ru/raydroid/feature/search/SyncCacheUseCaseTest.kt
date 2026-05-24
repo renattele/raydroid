@@ -1,7 +1,7 @@
 package ru.raydroid.feature.search
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,43 +27,51 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalCoroutinesApi::class)
 class SyncCacheUseCaseTest {
     @Test
-    fun `applies fast cache chunks in order without dropping in-flight updates`() = runTest {
-        val pluginId = PluginId("ru.raydroid.files")
-        val first = SearchIndexMutation.MarkAllAsOutdated(pluginId, "files")
-        val second = SearchIndexMutation.ClearOutdated(pluginId, "files")
-        val cachedItems = MutableSharedFlow<List<SearchIndexMutation>>(extraBufferCapacity = 2)
-        val searchRepository = SlowRecordingSearchIndexRepository()
-        val useCase = SyncCacheUseCase(
-            searchIndexRepository = searchRepository,
-            pluginRuntimeRegistry = SyncCacheRegistry(SyncCacheCoordinator(cachedItems))
-        )
+    fun `applies fast cache chunks in order without dropping in-flight updates`() =
+        runTest {
+            val pluginId = PluginId("ru.raydroid.files")
+            val first = SearchIndexMutation.MarkAllAsOutdated(pluginId, "files")
+            val second = SearchIndexMutation.ClearOutdated(pluginId, "files")
+            val cachedItems = MutableSharedFlow<List<SearchIndexMutation>>(extraBufferCapacity = 2)
+            val searchRepository = SlowRecordingSearchIndexRepository()
+            val useCase =
+                SyncCacheUseCase(
+                    searchIndexRepository = searchRepository,
+                    pluginRuntimeRegistry = SyncCacheRegistry(SyncCacheCoordinator(cachedItems)),
+                )
 
-        val job = launch { useCase() }
-        runCurrent()
-        cachedItems.emit(listOf(first))
-        cachedItems.emit(listOf(second))
-        advanceUntilIdle()
+            val job = launch { useCase() }
+            runCurrent()
+            cachedItems.emit(listOf(first))
+            cachedItems.emit(listOf(second))
+            advanceUntilIdle()
 
-        assertEquals(listOf(listOf(first), listOf(second)), searchRepository.updates)
-        job.cancel()
-    }
+            assertEquals(listOf(listOf(first), listOf(second)), searchRepository.updates)
+            job.cancel()
+        }
 }
 
 private class SyncCacheCoordinator(
-    private val cachedItems: Flow<List<SearchIndexMutation>>
+    private val cachedItems: Flow<List<SearchIndexMutation>>,
 ) : PluginRuntimeCoordinator {
     override fun cachedItems(): Flow<List<SearchIndexMutation>> = cachedItems
+
     override fun runtimes(): StateFlow<List<PluginRuntime>> = MutableStateFlow(emptyList())
+
     override fun content(): StateFlow<List<PluginRuntimeCoordinator.ContentItem>> = MutableStateFlow(emptyList())
+
     override fun commands(): StateFlow<List<PluginRuntimeCoordinator.CommandItem>> = MutableStateFlow(emptyList())
+
     override suspend fun update(action: CommandActionBridge) = Unit
 }
 
 private class SyncCacheRegistry(
-    private val coordinator: PluginRuntimeCoordinator
+    private val coordinator: PluginRuntimeCoordinator,
 ) : PluginRuntimeRegistry {
     override suspend fun load(runtime: PluginRuntime) = Unit
+
     override suspend fun unload(runtime: PluginRuntime) = Unit
+
     override fun get(): PluginRuntimeCoordinator = coordinator
 }
 
@@ -76,6 +84,11 @@ private class SlowRecordingSearchIndexRepository : SearchIndexRepository {
     }
 
     override suspend fun updateUsage(resultId: SearchResultId) = Unit
+
     override suspend fun getPreview(resultId: SearchResultId): RankedSearchResult? = null
-    override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> = emptyFlow()
+
+    override fun search(
+        query: String,
+        limit: Int,
+    ): Flow<List<RankedSearchResult>> = emptyFlow()
 }

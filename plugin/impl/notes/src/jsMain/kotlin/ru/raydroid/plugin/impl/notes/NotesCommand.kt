@@ -37,7 +37,10 @@ class NotesCommand : CommandService() {
     private var selectedNoteId: CommandItemId? = null
     private var loaded = false
 
-    override suspend fun cachedItems(requestedItems: List<CommandItemId>?, chunkSize: Int) = flow {
+    override suspend fun cachedItems(
+        requestedItems: List<CommandItemId>?,
+        chunkSize: Int,
+    ) = flow {
         ensureLoaded()
         val requestedIds = requestedItems?.map { itemId -> itemId.value }?.toSet()
         notes.items
@@ -52,9 +55,10 @@ class NotesCommand : CommandService() {
     }
 
     override fun RayScope.fullscreen() {
-        val selectedNote = selectedNoteId
-            ?.value
-            ?.let { id -> notes.items.firstOrNull { note -> note.id == id } }
+        val selectedNote =
+            selectedNoteId
+                ?.value
+                ?.let { id -> notes.items.firstOrNull { note -> note.id == id } }
         if (selectedNote != null) {
             editNoteForm(selectedNote)
             return
@@ -63,25 +67,25 @@ class NotesCommand : CommandService() {
         Column(spacing = Spacing.Medium) {
             Form(
                 navigationTitle = UiText.Resource("notes.new.title"),
-                actionPanelHintMode = ActionPanelHintMode.MenuOnly
+                actionPanelHintMode = ActionPanelHintMode.MenuOnly,
             ) {
                 textField(
                     id = TITLE_FIELD_ID,
                     title = UiText.Resource("notes.field.title"),
                     placeholder = UiText.Resource("notes.field.title.placeholder"),
                     defaultValue = "",
-                    required = true
+                    required = true,
                 )
                 textArea(
                     id = BODY_FIELD_ID,
                     title = UiText.Resource("notes.field.body"),
                     placeholder = UiText.Resource("notes.field.body.placeholder"),
-                    defaultValue = ""
+                    defaultValue = "",
                 )
                 submit(
                     title = UiText.Resource("notes.action.save"),
                     icon = Icon.Builtin("Save"),
-                    style = FormSubmitStyle.Tonal
+                    style = FormSubmitStyle.Tonal,
                 ) { values ->
                     val title = values.text(TITLE_FIELD_ID).trim()
                     if (title.isNotEmpty()) {
@@ -101,17 +105,18 @@ class NotesCommand : CommandService() {
                         icon = NoteListIcon,
                         iconColor = NoteMutedIconColor,
                         keywords = note.keywords(),
-                        modifier = Modifier.actions {
-                            noteActions(note)
-                        },
-                        detailMarkdown = note.markdown()
+                        modifier =
+                            Modifier.actions {
+                                noteActions(note)
+                            },
+                        detailMarkdown = note.markdown(),
                     )
                 }
                 emptyView(
                     title = UiText.Resource("notes.empty.title"),
                     description = UiText.Resource("notes.empty.description"),
                     icon = NoteItemIcon,
-                    iconColor = NoteMutedIconColor
+                    iconColor = NoteMutedIconColor,
                 )
             }
         }
@@ -130,16 +135,20 @@ class NotesCommand : CommandService() {
                 render()
                 renderFullscreen()
             }
+
             is CommandAction.CloseCommand -> {
                 selectedNoteId = null
             }
+
             is CommandAction.Enter -> {
                 selectedNoteId = action.hoveredId
                 renderFullscreen()
             }
+
             is CommandAction.Type -> {
                 render()
             }
+
             is CommandAction.Focus -> {}
         }
     }
@@ -158,7 +167,7 @@ class NotesCommand : CommandService() {
         action(
             title = UiText.Resource("notes.action.edit"),
             icon = Icon.Builtin("Edit"),
-            primary = true
+            primary = true,
         ) {
             selectedNoteId = CommandItemId(note.id)
             renderFullscreen()
@@ -166,7 +175,7 @@ class NotesCommand : CommandService() {
         action(
             title = UiText.Resource("notes.action.delete"),
             icon = Icon.Builtin("Delete"),
-            style = CommandListAction.Style.Destructive
+            style = CommandListAction.Style.Destructive,
         ) {
             deleteNote(note.id)
             Host.notification.showToast(UiText.Resource("notes.toast.deleted"))
@@ -177,38 +186,39 @@ class NotesCommand : CommandService() {
         Form(
             navigationTitle = UiText.Resource("notes.edit.title"),
             requireChanges = true,
-            unchangedView = EmptyViewData(
-                title = UiText.Resource("notes.edit.unchanged.title"),
-                description = UiText.Resource("notes.edit.unchanged.description"),
-                icon = NoteItemIcon,
-                iconColor = NoteMutedIconColor
-            ),
-            actionPanelHintMode = ActionPanelHintMode.Hidden
+            unchangedView =
+                EmptyViewData(
+                    title = UiText.Resource("notes.edit.unchanged.title"),
+                    description = UiText.Resource("notes.edit.unchanged.description"),
+                    icon = NoteItemIcon,
+                    iconColor = NoteMutedIconColor,
+                ),
+            actionPanelHintMode = ActionPanelHintMode.Hidden,
         ) {
             textField(
                 id = "$TITLE_FIELD_ID-${note.id}",
                 title = UiText.Resource("notes.field.title"),
                 placeholder = UiText.Resource("notes.field.title.placeholder"),
                 defaultValue = note.title,
-                required = true
+                required = true,
             )
             textArea(
                 id = "$BODY_FIELD_ID-${note.id}",
                 title = UiText.Resource("notes.field.body"),
                 placeholder = UiText.Resource("notes.field.body.placeholder"),
-                defaultValue = note.body
+                defaultValue = note.body,
             )
             submit(
                 title = UiText.Resource("notes.action.edit"),
                 icon = Icon.Builtin("Save"),
-                style = FormSubmitStyle.Tonal
+                style = FormSubmitStyle.Tonal,
             ) { values ->
                 val title = values.text("$TITLE_FIELD_ID-${note.id}").trim()
                 if (title.isNotEmpty()) {
                     updateNote(
                         noteId = note.id,
                         title = title,
-                        body = values.text("$BODY_FIELD_ID-${note.id}")
+                        body = values.text("$BODY_FIELD_ID-${note.id}"),
                     )
                     Host.notification.showToast(UiText.Resource("notes.toast.updated"))
                 }
@@ -222,13 +232,17 @@ class NotesCommand : CommandService() {
         loaded = true
     }
 
-    private suspend fun createNote(title: String, body: String) {
+    private suspend fun createNote(
+        title: String,
+        body: String,
+    ) {
         ensureLoaded()
-        val note = Note(
-            id = nextNoteId(title, body),
-            title = title,
-            body = body
-        )
+        val note =
+            Note(
+                id = nextNoteId(title, body),
+                title = title,
+                body = body,
+            )
         notes = notes.copy(items = listOf(note) + notes.items)
         persist()
         selectedNoteId = CommandItemId(note.id)
@@ -252,18 +266,20 @@ class NotesCommand : CommandService() {
     private suspend fun updateNote(
         noteId: String,
         title: String,
-        body: String
+        body: String,
     ) {
         ensureLoaded()
-        notes = notes.copy(
-            items = notes.items.map { note ->
-                if (note.id == noteId) {
-                    note.copy(title = title, body = body)
-                } else {
-                    note
-                }
-            }
-        )
+        notes =
+            notes.copy(
+                items =
+                    notes.items.map { note ->
+                        if (note.id == noteId) {
+                            note.copy(title = title, body = body)
+                        } else {
+                            note
+                        }
+                    },
+            )
         persist()
         selectedNoteId = CommandItemId(noteId)
         invalidateCache(listOf(CommandItemId(noteId)))
@@ -275,7 +291,10 @@ class NotesCommand : CommandService() {
         Host.storage[STORAGE_KEY, NotesState.serializer()] = notes
     }
 
-    private fun nextNoteId(title: String, body: String): String {
+    private fun nextNoteId(
+        title: String,
+        body: String,
+    ): String {
         val base = noteIdBase(title)
         val usedIds = notes.items.map { note -> note.id }.toSet()
         var index = 1

@@ -6,7 +6,7 @@ import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
 internal class ClipboardServiceBridgeImpl : ClipboardServiceBridge {
     override suspend fun copy(
         content: ClipboardServiceBridge.ClipboardContent,
-        secret: Boolean
+        secret: Boolean,
     ) {
         UIPasteboard.generalPasteboard.string = content.text.orEmpty()
     }
@@ -17,6 +17,6 @@ internal class ClipboardServiceBridgeImpl : ClipboardServiceBridge {
 
     override suspend fun read(historyOffset: Int): ClipboardServiceBridge.ClipboardContent =
         ClipboardServiceBridge.ClipboardContent(
-            text = UIPasteboard.generalPasteboard.string
+            text = UIPasteboard.generalPasteboard.string,
         )
 }

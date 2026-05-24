@@ -47,29 +47,30 @@ class CalculatorCommand : CommandService() {
         entry(
             id = CommandItemId.CommandRoot,
             title = result?.expression?.let(UiText::Plain) ?: UiText.Resource("command.calculator.title"),
-            description = if (result == null) {
-                UiText.Resource("command.calculator.description")
-            } else {
-                null
-            },
+            description =
+                if (result == null) {
+                    UiText.Resource("command.calculator.description")
+                } else {
+                    null
+                },
             icon = if (result == null) CalculatorIcon else null,
             iconColor = if (result == null) CalculatorIconColor else null,
-            trailingText = result?.formattedValue?.let(UiText::Plain)
+            trailingText = result?.formattedValue?.let(UiText::Plain),
         )
     }
 
     override fun RayScope.fullscreen() {
         Box(
             modifier = Modifier.fillMaxSize(),
-            alignment = BoxAlignment.Center
+            alignment = BoxAlignment.Center,
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
-                spacing = Spacing.Medium
+                spacing = Spacing.Medium,
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    spacing = Spacing.Small
+                    spacing = Spacing.Small,
                 ) {
                     EditableText(
                         id = EXPRESSION_FIELD_ID,
@@ -79,7 +80,7 @@ class CalculatorCommand : CommandService() {
                         placeholder = UiText.Resource("command.calculator.description"),
                         multiline = true,
                         maxLines = CALCULATOR_EXPRESSION_MAX_LINES,
-                        autoScrollToEnd = true
+                        autoScrollToEnd = true,
                     ) { value, selection ->
                         replaceInput(value, selection = selection, syncSearchField = true)
                     }
@@ -87,13 +88,13 @@ class CalculatorCommand : CommandService() {
                 Detail(
                     markdown = resultMarkdown(),
                     autoScrollToEnd = true,
-                    showScrollHandle = true
+                    showScrollHandle = true,
                 )
 
                 Grid(
                     filtering = false,
                     columns = 4,
-                    aspectRatio = GridAspectRatio.ThreeToTwo
+                    aspectRatio = GridAspectRatio.ThreeToTwo,
                 ) {
                     InputButtons.forEachIndexed { index, button ->
                         calculatorButton(index, button)
@@ -103,7 +104,7 @@ class CalculatorCommand : CommandService() {
                 Grid(
                     filtering = false,
                     columns = 2,
-                    aspectRatio = GridAspectRatio.ThreeToTwo
+                    aspectRatio = GridAspectRatio.ThreeToTwo,
                 ) {
                     EraseButtons.forEachIndexed { index, button ->
                         calculatorButton(index + InputButtons.size, button)
@@ -112,15 +113,16 @@ class CalculatorCommand : CommandService() {
             }
             if (showCommandHelp) {
                 Box(
-                    modifier = Modifier.fillMaxSize().onClick {
-                        showCommandHelp = false
-                        renderFullscreen()
-                    },
-                    alignment = BoxAlignment.Center
+                    modifier =
+                        Modifier.fillMaxSize().onClick {
+                            showCommandHelp = false
+                            renderFullscreen()
+                        },
+                    alignment = BoxAlignment.Center,
                 ) {
                     Column(
                         spacing = Spacing.Small,
-                        shape = ShapeToken.Medium
+                        shape = ShapeToken.Medium,
                     ) {
                         commandHelp()
                     }
@@ -132,7 +134,7 @@ class CalculatorCommand : CommandService() {
     override fun CommandActionScope.actions(target: CommandActionTarget) {
         action(
             title = UiText.Plain("Command help"),
-            icon = Icon.Builtin("Help")
+            icon = Icon.Builtin("Help"),
         ) {
             showCommandHelp = true
             renderFullscreen()
@@ -153,13 +155,18 @@ class CalculatorCommand : CommandService() {
                 syncSearchField()
                 renderFullscreen()
             }
+
             is CommandAction.Enter -> {
                 fullscreenOpen = true
                 ignoreNextEmptyFullscreenQuery = expression.isNotBlank()
                 syncSearchField()
                 renderFullscreen()
             }
-            is CommandAction.Focus -> Unit
+
+            is CommandAction.Focus -> {
+                Unit
+            }
+
             is CommandAction.CloseCommand -> {
                 fullscreenOpen = false
                 ignoreNextEmptyFullscreenQuery = false
@@ -168,6 +175,7 @@ class CalculatorCommand : CommandService() {
                 expressionSelection = 0
                 calculation = null
             }
+
             is CommandAction.Type -> {
                 if (consumeSyncedSearchFieldValue(action.query)) {
                     renderFullscreen()
@@ -178,10 +186,11 @@ class CalculatorCommand : CommandService() {
                     ignoreNextEmptyFullscreenQuery = false
                     replaceInput(
                         value = action.query,
-                        selection = inferSelectionAfterEdit(
-                            previous = expression,
-                            updated = action.query
-                        )
+                        selection =
+                            inferSelectionAfterEdit(
+                                previous = expression,
+                                updated = action.query,
+                            ),
                     )
                 }
             }
@@ -189,36 +198,46 @@ class CalculatorCommand : CommandService() {
     }
 
     private suspend fun appendInput(button: CalculatorButton.Insert) {
-        val selection = expressionSelection
-            .coerceIn(0, expression.length)
-            .let { currentSelection ->
-                when {
-                    button.value == ")" && expression.getOrNull(currentSelection) == ')' -> {
-                        replaceInput(
-                            value = expression,
-                            selection = currentSelection + 1,
-                            syncSearchField = true
-                        )
-                        return
+        val selection =
+            expressionSelection
+                .coerceIn(0, expression.length)
+                .let { currentSelection ->
+                    when {
+                        button.value == ")" && expression.getOrNull(currentSelection) == ')' -> {
+                            replaceInput(
+                                value = expression,
+                                selection = currentSelection + 1,
+                                syncSearchField = true,
+                            )
+                            return
+                        }
+
+                        button.value.isExpressionSeparator() -> {
+                            expression.skipTechnicalClosingParentheses(currentSelection)
+                        }
+
+                        button.value.isLogBaseShortcut() -> {
+                            expression.skipTechnicalClosingParentheses(currentSelection)
+                        }
+
+                        else -> {
+                            currentSelection
+                        }
                     }
-                    button.value.isExpressionSeparator() -> expression.skipTechnicalClosingParentheses(currentSelection)
-                    button.value.isLogBaseShortcut() -> expression.skipTechnicalClosingParentheses(currentSelection)
-                    else -> currentSelection
                 }
-            }
         val value = button.value
         val updatedExpression = expression.replaceRange(selection, selection, value)
         replaceInput(
             value = updatedExpression,
             selection = selection + value.length + button.cursorOffset,
-            syncSearchField = true
+            syncSearchField = true,
         )
     }
 
     private suspend fun replaceInput(
         value: String,
         selection: Int = value.length,
-        syncSearchField: Boolean = false
+        syncSearchField: Boolean = false,
     ) {
         expression = value
         expressionSelection = selection.coerceIn(0, expression.length)
@@ -235,8 +254,8 @@ class CalculatorCommand : CommandService() {
         Host.searchField.setState(
             SearchFieldState(
                 text = expression,
-                selection = SearchFieldSelection.CursorAtEnd
-            )
+                selection = SearchFieldSelection.CursorAtEnd,
+            ),
         )
     }
 
@@ -246,7 +265,10 @@ class CalculatorCommand : CommandService() {
         return true
     }
 
-    private fun inferSelectionAfterEdit(previous: String, updated: String): Int {
+    private fun inferSelectionAfterEdit(
+        previous: String,
+        updated: String,
+    ): Int {
         if (previous == updated) return expressionSelection.coerceIn(0, updated.length)
         val prefixLength = previous.commonPrefixWith(updated).length
         var suffixLength = 0
@@ -268,26 +290,25 @@ class CalculatorCommand : CommandService() {
         return index
     }
 
-    private fun String.isExpressionSeparator(): Boolean =
-        this in ExpressionSeparatorButtons
+    private fun String.isExpressionSeparator(): Boolean = this in ExpressionSeparatorButtons
 
-    private fun String.isLogBaseShortcut(): Boolean =
-        this in LogBaseShortcutButtons
+    private fun String.isLogBaseShortcut(): Boolean = this in LogBaseShortcutButtons
 
     private fun GridScope.calculatorButton(
         index: Int,
-        button: CalculatorButton
+        button: CalculatorButton,
     ) {
         item(
             id = CommandItemId("calculator-button-$index"),
             title = UiText.Plain(button.title),
-            modifier = Modifier.onClick {
-                when (button) {
-                    is CalculatorButton.Insert -> appendInput(button)
-                    CalculatorButton.Backspace -> backspaceInput()
-                    CalculatorButton.Clear -> replaceInput("", syncSearchField = true)
-                }
-            }
+            modifier =
+                Modifier.onClick {
+                    when (button) {
+                        is CalculatorButton.Insert -> appendInput(button)
+                        CalculatorButton.Backspace -> backspaceInput()
+                        CalculatorButton.Clear -> replaceInput("", syncSearchField = true)
+                    }
+                },
         )
     }
 
@@ -295,19 +316,19 @@ class CalculatorCommand : CommandService() {
         Text(
             text = UiText.Plain("Commands"),
             fontSize = FontSize.Large,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
         CommandHelpRows.forEach { row ->
             Row(spacing = Spacing.ExtraSmall) {
                 Text(
                     text = UiText.Plain(row.command),
                     fontSize = FontSize.Small,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = UiText.Plain("- ${row.description}"),
                     fontSize = FontSize.Small,
-                    color = Color.OnSurfaceVariant
+                    color = Color.OnSurfaceVariant,
                 )
             }
         }
@@ -322,15 +343,16 @@ class CalculatorCommand : CommandService() {
         replaceInput(
             value = expression.removeRange(selection - 1, selection),
             selection = selection - 1,
-            syncSearchField = true
+            syncSearchField = true,
         )
     }
 
     private fun resultMarkdown(): String {
         val result = calculation
-        val valueText = result?.formattedValue
-            ?: (if (expression.isInvalidCompleteExpression()) ERROR_TEXT else null)
-            ?: " "
+        val valueText =
+            result?.formattedValue
+                ?: (if (expression.isInvalidCompleteExpression()) ERROR_TEXT else null)
+                ?: " "
         return "# $valueText"
     }
 
@@ -343,7 +365,10 @@ class CalculatorCommand : CommandService() {
         var balance = 0
         text.forEach { char ->
             when (char) {
-                '(' -> balance++
+                '(' -> {
+                    balance++
+                }
+
                 ')' -> {
                     balance--
                     if (balance < 0) return true
@@ -361,8 +386,7 @@ class CalculatorCommand : CommandService() {
     private fun String.hasUnsupportedCharacters(): Boolean =
         any { char -> !char.isLetterOrDigit() && !char.isWhitespace() && char !in SupportedExpressionSymbols }
 
-    private fun String.isPlainNumberInput(): Boolean =
-        all { char -> char.isDigit() || char.isWhitespace() || char == '.' || char == ',' }
+    private fun String.isPlainNumberInput(): Boolean = all { char -> char.isDigit() || char.isWhitespace() || char == '.' || char == ',' }
 
     private fun String.hasExplicitOperatorError(): Boolean =
         zipWithNext().any { (left, right) ->
@@ -378,7 +402,7 @@ class CalculatorCommand : CommandService() {
         data class Insert(
             override val title: String,
             val value: String,
-            val cursorOffset: Int = 0
+            val cursorOffset: Int = 0,
         ) : CalculatorButton
 
         data object Backspace : CalculatorButton {
@@ -401,83 +425,87 @@ class CalculatorCommand : CommandService() {
         val NonUnaryOperators = setOf('*', '/', '^', '%')
         val ExpressionSeparatorButtons = setOf("+", "-", "*", "/", "%")
         val LogBaseShortcutButtons = setOf("bin", "oct", "hex")
-        val CommandHelpRows = listOf(
-            CommandHelpRow("sqrt", "square root: sqrt(9)"),
-            CommandHelpRow("^", "power: 2^(8)"),
-            CommandHelpRow("log", "logarithm with a base: log(8)2"),
-            CommandHelpRow("ln, lg", "natural and decimal logarithms"),
-            CommandHelpRow("sin, cos, tg, ctg", "trigonometry"),
-            CommandHelpRow("arcsin, arccos, arctg, arcctg", "inverse trigonometric functions"),
-            CommandHelpRow("gr", "degrees inside a function: sin(30gr)"),
-            CommandHelpRow("!, pi, e", "factorial and constants: 5!, pi, e"),
-            CommandHelpRow("bin, oct, hex", "number in binary, octal, or hexadecimal"),
-            CommandHelpRow("ns", "convert to a number system: ns2(10), ns16(1010bin)"),
-            CommandHelpRow("Backspace, C", "delete one character or clear the expression")
-        )
-        val IncompleteFunctionTails = listOf(
-            "sqrt",
-            "log",
-            "ln",
-            "lg",
-            "sin",
-            "cos",
-            "tan",
-            "cot",
-            "asin",
-            "acos",
-            "atan",
-            "acot",
-            "ns"
-        )
-        val InputButtons = listOf(
-            CalculatorButton.Insert("7", "7"),
-            CalculatorButton.Insert("8", "8"),
-            CalculatorButton.Insert("9", "9"),
-            CalculatorButton.Insert("\u00F7", "/"),
-            CalculatorButton.Insert("4", "4"),
-            CalculatorButton.Insert("5", "5"),
-            CalculatorButton.Insert("6", "6"),
-            CalculatorButton.Insert("\u00D7", "*"),
-            CalculatorButton.Insert("1", "1"),
-            CalculatorButton.Insert("2", "2"),
-            CalculatorButton.Insert("3", "3"),
-            CalculatorButton.Insert("\u2212", "-"),
-            CalculatorButton.Insert("0", "0"),
-            CalculatorButton.Insert(".", "."),
-            CalculatorButton.Insert("(", "("),
-            CalculatorButton.Insert(")", ")"),
-            CalculatorButton.Insert("+", "+"),
-            CalculatorButton.Insert("%", "%"),
-            CalculatorButton.Insert("!", "!"),
-            CalculatorButton.Insert("\u03C0", "pi"),
-            CalculatorButton.Insert("e", "e"),
-            CalculatorButton.Insert("\u221Ax", "sqrt("),
-            CalculatorButton.Insert("x\u02B8", "^("),
-            CalculatorButton.Insert("log\u2090", "log("),
-            CalculatorButton.Insert("ln", "ln("),
-            CalculatorButton.Insert("lg", "lg("),
-            CalculatorButton.Insert("sin", "sin("),
-            CalculatorButton.Insert("cos", "cos("),
-            CalculatorButton.Insert("tg", "tan("),
-            CalculatorButton.Insert("ctg", "cot("),
-            CalculatorButton.Insert("arcsin", "asin("),
-            CalculatorButton.Insert("arccos", "acos("),
-            CalculatorButton.Insert("arctg", "atan("),
-            CalculatorButton.Insert("arcctg", "acot("),
-            CalculatorButton.Insert("\u00B0", "gr"),
-            CalculatorButton.Insert("x\u2082", "bin"),
-            CalculatorButton.Insert("x\u2088", "oct"),
-            CalculatorButton.Insert("x\u2081\u2086", "hex"),
-            CalculatorButton.Insert("ns\u2099", "ns(")
-        )
-        val EraseButtons = listOf(
-            CalculatorButton.Backspace,
-            CalculatorButton.Clear
-        )
+        val CommandHelpRows =
+            listOf(
+                CommandHelpRow("sqrt", "square root: sqrt(9)"),
+                CommandHelpRow("^", "power: 2^(8)"),
+                CommandHelpRow("log", "logarithm with a base: log(8)2"),
+                CommandHelpRow("ln, lg", "natural and decimal logarithms"),
+                CommandHelpRow("sin, cos, tg, ctg", "trigonometry"),
+                CommandHelpRow("arcsin, arccos, arctg, arcctg", "inverse trigonometric functions"),
+                CommandHelpRow("gr", "degrees inside a function: sin(30gr)"),
+                CommandHelpRow("!, pi, e", "factorial and constants: 5!, pi, e"),
+                CommandHelpRow("bin, oct, hex", "number in binary, octal, or hexadecimal"),
+                CommandHelpRow("ns", "convert to a number system: ns2(10), ns16(1010bin)"),
+                CommandHelpRow("Backspace, C", "delete one character or clear the expression"),
+            )
+        val IncompleteFunctionTails =
+            listOf(
+                "sqrt",
+                "log",
+                "ln",
+                "lg",
+                "sin",
+                "cos",
+                "tan",
+                "cot",
+                "asin",
+                "acos",
+                "atan",
+                "acot",
+                "ns",
+            )
+        val InputButtons =
+            listOf(
+                CalculatorButton.Insert("7", "7"),
+                CalculatorButton.Insert("8", "8"),
+                CalculatorButton.Insert("9", "9"),
+                CalculatorButton.Insert("\u00F7", "/"),
+                CalculatorButton.Insert("4", "4"),
+                CalculatorButton.Insert("5", "5"),
+                CalculatorButton.Insert("6", "6"),
+                CalculatorButton.Insert("\u00D7", "*"),
+                CalculatorButton.Insert("1", "1"),
+                CalculatorButton.Insert("2", "2"),
+                CalculatorButton.Insert("3", "3"),
+                CalculatorButton.Insert("\u2212", "-"),
+                CalculatorButton.Insert("0", "0"),
+                CalculatorButton.Insert(".", "."),
+                CalculatorButton.Insert("(", "("),
+                CalculatorButton.Insert(")", ")"),
+                CalculatorButton.Insert("+", "+"),
+                CalculatorButton.Insert("%", "%"),
+                CalculatorButton.Insert("!", "!"),
+                CalculatorButton.Insert("\u03C0", "pi"),
+                CalculatorButton.Insert("e", "e"),
+                CalculatorButton.Insert("\u221Ax", "sqrt("),
+                CalculatorButton.Insert("x\u02B8", "^("),
+                CalculatorButton.Insert("log\u2090", "log("),
+                CalculatorButton.Insert("ln", "ln("),
+                CalculatorButton.Insert("lg", "lg("),
+                CalculatorButton.Insert("sin", "sin("),
+                CalculatorButton.Insert("cos", "cos("),
+                CalculatorButton.Insert("tg", "tan("),
+                CalculatorButton.Insert("ctg", "cot("),
+                CalculatorButton.Insert("arcsin", "asin("),
+                CalculatorButton.Insert("arccos", "acos("),
+                CalculatorButton.Insert("arctg", "atan("),
+                CalculatorButton.Insert("arcctg", "acot("),
+                CalculatorButton.Insert("\u00B0", "gr"),
+                CalculatorButton.Insert("x\u2082", "bin"),
+                CalculatorButton.Insert("x\u2088", "oct"),
+                CalculatorButton.Insert("x\u2081\u2086", "hex"),
+                CalculatorButton.Insert("ns\u2099", "ns("),
+            )
+        val EraseButtons =
+            listOf(
+                CalculatorButton.Backspace,
+                CalculatorButton.Clear,
+            )
     }
 
     private data class CommandHelpRow(
         val command: String,
-        val description: String
+        val description: String,
     )
 }

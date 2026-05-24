@@ -26,13 +26,13 @@ fun RPopupSurface(
         modifier
             .dropShadow(
                 shape,
-                shadow = Shadow(
-                    color = shadowColor,
-                    radius = shadowRadius
-                )
-            )
-            .clip(shape)
+                shadow =
+                    Shadow(
+                        color = shadowColor,
+                        radius = shadowRadius,
+                    ),
+            ).clip(shape)
             .background(color),
-        content = content
+        content = content,
     )
 }

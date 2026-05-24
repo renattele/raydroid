@@ -3,8 +3,8 @@ package ru.raydroid.plugin.host.impl.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -44,26 +44,29 @@ fun SearchField(
     contentPadding: PaddingValues = PaddingValues(RaydroidTheme.spacing.large),
     placeholder: PluginUiText? = null,
     leadingContent: (@Composable () -> Unit)? = null,
-    actionContent: (@Composable () -> Unit)? = null
+    actionContent: (@Composable () -> Unit)? = null,
 ) {
-    val textStyle = TextStyle(
-        color = PluginColor.OnSurface.toColor(),
-        fontSize = PluginFontSize.Small.toTextUnit()
-    )
+    val textStyle =
+        TextStyle(
+            color = PluginColor.OnSurface.toColor(),
+            fontSize = PluginFontSize.Small.toTextUnit(),
+        )
     Column(modifier) {
         RDivider(color = RaydroidTheme.colorScheme.outlineVariant)
         RTextField(
             state = state.fieldState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                    .navigationBarsPadding(),
             textStyle = textStyle,
-            keyboardOptions = KeyboardOptions(
-                autoCorrectEnabled = false,
-                showKeyboardOnFocus = true,
-                imeAction = ImeAction.Go
-            ),
+            keyboardOptions =
+                KeyboardOptions(
+                    autoCorrectEnabled = false,
+                    showKeyboardOnFocus = true,
+                    imeAction = ImeAction.Go,
+                ),
             onKeyboardAction = {
                 onEvent(SearchFieldEvent.Enter)
             },
@@ -91,37 +94,42 @@ fun SearchField(
                             false
                         }
 
-                        else -> false
+                        else -> {
+                            false
+                        }
                     }
                 } else {
                     false
                 }
             },
             placeholder = {
-                val placeholderText = placeholder?.asText()
-                    ?: stringResource(Res.string.search_field_placeholder)
+                val placeholderText =
+                    placeholder?.asText()
+                        ?: stringResource(Res.string.search_field_placeholder)
                 RText(
                     placeholderText,
                     style = textStyle,
                     color = PluginColor.OnSurfaceVariant.toColor(),
                     modifier = Modifier.alpha(0.9f),
-                    maxLines = 1
+                    maxLines = 1,
                 )
             },
-            leadingContent = if (leadingContent != null) {
-                {
-                    leadingContent()
-                }
-            } else {
-                null
-            },
-            trailingContent = if (actionContent != null) {
-                {
-                    actionContent()
-                }
-            } else {
-                null
-            }
+            leadingContent =
+                if (leadingContent != null) {
+                    {
+                        leadingContent()
+                    }
+                } else {
+                    null
+                },
+            trailingContent =
+                if (actionContent != null) {
+                    {
+                        actionContent()
+                    }
+                } else {
+                    null
+                },
         )
     }
 }
@@ -134,8 +142,11 @@ data class SearchFieldState(
 
 sealed class SearchFieldEvent {
     data object Enter : SearchFieldEvent()
+
     data object MoveFocusUp : SearchFieldEvent()
+
     data object MoveFocusDown : SearchFieldEvent()
+
     data object BackspaceOnEmpty : SearchFieldEvent()
 }
 
@@ -144,25 +155,28 @@ sealed class SearchFieldEvent {
 private fun SearchFieldPreview() {
     RaydroidPreviewTheme {
         SearchField(
-            state = SearchFieldState(
-                fieldState = TextFieldState()
-            ),
-            onEvent = {}
+            state =
+                SearchFieldState(
+                    fieldState = TextFieldState(),
+                ),
+            onEvent = {},
         ) {
             ActionPanel(
-                actions = listOf(
-                    PluginCommandListAction(
-                        callback = PluginCommandCallback(
-                            ref = CommandCallbackRef(CommandCallbackId("copy"), generation = 0),
-                            dispatch = {}
+                actions =
+                    listOf(
+                        PluginCommandListAction(
+                            callback =
+                                PluginCommandCallback(
+                                    ref = CommandCallbackRef(CommandCallbackId("copy"), generation = 0),
+                                    dispatch = {},
+                                ),
+                            title = PluginUiText.Plain("Copy"),
+                            description = PluginUiText.Plain("Description"),
+                            icon = null,
                         ),
-                        title = PluginUiText.Plain("Copy"),
-                        description = PluginUiText.Plain("Description"),
-                        icon = null,
-                    )
-                ),
+                    ),
                 showActions = false,
-                onToggleActions = {}
+                onToggleActions = {},
             )
         }
     }

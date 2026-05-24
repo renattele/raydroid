@@ -12,13 +12,13 @@ interface NetworkService {
         headers: Map<String, String> = emptyMap(),
     ): NetworkResponse
 
-    suspend fun <T: Any, R: Any> request(
+    suspend fun <T : Any, R : Any> request(
         url: String,
         body: T? = null,
         requestType: RequestType = RequestType.GET,
         headers: Map<String, String> = emptyMap(),
         requestStrategy: SerializationStrategy<T>,
-        responseStrategy: DeserializationStrategy<R>
+        responseStrategy: DeserializationStrategy<R>,
     ): TypedNetworkResponse<R>
 
     enum class RequestType {
@@ -27,18 +27,19 @@ interface NetworkService {
         PUT,
         DELETE,
         PATCH,
-        HEAD
+        HEAD,
     }
+
     @Serializable
-    data class TypedNetworkResponse<T: Any>(
+    data class TypedNetworkResponse<T : Any>(
         val statusCode: Int,
-        val body: T?
+        val body: T?,
     )
 
     @Serializable
     data class NetworkResponse(
         val statusCode: Int,
-        val body: ByteArray?
+        val body: ByteArray?,
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -58,6 +59,4 @@ interface NetworkService {
             return result
         }
     }
-
 }
-

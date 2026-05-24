@@ -1,7 +1,6 @@
 package ru.raydroid.plugin.host.impl.presentation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline as AutoMirroredHelpOutline
 import androidx.compose.material.icons.outlined.ArrowDropUp
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -10,6 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertSame
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline as AutoMirroredHelpOutline
 
 class PluginResourceResolverTest {
     @Test
@@ -33,13 +33,15 @@ class PluginResourceResolverTest {
     @Test
     fun `plugin resource resolver resolves builtin icons as vectors`() {
         val expected = Icons.Outlined.ArrowDropUp
-        val resolver = PluginResourceResolver(
-            plugins = emptyMap(),
-            language = "en",
-            builtinIconResolver = object : BuiltinIconResolver {
-                override fun resolve(name: String): ImageVector = expected
-            }
-        )
+        val resolver =
+            PluginResourceResolver(
+                plugins = emptyMap(),
+                language = "en",
+                builtinIconResolver =
+                    object : BuiltinIconResolver {
+                        override fun resolve(name: String): ImageVector = expected
+                    },
+            )
 
         val resolved = resolver.resolveIcon(PluginIcon.Builtin("ArrowDropUp"))
 
@@ -48,19 +50,21 @@ class PluginResourceResolverTest {
 
     @Test
     fun `plugin resource resolver keeps url icons on image model path`() {
-        val resolver = PluginResourceResolver(
-            plugins = emptyMap(),
-            language = "en",
-            builtinIconResolver = object : BuiltinIconResolver {
-                override fun resolve(name: String): ImageVector = Icons.Outlined.HelpOutline
-            }
-        )
+        val resolver =
+            PluginResourceResolver(
+                plugins = emptyMap(),
+                language = "en",
+                builtinIconResolver =
+                    object : BuiltinIconResolver {
+                        override fun resolve(name: String): ImageVector = Icons.Outlined.HelpOutline
+                    },
+            )
 
         val resolved = resolver.resolveIcon(PluginIcon.Url("https://example.com/icon.png"))
 
         assertEquals(
             "https://example.com/icon.png",
-            assertIs<ResolvedPluginIcon.ImageModel>(resolved).model
+            assertIs<ResolvedPluginIcon.ImageModel>(resolved).model,
         )
     }
 }

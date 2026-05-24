@@ -3,6 +3,7 @@ import ru.raydroid.plugin.impl.calculator.CalculatorCommand
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-fun main() = plugin {
-    command(CalculatorCommand())
-}
+fun main() =
+    plugin {
+        command(CalculatorCommand())
+    }

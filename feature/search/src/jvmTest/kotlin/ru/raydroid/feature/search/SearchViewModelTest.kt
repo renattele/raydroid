@@ -1,11 +1,11 @@
 package ru.raydroid.feature.search
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -70,450 +70,517 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModelTest {
     @Test
-    fun `open search updates query state`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.viewModel.openSearch("calc")
+    fun `open search updates query state`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.viewModel.openSearch("calc")
 
-        val state = fixture.viewModel.currentState()
-        assertEquals("calc", state.searchFieldState.query)
-        assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
-    }
-
-    @Test
-    fun `open command updates query state`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.viewModel.openCommand("calculator")
-
-        val state = fixture.viewModel.currentState()
-        assertEquals("calculator", state.searchFieldState.query)
-        assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
-    }
+            val state = fixture.viewModel.currentState()
+            assertEquals("calc", state.searchFieldState.query)
+            assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
+        }
 
     @Test
-    fun `toggle actions opens and hide closes overlays`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.viewModel.toggleActions()
-        assertEquals(true, fixture.viewModel.currentState().overlayState.showActions)
+    fun `open command updates query state`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.viewModel.openCommand("calculator")
 
-        fixture.viewModel.hideActions()
-        val state = fixture.viewModel.currentState()
-        assertEquals(false, state.overlayState.showActions)
-        assertEquals(false, state.overlayState.showContextActions)
-    }
-
-    @Test
-    fun `show context actions tracks active source`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.runtime.actionResults = listOf(
-            PluginCommandListAction(
-                callback = callback("open"),
-                title = PluginUiText.Plain("Open"),
-                description = null,
-                icon = null
-            )
-        )
-        advanceUntilIdle()
-
-        fixture.viewModel.dispatchEvent(
-            SearchScreenEvent.ShowContextActions(
-                resultId = fixture.resultId,
-                sourceId = "result-row-1",
-                actions = fixture.runtime.actionResults
-            )
-        )
-
-        val state = fixture.viewModel.currentState().overlayState
-        assertEquals(true, state.showContextActions)
-        assertEquals(false, state.showActions)
-        assertEquals("result-row-1", state.activeContextSourceId)
-        assertEquals(listOf(PluginUiText.Plain("Open")), state.contextActions.map { it.action.title })
-
-        fixture.viewModel.hideActions()
-        assertEquals(null, fixture.viewModel.currentState().overlayState.activeContextSourceId)
-    }
+            val state = fixture.viewModel.currentState()
+            assertEquals("calculator", state.searchFieldState.query)
+            assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
+        }
 
     @Test
-    fun `result long press ignores empty actions`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.commands.value = listOf(
-            PluginRuntimeCoordinator.CommandItem(
-                runtime = fixture.runtime,
-                listEntry = listEntry("Calculator", "Evaluate"),
-                resultId = fixture.resultId
+    fun `toggle actions opens and hide closes overlays`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.viewModel.toggleActions()
+            assertEquals(
+                true,
+                fixture.viewModel
+                    .currentState()
+                    .overlayState.showActions,
             )
-        )
 
-        fixture.viewModel.start()
-        fixture.viewModel.openSearch("calc")
-        advanceUntilIdle()
-
-        fixture.viewModel.onEvent(
-            SearchScreenEvent.ShowResultContextActions(
-                resultId = fixture.resultId,
-                sourceId = "result-row-1"
-            )
-        )
-        advanceUntilIdle()
-
-        val state = fixture.viewModel.currentState().overlayState
-        assertEquals(false, state.showContextActions)
-        assertEquals(emptyList(), state.contextActions)
-        assertEquals(null, state.activeContextSourceId)
-    }
+            fixture.viewModel.hideActions()
+            val state = fixture.viewModel.currentState()
+            assertEquals(false, state.overlayState.showActions)
+            assertEquals(false, state.overlayState.showContextActions)
+        }
 
     @Test
-    fun `toast events are shown then hidden`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.viewModel.start()
-        runCurrent()
-
-        val toast = NotificationEvent.ShowToast(
-            pluginId = fixture.pluginId,
-            toastId = "toast-1",
-            toast = NotificationEvent.Toast(
-                message = PluginUiText.Plain("Done"),
-                style = NotificationEvent.Toast.Style.Success,
-                autoDismissMillis = null
-            )
-        )
-        fixture.events.emit(
-            PluginEvent(
-                id = PluginEvent.Id("toast"),
-                pluginId = fixture.pluginId,
-                data = toast
-            )
-        )
-        runCurrent()
-
-        assertEquals(listOf(toast), fixture.viewModel.currentState().toasts)
-
-        fixture.viewModel.hideToast("toast-1")
-        runCurrent()
-        assertEquals(emptyList(), fixture.viewModel.currentState().toasts)
-    }
-
-    @Test
-    fun `toast with same id replaces existing toast`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.viewModel.start()
-        runCurrent()
-
-        val firstToast = NotificationEvent.ShowToast(
-            pluginId = fixture.pluginId,
-            toastId = "toast-1",
-            toast = NotificationEvent.Toast(
-                message = PluginUiText.Plain("Loading"),
-                style = NotificationEvent.Toast.Style.Animated,
-                autoDismissMillis = null
-            )
-        )
-        val secondToast = NotificationEvent.ShowToast(
-            pluginId = fixture.pluginId,
-            toastId = "toast-1",
-            toast = NotificationEvent.Toast(
-                message = PluginUiText.Plain("Done"),
-                style = NotificationEvent.Toast.Style.Success,
-                autoDismissMillis = null
-            )
-        )
-
-        fixture.events.emit(
-            PluginEvent(
-                id = PluginEvent.Id("toast-1"),
-                pluginId = fixture.pluginId,
-                data = firstToast
-            )
-        )
-        fixture.events.emit(
-            PluginEvent(
-                id = PluginEvent.Id("toast-1b"),
-                pluginId = fixture.pluginId,
-                data = secondToast
-            )
-        )
-        runCurrent()
-
-        assertEquals(listOf(secondToast), fixture.viewModel.currentState().toasts)
-    }
-
-    @Test
-    fun `animated toasts with same message collapse to one toast`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.viewModel.start()
-        runCurrent()
-
-        val firstToast = NotificationEvent.ShowToast(
-            pluginId = fixture.pluginId,
-            toastId = "toast-1",
-            toast = NotificationEvent.Toast(
-                message = PluginUiText.Plain("Loading..."),
-                style = NotificationEvent.Toast.Style.Animated,
-                autoDismissMillis = null
-            )
-        )
-        val secondToast = NotificationEvent.ShowToast(
-            pluginId = fixture.pluginId,
-            toastId = "toast-2",
-            toast = NotificationEvent.Toast(
-                message = PluginUiText.Plain("Loading..."),
-                style = NotificationEvent.Toast.Style.Animated,
-                autoDismissMillis = null
-            )
-        )
-
-        fixture.events.emit(
-            PluginEvent(
-                id = PluginEvent.Id("toast-2a"),
-                pluginId = fixture.pluginId,
-                data = firstToast
-            )
-        )
-        fixture.events.emit(
-            PluginEvent(
-                id = PluginEvent.Id("toast-2b"),
-                pluginId = fixture.pluginId,
-                data = secondToast
-            )
-        )
-        runCurrent()
-
-        assertEquals(listOf(secondToast), fixture.viewModel.currentState().toasts)
-    }
-
-    @Test
-    fun `confirm alert removes alert and emits confirm event`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        fixture.viewModel.start()
-        runCurrent()
-
-        val alert = NotificationEvent.Alert(
-            pluginId = fixture.pluginId,
-            title = PluginUiText.Plain("Heads up"),
-            message = PluginUiText.Plain("Proceed"),
-            confirmAction = NotificationEvent.AlertAction(
-                title = PluginUiText.Plain("OK"),
-                style = NotificationEvent.AlertAction.Style.Default
-            )
-        )
-
-        fixture.events.emit(
-            PluginEvent(
-                id = PluginEvent.Id("alert"),
-                pluginId = fixture.pluginId,
-                data = alert
-            )
-        )
-        runCurrent()
-        assertEquals(listOf(alert), fixture.viewModel.currentState().alerts)
-
-        fixture.viewModel.confirmAlert(alert)
-        runCurrent()
-
-        assertEquals(emptyList(), fixture.viewModel.currentState().alerts)
-        val emitted = fixture.eventGateway.emitted.single()
-        assertEquals(fixture.pluginId, emitted.first)
-        assertEquals(
-            NotificationEvent.AlertResult(NotificationEvent.Selection.Confirm),
-            emitted.second
-        )
-    }
-
-    @Test
-    fun `command with alias exposes host alias actions`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        val result = SearchResultSet.CommandSearchResult(
-            resultId = fixture.resultId,
-            listEntry = PluginCommandListItem(
-                id = CommandItemId.CommandRoot,
-                icon = null,
-                title = PluginUiText.Plain("Calculator"),
-                description = null,
-                alias = "oy"
-            )
-        )
-        val actions = result.actions(emptyMap()).map { it.title }
-        assertEquals(
-            listOf(
-                PluginUiText.Plain("Edit Alias"),
-                PluginUiText.Plain("Remove Alias")
-            ),
-            actions
-        )
-    }
-
-    @Test
-    fun `live result with alias exposes host alias actions`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        val itemId = CommandItemId("file:readme")
-        val result = SearchResultSet.LiveSearchResult(
-            resultId = fixture.resultId.copy(itemId = itemId),
-            listEntry = PluginCommandListItem(
-                id = itemId,
-                icon = null,
-                title = PluginUiText.Plain("README.md"),
-                description = null,
-                alias = "readme"
-            ),
-            presentation = PluginCommandPresentation(
-                listEntry = PluginCommandListItem(
-                    id = itemId,
-                    icon = null,
-                    title = PluginUiText.Plain("README.md"),
-                    description = null
-                ),
-                primaryCallback = null,
-                actions = emptyList(),
-                content = emptyList()
-            )
-        )
-
-        val actions = result.actions(emptyMap()).map { it.title }
-
-        assertEquals(
-            listOf(
-                PluginUiText.Plain("Edit Alias"),
-                PluginUiText.Plain("Remove Alias")
-            ),
-            actions
-        )
-    }
-
-    @Test
-    fun `cached result without plugin actions exposes add alias action`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        val itemId = CommandItemId("file:readme")
-        val result = SearchResultSet.CachedSearchResult(
-            resultId = fixture.resultId.copy(itemId = itemId),
-            listEntry = PluginCommandListItem(
-                id = itemId,
-                icon = null,
-                title = PluginUiText.Plain("README.md"),
-                description = null
-            ),
-            titleMatches = emptyList(),
-            descriptionMatches = emptyList()
-        )
-
-        val actions = result.actions(emptyMap()).map { it.title }
-
-        assertEquals(listOf(PluginUiText.Plain("Add Alias")), actions)
-    }
-
-    @Test
-    fun `duplicate alias keeps editor open with inline error`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        val editAction = FocusedCommandAction(
-            resultId = fixture.resultId,
-            action = SearchPanelAction(
-                title = PluginUiText.Plain("Edit Alias"),
-                kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = "calc")
-            )
-        )
-        fixture.aliasRepository.nextSaveResult = SearchAliasSaveResult.Conflict(
-            alias = "oy",
-            existingResultId = SearchResultId(
-                pluginId = PluginId("ru.raydroid.notes"),
-                commandName = "notes",
-                itemId = CommandItemId.CommandRoot
-            )
-        )
-
-        fixture.viewModel.onEvent(SearchScreenEvent.EnterAction(editAction))
-        fixture.viewModel.onEvent(SearchScreenEvent.UpdateAliasEditorInput("oy"))
-        fixture.viewModel.onEvent(SearchScreenEvent.SaveAliasEditor)
-        advanceUntilIdle()
-
-        assertEquals(
-            PluginUiText.Plain("Alias 'oy' is already in use"),
-            fixture.viewModel.currentState().overlayState.aliasEditor?.error
-        )
-    }
-
-    @Test
-    fun `live result primary action updates usage`() = runTest {
-        val fixture = SearchViewModelFixture(this)
-        val itemId = CommandItemId("app:reddit")
-        val resultId = fixture.resultId.copy(itemId = itemId)
-        val result = SearchResultSet.LiveSearchResult(
-            resultId = resultId,
-            listEntry = PluginCommandListItem(
-                id = itemId,
-                icon = null,
-                title = PluginUiText.Plain("Reddit"),
-                description = PluginUiText.Plain("com.reddit.frontpage")
-            ),
-            presentation = PluginCommandPresentation(
-                listEntry = PluginCommandListItem(
-                    id = itemId,
-                    icon = null,
-                    title = PluginUiText.Plain("Reddit"),
-                    description = PluginUiText.Plain("com.reddit.frontpage")
-                ),
-                primaryCallback = null,
-                actions = listOf(
+    fun `show context actions tracks active source`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.runtime.actionResults =
+                listOf(
                     PluginCommandListAction(
                         callback = callback("open"),
                         title = PluginUiText.Plain("Open"),
                         description = null,
                         icon = null,
-                        primary = true
-                    )
+                    ),
+                )
+            advanceUntilIdle()
+
+            fixture.viewModel.dispatchEvent(
+                SearchScreenEvent.ShowContextActions(
+                    resultId = fixture.resultId,
+                    sourceId = "result-row-1",
+                    actions = fixture.runtime.actionResults,
                 ),
-                content = emptyList()
             )
-        )
-        val action = result.actions(emptyMap()).first { candidate ->
-            candidate.kind is SearchPanelAction.Kind.PluginCallback
+
+            val state = fixture.viewModel.currentState().overlayState
+            assertEquals(true, state.showContextActions)
+            assertEquals(false, state.showActions)
+            assertEquals("result-row-1", state.activeContextSourceId)
+            assertEquals(listOf(PluginUiText.Plain("Open")), state.contextActions.map { it.action.title })
+
+            fixture.viewModel.hideActions()
+            assertEquals(
+                null,
+                fixture.viewModel
+                    .currentState()
+                    .overlayState.activeContextSourceId,
+            )
         }
-        val kind = action.kind as SearchPanelAction.Kind.PluginCallback
-        assertEquals(true, kind.updateUsage)
-    }
 
     @Test
-    fun `no-view command does not open fullscreen on submit`() = runTest {
-        assertEquals(false, shouldOpenFullscreenOnSubmit(Command.Mode.NoView))
-        assertEquals(true, shouldOpenFullscreenOnSubmit(Command.Mode.View))
-    }
+    fun `result long press ignores empty actions`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.commands.value =
+                listOf(
+                    PluginRuntimeCoordinator.CommandItem(
+                        runtime = fixture.runtime,
+                        listEntry = listEntry("Calculator", "Evaluate"),
+                        resultId = fixture.resultId,
+                    ),
+                )
 
-    @Test
-    fun `live no-view result still collects deferred fullscreen on submit`() = runTest {
-        val resultId = SearchResultId(
-            pluginId = PluginId("ru.raydroid.files"),
-            commandName = "files",
-            itemId = CommandItemId("file:reddit-apk")
-        )
-        val itemId = CommandItemId("file:reddit-apk")
-        val result = SearchResultSet.LiveSearchResult(
-            resultId = resultId,
-            listEntry = PluginCommandListItem(
-                id = itemId,
-                icon = null,
-                title = PluginUiText.Plain("Reddit.apk"),
-                description = PluginUiText.Plain("/storage/emulated/0/Download")
-            ),
-            presentation = PluginCommandPresentation(
-                listEntry = PluginCommandListItem(
-                    id = itemId,
-                    icon = null,
-                    title = PluginUiText.Plain("Reddit.apk"),
-                    description = PluginUiText.Plain("/storage/emulated/0/Download")
+            fixture.viewModel.start()
+            fixture.viewModel.openSearch("calc")
+            advanceUntilIdle()
+
+            fixture.viewModel.onEvent(
+                SearchScreenEvent.ShowResultContextActions(
+                    resultId = fixture.resultId,
+                    sourceId = "result-row-1",
                 ),
-                primaryCallback = callback("open"),
-                actions = emptyList(),
-                content = emptyList()
             )
-        )
+            advanceUntilIdle()
 
-        assertEquals(true, shouldCollectDeferredFullscreenOnSubmit(Command.Mode.NoView, result))
-        assertEquals(true, shouldCollectDeferredFullscreenOnSubmit(Command.Mode.View, result))
-    }
+            val state = fixture.viewModel.currentState().overlayState
+            assertEquals(false, state.showContextActions)
+            assertEquals(emptyList(), state.contextActions)
+            assertEquals(null, state.activeContextSourceId)
+        }
 
     @Test
-    fun `cached no-view submit collects deferred fullscreen`() = runTest {
-        assertEquals(true, shouldCollectDeferredFullscreenOnCachedSubmit(Command.Mode.NoView))
-        assertEquals(false, shouldCollectDeferredFullscreenOnCachedSubmit(Command.Mode.View))
-        assertEquals(false, shouldCollectDeferredFullscreenOnCachedSubmit(null))
-    }
+    fun `toast events are shown then hidden`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.viewModel.start()
+            runCurrent()
+
+            val toast =
+                NotificationEvent.ShowToast(
+                    pluginId = fixture.pluginId,
+                    toastId = "toast-1",
+                    toast =
+                        NotificationEvent.Toast(
+                            message = PluginUiText.Plain("Done"),
+                            style = NotificationEvent.Toast.Style.Success,
+                            autoDismissMillis = null,
+                        ),
+                )
+            fixture.events.emit(
+                PluginEvent(
+                    id = PluginEvent.Id("toast"),
+                    pluginId = fixture.pluginId,
+                    data = toast,
+                ),
+            )
+            runCurrent()
+
+            assertEquals(listOf(toast), fixture.viewModel.currentState().toasts)
+
+            fixture.viewModel.hideToast("toast-1")
+            runCurrent()
+            assertEquals(emptyList(), fixture.viewModel.currentState().toasts)
+        }
+
+    @Test
+    fun `toast with same id replaces existing toast`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.viewModel.start()
+            runCurrent()
+
+            val firstToast =
+                NotificationEvent.ShowToast(
+                    pluginId = fixture.pluginId,
+                    toastId = "toast-1",
+                    toast =
+                        NotificationEvent.Toast(
+                            message = PluginUiText.Plain("Loading"),
+                            style = NotificationEvent.Toast.Style.Animated,
+                            autoDismissMillis = null,
+                        ),
+                )
+            val secondToast =
+                NotificationEvent.ShowToast(
+                    pluginId = fixture.pluginId,
+                    toastId = "toast-1",
+                    toast =
+                        NotificationEvent.Toast(
+                            message = PluginUiText.Plain("Done"),
+                            style = NotificationEvent.Toast.Style.Success,
+                            autoDismissMillis = null,
+                        ),
+                )
+
+            fixture.events.emit(
+                PluginEvent(
+                    id = PluginEvent.Id("toast-1"),
+                    pluginId = fixture.pluginId,
+                    data = firstToast,
+                ),
+            )
+            fixture.events.emit(
+                PluginEvent(
+                    id = PluginEvent.Id("toast-1b"),
+                    pluginId = fixture.pluginId,
+                    data = secondToast,
+                ),
+            )
+            runCurrent()
+
+            assertEquals(listOf(secondToast), fixture.viewModel.currentState().toasts)
+        }
+
+    @Test
+    fun `animated toasts with same message collapse to one toast`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.viewModel.start()
+            runCurrent()
+
+            val firstToast =
+                NotificationEvent.ShowToast(
+                    pluginId = fixture.pluginId,
+                    toastId = "toast-1",
+                    toast =
+                        NotificationEvent.Toast(
+                            message = PluginUiText.Plain("Loading..."),
+                            style = NotificationEvent.Toast.Style.Animated,
+                            autoDismissMillis = null,
+                        ),
+                )
+            val secondToast =
+                NotificationEvent.ShowToast(
+                    pluginId = fixture.pluginId,
+                    toastId = "toast-2",
+                    toast =
+                        NotificationEvent.Toast(
+                            message = PluginUiText.Plain("Loading..."),
+                            style = NotificationEvent.Toast.Style.Animated,
+                            autoDismissMillis = null,
+                        ),
+                )
+
+            fixture.events.emit(
+                PluginEvent(
+                    id = PluginEvent.Id("toast-2a"),
+                    pluginId = fixture.pluginId,
+                    data = firstToast,
+                ),
+            )
+            fixture.events.emit(
+                PluginEvent(
+                    id = PluginEvent.Id("toast-2b"),
+                    pluginId = fixture.pluginId,
+                    data = secondToast,
+                ),
+            )
+            runCurrent()
+
+            assertEquals(listOf(secondToast), fixture.viewModel.currentState().toasts)
+        }
+
+    @Test
+    fun `confirm alert removes alert and emits confirm event`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            fixture.viewModel.start()
+            runCurrent()
+
+            val alert =
+                NotificationEvent.Alert(
+                    pluginId = fixture.pluginId,
+                    title = PluginUiText.Plain("Heads up"),
+                    message = PluginUiText.Plain("Proceed"),
+                    confirmAction =
+                        NotificationEvent.AlertAction(
+                            title = PluginUiText.Plain("OK"),
+                            style = NotificationEvent.AlertAction.Style.Default,
+                        ),
+                )
+
+            fixture.events.emit(
+                PluginEvent(
+                    id = PluginEvent.Id("alert"),
+                    pluginId = fixture.pluginId,
+                    data = alert,
+                ),
+            )
+            runCurrent()
+            assertEquals(listOf(alert), fixture.viewModel.currentState().alerts)
+
+            fixture.viewModel.confirmAlert(alert)
+            runCurrent()
+
+            assertEquals(emptyList(), fixture.viewModel.currentState().alerts)
+            val emitted = fixture.eventGateway.emitted.single()
+            assertEquals(fixture.pluginId, emitted.first)
+            assertEquals(
+                NotificationEvent.AlertResult(NotificationEvent.Selection.Confirm),
+                emitted.second,
+            )
+        }
+
+    @Test
+    fun `command with alias exposes host alias actions`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            val result =
+                SearchResultSet.CommandSearchResult(
+                    resultId = fixture.resultId,
+                    listEntry =
+                        PluginCommandListItem(
+                            id = CommandItemId.CommandRoot,
+                            icon = null,
+                            title = PluginUiText.Plain("Calculator"),
+                            description = null,
+                            alias = "oy",
+                        ),
+                )
+            val actions = result.actions(emptyMap()).map { it.title }
+            assertEquals(
+                listOf(
+                    PluginUiText.Plain("Edit Alias"),
+                    PluginUiText.Plain("Remove Alias"),
+                ),
+                actions,
+            )
+        }
+
+    @Test
+    fun `live result with alias exposes host alias actions`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            val itemId = CommandItemId("file:readme")
+            val result =
+                SearchResultSet.LiveSearchResult(
+                    resultId = fixture.resultId.copy(itemId = itemId),
+                    listEntry =
+                        PluginCommandListItem(
+                            id = itemId,
+                            icon = null,
+                            title = PluginUiText.Plain("README.md"),
+                            description = null,
+                            alias = "readme",
+                        ),
+                    presentation =
+                        PluginCommandPresentation(
+                            listEntry =
+                                PluginCommandListItem(
+                                    id = itemId,
+                                    icon = null,
+                                    title = PluginUiText.Plain("README.md"),
+                                    description = null,
+                                ),
+                            primaryCallback = null,
+                            actions = emptyList(),
+                            content = emptyList(),
+                        ),
+                )
+
+            val actions = result.actions(emptyMap()).map { it.title }
+
+            assertEquals(
+                listOf(
+                    PluginUiText.Plain("Edit Alias"),
+                    PluginUiText.Plain("Remove Alias"),
+                ),
+                actions,
+            )
+        }
+
+    @Test
+    fun `cached result without plugin actions exposes add alias action`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            val itemId = CommandItemId("file:readme")
+            val result =
+                SearchResultSet.CachedSearchResult(
+                    resultId = fixture.resultId.copy(itemId = itemId),
+                    listEntry =
+                        PluginCommandListItem(
+                            id = itemId,
+                            icon = null,
+                            title = PluginUiText.Plain("README.md"),
+                            description = null,
+                        ),
+                    titleMatches = emptyList(),
+                    descriptionMatches = emptyList(),
+                )
+
+            val actions = result.actions(emptyMap()).map { it.title }
+
+            assertEquals(listOf(PluginUiText.Plain("Add Alias")), actions)
+        }
+
+    @Test
+    fun `duplicate alias keeps editor open with inline error`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            val editAction =
+                FocusedCommandAction(
+                    resultId = fixture.resultId,
+                    action =
+                        SearchPanelAction(
+                            title = PluginUiText.Plain("Edit Alias"),
+                            kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = "calc"),
+                        ),
+                )
+            fixture.aliasRepository.nextSaveResult =
+                SearchAliasSaveResult.Conflict(
+                    alias = "oy",
+                    existingResultId =
+                        SearchResultId(
+                            pluginId = PluginId("ru.raydroid.notes"),
+                            commandName = "notes",
+                            itemId = CommandItemId.CommandRoot,
+                        ),
+                )
+
+            fixture.viewModel.onEvent(SearchScreenEvent.EnterAction(editAction))
+            fixture.viewModel.onEvent(SearchScreenEvent.UpdateAliasEditorInput("oy"))
+            fixture.viewModel.onEvent(SearchScreenEvent.SaveAliasEditor)
+            advanceUntilIdle()
+
+            assertEquals(
+                PluginUiText.Plain("Alias 'oy' is already in use"),
+                fixture.viewModel
+                    .currentState()
+                    .overlayState.aliasEditor
+                    ?.error,
+            )
+        }
+
+    @Test
+    fun `live result primary action updates usage`() =
+        runTest {
+            val fixture = SearchViewModelFixture(this)
+            val itemId = CommandItemId("app:reddit")
+            val resultId = fixture.resultId.copy(itemId = itemId)
+            val result =
+                SearchResultSet.LiveSearchResult(
+                    resultId = resultId,
+                    listEntry =
+                        PluginCommandListItem(
+                            id = itemId,
+                            icon = null,
+                            title = PluginUiText.Plain("Reddit"),
+                            description = PluginUiText.Plain("com.reddit.frontpage"),
+                        ),
+                    presentation =
+                        PluginCommandPresentation(
+                            listEntry =
+                                PluginCommandListItem(
+                                    id = itemId,
+                                    icon = null,
+                                    title = PluginUiText.Plain("Reddit"),
+                                    description = PluginUiText.Plain("com.reddit.frontpage"),
+                                ),
+                            primaryCallback = null,
+                            actions =
+                                listOf(
+                                    PluginCommandListAction(
+                                        callback = callback("open"),
+                                        title = PluginUiText.Plain("Open"),
+                                        description = null,
+                                        icon = null,
+                                        primary = true,
+                                    ),
+                                ),
+                            content = emptyList(),
+                        ),
+                )
+            val action =
+                result.actions(emptyMap()).first { candidate ->
+                    candidate.kind is SearchPanelAction.Kind.PluginCallback
+                }
+            val kind = action.kind as SearchPanelAction.Kind.PluginCallback
+            assertEquals(true, kind.updateUsage)
+        }
+
+    @Test
+    fun `no-view command does not open fullscreen on submit`() =
+        runTest {
+            assertEquals(false, shouldOpenFullscreenOnSubmit(Command.Mode.NoView))
+            assertEquals(true, shouldOpenFullscreenOnSubmit(Command.Mode.View))
+        }
+
+    @Test
+    fun `live no-view result still collects deferred fullscreen on submit`() =
+        runTest {
+            val resultId =
+                SearchResultId(
+                    pluginId = PluginId("ru.raydroid.files"),
+                    commandName = "files",
+                    itemId = CommandItemId("file:reddit-apk"),
+                )
+            val itemId = CommandItemId("file:reddit-apk")
+            val result =
+                SearchResultSet.LiveSearchResult(
+                    resultId = resultId,
+                    listEntry =
+                        PluginCommandListItem(
+                            id = itemId,
+                            icon = null,
+                            title = PluginUiText.Plain("Reddit.apk"),
+                            description = PluginUiText.Plain("/storage/emulated/0/Download"),
+                        ),
+                    presentation =
+                        PluginCommandPresentation(
+                            listEntry =
+                                PluginCommandListItem(
+                                    id = itemId,
+                                    icon = null,
+                                    title = PluginUiText.Plain("Reddit.apk"),
+                                    description = PluginUiText.Plain("/storage/emulated/0/Download"),
+                                ),
+                            primaryCallback = callback("open"),
+                            actions = emptyList(),
+                            content = emptyList(),
+                        ),
+                )
+
+            assertEquals(true, shouldCollectDeferredFullscreenOnSubmit(Command.Mode.NoView, result))
+            assertEquals(true, shouldCollectDeferredFullscreenOnSubmit(Command.Mode.View, result))
+        }
+
+    @Test
+    fun `cached no-view submit collects deferred fullscreen`() =
+        runTest {
+            assertEquals(true, shouldCollectDeferredFullscreenOnCachedSubmit(Command.Mode.NoView))
+            assertEquals(false, shouldCollectDeferredFullscreenOnCachedSubmit(Command.Mode.View))
+            assertEquals(false, shouldCollectDeferredFullscreenOnCachedSubmit(null))
+        }
 
     @Test
     fun `next focus picks first result when nothing is focused`() {
@@ -528,22 +595,25 @@ class SearchViewModelTest {
 
 private class SearchViewModelFixture(
     testScope: kotlinx.coroutines.test.TestScope,
-    commandMode: Command.Mode = Command.Mode.View
+    commandMode: Command.Mode = Command.Mode.View,
 ) {
     val pluginId = PluginId("ru.raydroid.calculator")
-    val resultId = SearchResultId(
-        pluginId = pluginId,
-        commandName = "calculator",
-        itemId = CommandItemId.CommandRoot
-    )
-    val runtime = FakePluginRuntime(
-        manifest = manifest(
+    val resultId =
+        SearchResultId(
             pluginId = pluginId,
             commandName = "calculator",
-            placeholder = UiText.Plain("Type a query"),
-            mode = commandMode
+            itemId = CommandItemId.CommandRoot,
         )
-    )
+    val runtime =
+        FakePluginRuntime(
+            manifest =
+                manifest(
+                    pluginId = pluginId,
+                    commandName = "calculator",
+                    placeholder = UiText.Plain("Type a query"),
+                    mode = commandMode,
+                ),
+        )
     val runtimes = MutableStateFlow(listOf<PluginRuntime>(runtime))
     val commands = MutableStateFlow<List<PluginRuntimeCoordinator.CommandItem>>(emptyList())
     val content = MutableStateFlow<List<PluginRuntimeCoordinator.ContentItem>>(emptyList())
@@ -555,47 +625,56 @@ private class SearchViewModelFixture(
     val searchRepository = FakeSearchIndexRepository()
     val aliasRepository = FakeSearchAliasRepository()
 
-    private val coordinator = FakePluginRuntimeCoordinator(
-        runtimes = runtimes,
-        commands = commands,
-        content = content,
-        cachedItems = cachedItems
-    )
+    private val coordinator =
+        FakePluginRuntimeCoordinator(
+            runtimes = runtimes,
+            commands = commands,
+            content = content,
+            cachedItems = cachedItems,
+        )
     private val registry = FakePluginRuntimeRegistry(coordinator)
 
-    val viewModel = SearchViewModel(
-        applicationScope = testScope,
-        syncCacheUseCase = SyncCacheUseCase(searchRepository, registry),
-        loadRuntimesUseCase = LoadRuntimesUseCase(
-            pluginRepository = EmptyPluginRepository(),
-            pluginRuntimeRegistry = registry,
-            pluginLoader = EmptyPluginLoader()
-        ),
-        searchUseCase = SearchUseCase(registry, searchRepository, FakeSearchResultRanker(), aliasRepository),
-        getPluginsUseCase = GetPluginsUseCase(registry),
-        openCommandUseCase = OpenCommandUseCase(CommandActionDispatcher(registry), searchRepository),
-        enterItemUseCase = EnterItemUseCase(CommandActionDispatcher(registry), searchRepository),
-        closeCommandUseCase = CloseCommandUseCase(CommandActionDispatcher(registry)),
-        executeCommandCallbackUseCase = ExecuteCommandCallbackUseCase(searchRepository),
-        getCommandFullscreenUseCase = GetCommandFullscreenUseCase(registry),
-        getEventsUseCase = GetEventsUseCase(eventGateway.also { gateway ->
-            gateway.source = events
-        }),
-        emitEventUseCase = EmitEventUseCase(eventGateway),
-        getSearchFieldRequestsUseCase = GetSearchFieldRequestsUseCase(searchFieldGateway.also { gateway ->
-            gateway.source = searchFieldRequests
-        }),
-        updateCommandQueryUseCase = UpdateCommandQueryUseCase(registry),
-        saveSearchAliasUseCase = SaveSearchAliasUseCase(aliasRepository),
-        removeSearchAliasUseCase = RemoveSearchAliasUseCase(aliasRepository)
-    )
+    val viewModel =
+        SearchViewModel(
+            applicationScope = testScope,
+            syncCacheUseCase = SyncCacheUseCase(searchRepository, registry),
+            loadRuntimesUseCase =
+                LoadRuntimesUseCase(
+                    pluginRepository = EmptyPluginRepository(),
+                    pluginRuntimeRegistry = registry,
+                    pluginLoader = EmptyPluginLoader(),
+                ),
+            searchUseCase = SearchUseCase(registry, searchRepository, FakeSearchResultRanker(), aliasRepository),
+            getPluginsUseCase = GetPluginsUseCase(registry),
+            openCommandUseCase = OpenCommandUseCase(CommandActionDispatcher(registry), searchRepository),
+            enterItemUseCase = EnterItemUseCase(CommandActionDispatcher(registry), searchRepository),
+            closeCommandUseCase = CloseCommandUseCase(CommandActionDispatcher(registry)),
+            executeCommandCallbackUseCase = ExecuteCommandCallbackUseCase(searchRepository),
+            getCommandFullscreenUseCase = GetCommandFullscreenUseCase(registry),
+            getEventsUseCase =
+                GetEventsUseCase(
+                    eventGateway.also { gateway ->
+                        gateway.source = events
+                    },
+                ),
+            emitEventUseCase = EmitEventUseCase(eventGateway),
+            getSearchFieldRequestsUseCase =
+                GetSearchFieldRequestsUseCase(
+                    searchFieldGateway.also { gateway ->
+                        gateway.source = searchFieldRequests
+                    },
+                ),
+            updateCommandQueryUseCase = UpdateCommandQueryUseCase(registry),
+            saveSearchAliasUseCase = SaveSearchAliasUseCase(aliasRepository),
+            removeSearchAliasUseCase = RemoveSearchAliasUseCase(aliasRepository),
+        )
 }
 
 private class FakePluginRuntimeCoordinator(
     private val runtimes: StateFlow<List<PluginRuntime>>,
     private val commands: StateFlow<List<PluginRuntimeCoordinator.CommandItem>>,
     private val content: StateFlow<List<PluginRuntimeCoordinator.ContentItem>>,
-    private val cachedItems: Flow<List<SearchIndexMutation>>
+    private val cachedItems: Flow<List<SearchIndexMutation>>,
 ) : PluginRuntimeCoordinator {
     val updates = mutableListOf<CommandActionBridge>()
 
@@ -613,7 +692,7 @@ private class FakePluginRuntimeCoordinator(
 }
 
 private class FakePluginRuntimeRegistry(
-    private val coordinator: PluginRuntimeCoordinator
+    private val coordinator: PluginRuntimeCoordinator,
 ) : PluginRuntimeRegistry {
     override suspend fun load(runtime: PluginRuntime) = Unit
 
@@ -623,7 +702,7 @@ private class FakePluginRuntimeRegistry(
 }
 
 private class FakePluginRuntime(
-    override val manifest: Manifest
+    override val manifest: Manifest,
 ) : PluginRuntime {
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
@@ -632,10 +711,11 @@ private class FakePluginRuntime(
     val commandUpdates = mutableListOf<Pair<String, CommandActionBridge>>()
 
     override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> = emptyFlow()
+
     override suspend fun cachedItems(
         commandName: String,
         requestedItems: List<CommandItemId>,
-        chunkSize: Int
+        chunkSize: Int,
     ): List<SearchIndexMutation> = emptyList()
 
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = MutableStateFlow(emptyList())
@@ -644,12 +724,15 @@ private class FakePluginRuntime(
 
     override suspend fun actions(
         commandName: String,
-        itemId: CommandItemId
+        itemId: CommandItemId,
     ): List<PluginCommandListAction> = actionResults
 
     override suspend fun update(action: CommandActionBridge) = Unit
 
-    override suspend fun update(commandName: String, action: CommandActionBridge) {
+    override suspend fun update(
+        commandName: String,
+        action: CommandActionBridge,
+    ) {
         commandUpdates += commandName to action
     }
 
@@ -671,7 +754,10 @@ private class FakeSearchIndexRepository : SearchIndexRepository {
 
     override suspend fun getPreview(resultId: SearchResultId): RankedSearchResult? = preview
 
-    override fun search(query: String, limit: Int): Flow<List<RankedSearchResult>> = results
+    override fun search(
+        query: String,
+        limit: Int,
+    ): Flow<List<RankedSearchResult>> = results
 }
 
 private class FakeSearchAliasRepository : SearchAliasRepository {
@@ -682,7 +768,7 @@ private class FakeSearchAliasRepository : SearchAliasRepository {
 
     override suspend fun saveAlias(
         resultId: SearchResultId,
-        alias: String
+        alias: String,
     ): SearchAliasSaveResult {
         nextSaveResult?.let { result ->
             nextSaveResult = null
@@ -696,55 +782,55 @@ private class FakeSearchAliasRepository : SearchAliasRepository {
         aliases.value = aliases.value - resultId
     }
 
-    override suspend fun resolveExactAlias(alias: String): SearchResultId? {
-        return aliases.value.entries.firstOrNull { entry -> entry.value == alias }?.key
-    }
+    override suspend fun resolveExactAlias(alias: String): SearchResultId? =
+        aliases.value.entries
+            .firstOrNull { entry -> entry.value == alias }
+            ?.key
 }
 
 private class FakeSearchResultRanker : SearchResultRanker {
     override fun rankLive(
         query: String,
         contentSnapshot: List<PluginRuntimeCoordinator.ContentItem>,
-        limit: Int
-    ): List<RankedSearchResult> {
-        return contentSnapshot.map { item ->
+        limit: Int,
+    ): List<RankedSearchResult> =
+        contentSnapshot.map { item ->
             RankedSearchResult(
-                result = SearchResultSet.LiveSearchResult(
-                    resultId = item.resultId,
-                    listEntry = item.listEntry,
-                    presentation = item.presentation
-                ),
-                score = SearchResultScore(textScore = 1.0, live = true)
+                result =
+                    SearchResultSet.LiveSearchResult(
+                        resultId = item.resultId,
+                        listEntry = item.listEntry,
+                        presentation = item.presentation,
+                    ),
+                score = SearchResultScore(textScore = 1.0, live = true),
             )
         }
-    }
 
     override fun rankCommands(
         query: String,
         commandsSnapshot: List<PluginRuntimeCoordinator.CommandItem>,
-        limit: Int
-    ): List<RankedSearchResult> {
-        return commandsSnapshot.map { item ->
+        limit: Int,
+    ): List<RankedSearchResult> =
+        commandsSnapshot.map { item ->
             RankedSearchResult(
-                result = SearchResultSet.CommandSearchResult(
-                    resultId = item.resultId,
-                    listEntry = item.listEntry
-                ),
-                score = SearchResultScore(textScore = 1.0, prefix = true)
+                result =
+                    SearchResultSet.CommandSearchResult(
+                        resultId = item.resultId,
+                        listEntry = item.listEntry,
+                    ),
+                score = SearchResultScore(textScore = 1.0, prefix = true),
             )
         }
-    }
 
     override fun merge(
         commandResults: List<RankedSearchResult>,
         liveResults: List<RankedSearchResult>,
         cachedResults: List<RankedSearchResult>,
-        limit: Int
-    ): List<SearchResultSet.SearchResult> {
-        return (commandResults + liveResults + cachedResults)
+        limit: Int,
+    ): List<SearchResultSet.SearchResult> =
+        (commandResults + liveResults + cachedResults)
             .take(limit)
             .map { it.result }
-    }
 }
 
 private class FakeEventGateway : EventGateway {
@@ -755,7 +841,10 @@ private class FakeEventGateway : EventGateway {
 
     override fun get(pluginId: PluginId): Flow<PluginEvent<*>> = source
 
-    override suspend fun emit(pluginId: PluginId, data: Any) {
+    override suspend fun emit(
+        pluginId: PluginId,
+        data: Any,
+    ) {
         emitted += pluginId to data
     }
 }
@@ -781,20 +870,18 @@ private class EmptyPluginRepository : PluginRepository {
 private class EmptyPluginLoader : PluginLoader {
     override suspend fun loadPlugin(plugin: PluginArtifact): PluginRuntime? = null
 
-    override suspend fun loadPluginMetadata(plugin: PluginArtifact): PluginDescriptor {
-        return object : PluginDescriptor {
+    override suspend fun loadPluginMetadata(plugin: PluginArtifact): PluginDescriptor =
+        object : PluginDescriptor {
             override val pluginId: PluginId = PluginId.Invalid
-            override val manifest: Manifest = manifest(
-                pluginId = PluginId.Invalid,
-                commandName = "noop"
-            )
+            override val manifest: Manifest =
+                manifest(
+                    pluginId = PluginId.Invalid,
+                    commandName = "noop",
+                )
             override val resources: FileSystem = FakeFileSystem()
         }
-    }
 
-    override suspend fun join(
-        plugins: StateFlow<List<PluginRuntime>>
-    ): PluginRuntimeCoordinator {
+    override suspend fun join(plugins: StateFlow<List<PluginRuntime>>): PluginRuntimeCoordinator {
         error("Not used in SearchViewModel tests")
     }
 }
@@ -803,9 +890,9 @@ private fun manifest(
     pluginId: PluginId,
     commandName: String,
     placeholder: UiText? = null,
-    mode: Command.Mode = Command.Mode.View
-): Manifest {
-    return Manifest(
+    mode: Command.Mode = Command.Mode.View,
+): Manifest =
+    Manifest(
         name = pluginId.id,
         title = UiText.Plain("Calculator"),
         description = UiText.Plain("Calculator extension"),
@@ -814,35 +901,36 @@ private fun manifest(
         platforms = listOf(Platform.IOS),
         categories = emptyList(),
         license = "MIT",
-        commands = listOf(
-            Command(
-                service = commandName,
-                title = UiText.Plain("Calculator"),
-                description = UiText.Plain("Calculator extension"),
-                placeholder = placeholder,
-                mode = mode,
-                match = null,
-                searchable = true,
-                arguments = emptyList(),
-                preferences = emptyList()
-            )
-        ),
-        resources = emptyMap()
+        commands =
+            listOf(
+                Command(
+                    service = commandName,
+                    title = UiText.Plain("Calculator"),
+                    description = UiText.Plain("Calculator extension"),
+                    placeholder = placeholder,
+                    mode = mode,
+                    match = null,
+                    searchable = true,
+                    arguments = emptyList(),
+                    preferences = emptyList(),
+                ),
+            ),
+        resources = emptyMap(),
     )
-}
 
-private fun listEntry(title: String, description: String): PluginCommandListItem {
-    return PluginCommandListItem(
+private fun listEntry(
+    title: String,
+    description: String,
+): PluginCommandListItem =
+    PluginCommandListItem(
         id = CommandItemId.CommandRoot,
         icon = null,
         title = PluginUiText.Plain(title),
-        description = PluginUiText.Plain(description)
+        description = PluginUiText.Plain(description),
     )
-}
 
-private fun callback(name: String): ru.raydroid.plugin.host.api.ui.PluginCommandCallback {
-    return ru.raydroid.plugin.host.api.ui.PluginCommandCallback(
+private fun callback(name: String): ru.raydroid.plugin.host.api.ui.PluginCommandCallback =
+    ru.raydroid.plugin.host.api.ui.PluginCommandCallback(
         ref = CommandCallbackRef(CommandCallbackId(name), generation = 0),
-        dispatch = {}
+        dispatch = {},
     )
-}

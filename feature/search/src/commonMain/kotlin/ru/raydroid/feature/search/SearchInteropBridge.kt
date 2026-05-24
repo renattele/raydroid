@@ -38,102 +38,119 @@ import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.api.ui.suppressesHostActions
 
 object SearchInteropBridge {
-    fun nodeKind(node: PluginRayNodeData): String = when (node) {
-        is PluginTextData -> "text"
-        is PluginIconData -> "icon"
-        is PluginImageData -> "image"
-        is PluginBoxData -> "box"
-        is PluginOrientedBoxData -> "orientedBox"
-        is PluginDetailData -> "detail"
-        is PluginEditableTextData -> "editableText"
-        is PluginFormData -> "form"
-        is PluginListData -> "list"
-        is PluginGridData -> "grid"
-    }
+    fun nodeKind(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginTextData -> "text"
+            is PluginIconData -> "icon"
+            is PluginImageData -> "image"
+            is PluginBoxData -> "box"
+            is PluginOrientedBoxData -> "orientedBox"
+            is PluginDetailData -> "detail"
+            is PluginEditableTextData -> "editableText"
+            is PluginFormData -> "form"
+            is PluginListData -> "list"
+            is PluginGridData -> "grid"
+        }
 
-    fun nodeChildren(node: PluginRayNodeData): List<PluginRayNodeData> = when (node) {
-        is PluginBoxData -> node.children
-        is PluginOrientedBoxData -> node.children
-        else -> emptyList()
-    }
+    fun nodeChildren(node: PluginRayNodeData): List<PluginRayNodeData> =
+        when (node) {
+            is PluginBoxData -> node.children
+            is PluginOrientedBoxData -> node.children
+            else -> emptyList()
+        }
 
-    fun nodeText(node: PluginRayNodeData): PluginUiText? = when (node) {
-        is PluginTextData -> node.text
-        else -> null
-    }
+    fun nodeText(node: PluginRayNodeData): PluginUiText? =
+        when (node) {
+            is PluginTextData -> node.text
+            else -> null
+        }
 
-    fun nodeFontSize(node: PluginRayNodeData): String = when (node) {
-        is PluginTextData -> node.fontSize.name
-        else -> PluginFontSize.Medium.name
-    }
+    fun nodeFontSize(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginTextData -> node.fontSize.name
+            else -> PluginFontSize.Medium.name
+        }
 
-    fun nodeColor(node: PluginRayNodeData): String = when (node) {
-        is PluginTextData -> node.color.name
-        is PluginIconData -> node.color?.name.orEmpty()
-        else -> ""
-    }
+    fun nodeColor(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginTextData -> node.color.name
+            is PluginIconData -> node.color?.name.orEmpty()
+            else -> ""
+        }
 
-    fun nodeIcon(node: PluginRayNodeData): PluginIcon? = when (node) {
-        is PluginIconData -> node.icon
-        else -> null
-    }
+    fun nodeIcon(node: PluginRayNodeData): PluginIcon? =
+        when (node) {
+            is PluginIconData -> node.icon
+            else -> null
+        }
 
-    fun nodeIconSize(node: PluginRayNodeData): String = when (node) {
-        is PluginIconData -> node.size.name
-        else -> PluginIconSize.Medium.name
-    }
+    fun nodeIconSize(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginIconData -> node.size.name
+            else -> PluginIconSize.Medium.name
+        }
 
-    fun nodeImage(node: PluginRayNodeData): PluginImage? = when (node) {
-        is PluginImageData -> node.image
-        else -> null
-    }
+    fun nodeImage(node: PluginRayNodeData): PluginImage? =
+        when (node) {
+            is PluginImageData -> node.image
+            else -> null
+        }
 
-    fun nodeImageWidth(node: PluginRayNodeData): Int? = when (node) {
-        is PluginImageData -> node.width
-        else -> null
-    }
+    fun nodeImageWidth(node: PluginRayNodeData): Int? =
+        when (node) {
+            is PluginImageData -> node.width
+            else -> null
+        }
 
-    fun nodeImageHeight(node: PluginRayNodeData): Int? = when (node) {
-        is PluginImageData -> node.height
-        else -> null
-    }
+    fun nodeImageHeight(node: PluginRayNodeData): Int? =
+        when (node) {
+            is PluginImageData -> node.height
+            else -> null
+        }
 
-    fun nodeShape(node: PluginRayNodeData): String = when (node) {
-        is PluginImageData -> node.shape.name
-        is PluginBoxData -> node.shape.name
-        is PluginOrientedBoxData -> node.shape.name
-        else -> PluginShapeToken.None.name
-    }
+    fun nodeShape(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginImageData -> node.shape.name
+            is PluginBoxData -> node.shape.name
+            is PluginOrientedBoxData -> node.shape.name
+            else -> PluginShapeToken.None.name
+        }
 
-    fun nodeAlignment(node: PluginRayNodeData): String = when (node) {
-        is PluginBoxData -> node.alignment.name
-        else -> ""
-    }
+    fun nodeAlignment(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginBoxData -> node.alignment.name
+            else -> ""
+        }
 
-    fun nodeOrientation(node: PluginRayNodeData): String = when (node) {
-        is PluginOrientedBoxData -> node.orientation.name
-        else -> ""
-    }
+    fun nodeOrientation(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginOrientedBoxData -> node.orientation.name
+            else -> ""
+        }
 
-    fun nodeSpacing(node: PluginRayNodeData): String = when (node) {
-        is PluginOrientedBoxData -> node.spacing.name
-        else -> PluginSpacing.Medium.name
-    }
+    fun nodeSpacing(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginOrientedBoxData -> node.spacing.name
+            else -> PluginSpacing.Medium.name
+        }
 
-    fun detailMarkdown(node: PluginRayNodeData): String = when (node) {
-        is PluginDetailData -> node.markdown
-        else -> ""
-    }
+    fun detailMarkdown(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginDetailData -> node.markdown
+            else -> ""
+        }
 
-    fun detailNavigationTitle(node: PluginRayNodeData): PluginUiText? = when (node) {
-        is PluginDetailData -> node.navigationTitle
-        else -> null
-    }
+    fun detailNavigationTitle(node: PluginRayNodeData): PluginUiText? =
+        when (node) {
+            is PluginDetailData -> node.navigationTitle
+            else -> null
+        }
 
-    fun detailMetadata(node: PluginRayNodeData): List<Any> = when (node) {
-        is PluginDetailData -> node.metadata.map { it as Any }
-        else -> emptyList()
-    }
+    fun detailMetadata(node: PluginRayNodeData): List<Any> =
+        when (node) {
+            is PluginDetailData -> node.metadata.map { it as Any }
+            else -> emptyList()
+        }
 
     fun editableTextId(node: PluginRayNodeData): String = (node as? PluginEditableTextData)?.id.orEmpty()
 
@@ -143,147 +160,162 @@ object SearchInteropBridge {
 
     fun editableTextDisplayValue(node: PluginRayNodeData): String? = (node as? PluginEditableTextData)?.displayValue
 
-    fun editableTextDisplayFormatter(node: PluginRayNodeData): String =
-        (node as? PluginEditableTextData)?.displayFormatter?.name.orEmpty()
+    fun editableTextDisplayFormatter(node: PluginRayNodeData): String = (node as? PluginEditableTextData)?.displayFormatter?.name.orEmpty()
 
-    fun editableTextPlaceholder(node: PluginRayNodeData): PluginUiText? =
-        (node as? PluginEditableTextData)?.placeholder
+    fun editableTextPlaceholder(node: PluginRayNodeData): PluginUiText? = (node as? PluginEditableTextData)?.placeholder
 
-    fun editableTextMultiline(node: PluginRayNodeData): Boolean =
-        (node as? PluginEditableTextData)?.multiline ?: true
+    fun editableTextMultiline(node: PluginRayNodeData): Boolean = (node as? PluginEditableTextData)?.multiline ?: true
 
-    fun editableTextMaxLines(node: PluginRayNodeData): Int =
-        (node as? PluginEditableTextData)?.maxLines ?: 8
+    fun editableTextMaxLines(node: PluginRayNodeData): Int = (node as? PluginEditableTextData)?.maxLines ?: 8
 
-    fun editableTextAutoScrollToEnd(node: PluginRayNodeData): Boolean =
-        (node as? PluginEditableTextData)?.autoScrollToEnd ?: false
+    fun editableTextAutoScrollToEnd(node: PluginRayNodeData): Boolean = (node as? PluginEditableTextData)?.autoScrollToEnd ?: false
 
-    fun editableTextOnChange(node: PluginRayNodeData): PluginFormSubmitCallback? =
-        (node as? PluginEditableTextData)?.onChange
+    fun editableTextOnChange(node: PluginRayNodeData): PluginFormSubmitCallback? = (node as? PluginEditableTextData)?.onChange
 
-    fun detailMetadataKind(item: Any): String = when (item as PluginDetailMetadataItemData) {
-        is PluginDetailMetadataItemData.Label -> "label"
-        is PluginDetailMetadataItemData.Link -> "link"
-        is PluginDetailMetadataItemData.TagList -> "tagList"
-        PluginDetailMetadataItemData.Separator -> "separator"
-    }
+    fun detailMetadataKind(item: Any): String =
+        when (item as PluginDetailMetadataItemData) {
+            is PluginDetailMetadataItemData.Label -> "label"
+            is PluginDetailMetadataItemData.Link -> "link"
+            is PluginDetailMetadataItemData.TagList -> "tagList"
+            PluginDetailMetadataItemData.Separator -> "separator"
+        }
 
-    fun detailMetadataTitle(item: Any): PluginUiText? = when (val value = item as PluginDetailMetadataItemData) {
-        is PluginDetailMetadataItemData.Label -> value.title
-        is PluginDetailMetadataItemData.Link -> value.title
-        is PluginDetailMetadataItemData.TagList -> value.title
-        PluginDetailMetadataItemData.Separator -> null
-    }
+    fun detailMetadataTitle(item: Any): PluginUiText? =
+        when (val value = item as PluginDetailMetadataItemData) {
+            is PluginDetailMetadataItemData.Label -> value.title
+            is PluginDetailMetadataItemData.Link -> value.title
+            is PluginDetailMetadataItemData.TagList -> value.title
+            PluginDetailMetadataItemData.Separator -> null
+        }
 
-    fun detailMetadataText(item: Any): PluginUiText? = when (val value = item as PluginDetailMetadataItemData) {
-        is PluginDetailMetadataItemData.Label -> value.text
-        is PluginDetailMetadataItemData.Link -> value.text
-        else -> null
-    }
+    fun detailMetadataText(item: Any): PluginUiText? =
+        when (val value = item as PluginDetailMetadataItemData) {
+            is PluginDetailMetadataItemData.Label -> value.text
+            is PluginDetailMetadataItemData.Link -> value.text
+            else -> null
+        }
 
-    fun detailMetadataIcon(item: Any): PluginIcon? = when (val value = item as PluginDetailMetadataItemData) {
-        is PluginDetailMetadataItemData.Label -> value.icon
-        else -> null
-    }
+    fun detailMetadataIcon(item: Any): PluginIcon? =
+        when (val value = item as PluginDetailMetadataItemData) {
+            is PluginDetailMetadataItemData.Label -> value.icon
+            else -> null
+        }
 
-    fun detailMetadataTarget(item: Any): String = when (val value = item as PluginDetailMetadataItemData) {
-        is PluginDetailMetadataItemData.Link -> value.target
-        else -> ""
-    }
+    fun detailMetadataTarget(item: Any): String =
+        when (val value = item as PluginDetailMetadataItemData) {
+            is PluginDetailMetadataItemData.Link -> value.target
+            else -> ""
+        }
 
-    fun detailMetadataTags(item: Any): List<Any> = when (val value = item as PluginDetailMetadataItemData) {
-        is PluginDetailMetadataItemData.TagList -> value.tags.map { it as Any }
-        else -> emptyList()
-    }
+    fun detailMetadataTags(item: Any): List<Any> =
+        when (val value = item as PluginDetailMetadataItemData) {
+            is PluginDetailMetadataItemData.TagList -> value.tags.map { it as Any }
+            else -> emptyList()
+        }
 
     fun detailTagText(tag: Any): PluginUiText? = (tag as? PluginDetailMetadataItemData.TagList.Tag)?.text
 
-    fun listSections(node: PluginRayNodeData): List<Any> = when (node) {
-        is PluginListData -> node.sections.map { it as Any }
-        is PluginGridData -> node.sections.map { it as Any }
-        else -> emptyList()
-    }
+    fun listSections(node: PluginRayNodeData): List<Any> =
+        when (node) {
+            is PluginListData -> node.sections.map { it as Any }
+            is PluginGridData -> node.sections.map { it as Any }
+            else -> emptyList()
+        }
 
-    fun listEmptyView(node: PluginRayNodeData): Any? = when (node) {
-        is PluginListData -> node.emptyView
-        is PluginGridData -> node.emptyView
-        else -> null
-    }
+    fun listEmptyView(node: PluginRayNodeData): Any? =
+        when (node) {
+            is PluginListData -> node.emptyView
+            is PluginGridData -> node.emptyView
+            else -> null
+        }
 
-    fun listIsLoading(node: PluginRayNodeData): Boolean = when (node) {
-        is PluginListData -> node.isLoading
-        is PluginGridData -> node.isLoading
-        is PluginFormData -> node.isLoading
-        else -> false
-    }
+    fun listIsLoading(node: PluginRayNodeData): Boolean =
+        when (node) {
+            is PluginListData -> node.isLoading
+            is PluginGridData -> node.isLoading
+            is PluginFormData -> node.isLoading
+            else -> false
+        }
 
-    fun gridColumns(node: PluginRayNodeData): Int? = when (node) {
-        is PluginGridData -> node.columns
-        else -> null
-    }
+    fun gridColumns(node: PluginRayNodeData): Int? =
+        when (node) {
+            is PluginGridData -> node.columns
+            else -> null
+        }
 
-    fun gridAspectRatio(node: PluginRayNodeData): String = when (node) {
-        is PluginGridData -> node.aspectRatio.name
-        else -> PluginGridAspectRatio.OneToOne.name
-    }
+    fun gridAspectRatio(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginGridData -> node.aspectRatio.name
+            else -> PluginGridAspectRatio.OneToOne.name
+        }
 
-    fun sectionTitle(section: Any): PluginUiText? = when (section) {
-        is PluginListSectionData -> section.title
-        is PluginGridSectionData -> section.title
-        else -> null
-    }
+    fun sectionTitle(section: Any): PluginUiText? =
+        when (section) {
+            is PluginListSectionData -> section.title
+            is PluginGridSectionData -> section.title
+            else -> null
+        }
 
-    fun sectionItems(section: Any): List<Any> = when (section) {
-        is PluginListSectionData -> section.items.map { it as Any }
-        is PluginGridSectionData -> section.items.map { it as Any }
-        else -> emptyList()
-    }
+    fun sectionItems(section: Any): List<Any> =
+        when (section) {
+            is PluginListSectionData -> section.items.map { it as Any }
+            is PluginGridSectionData -> section.items.map { it as Any }
+            else -> emptyList()
+        }
 
-    fun listItemId(item: Any): CommandItemId? = when (item) {
-        is PluginListItemData -> item.id
-        is PluginGridItemData -> item.id
-        else -> null
-    }
+    fun listItemId(item: Any): CommandItemId? =
+        when (item) {
+            is PluginListItemData -> item.id
+            is PluginGridItemData -> item.id
+            else -> null
+        }
 
-    fun listItemTitle(item: Any): PluginUiText? = when (item) {
-        is PluginListItemData -> item.title
-        is PluginGridItemData -> item.title
-        else -> null
-    }
+    fun listItemTitle(item: Any): PluginUiText? =
+        when (item) {
+            is PluginListItemData -> item.title
+            is PluginGridItemData -> item.title
+            else -> null
+        }
 
-    fun listItemSubtitle(item: Any): PluginUiText? = when (item) {
-        is PluginListItemData -> item.subtitle
-        is PluginGridItemData -> item.subtitle
-        else -> null
-    }
+    fun listItemSubtitle(item: Any): PluginUiText? =
+        when (item) {
+            is PluginListItemData -> item.subtitle
+            is PluginGridItemData -> item.subtitle
+            else -> null
+        }
 
-    fun listItemIcon(item: Any): PluginIcon? = when (item) {
-        is PluginListItemData -> item.icon
-        is PluginGridItemData -> item.icon
-        else -> null
-    }
+    fun listItemIcon(item: Any): PluginIcon? =
+        when (item) {
+            is PluginListItemData -> item.icon
+            is PluginGridItemData -> item.icon
+            else -> null
+        }
 
-    fun listItemKeywords(item: Any): List<String> = when (item) {
-        is PluginListItemData -> item.keywords
-        is PluginGridItemData -> item.keywords
-        else -> emptyList()
-    }
+    fun listItemKeywords(item: Any): List<String> =
+        when (item) {
+            is PluginListItemData -> item.keywords
+            is PluginGridItemData -> item.keywords
+            else -> emptyList()
+        }
 
-    fun listItemModifier(item: Any): PluginRayModifier? = when (item) {
-        is PluginListItemData -> item.itemModifier
-        is PluginGridItemData -> item.itemModifier
-        else -> null
-    }
+    fun listItemModifier(item: Any): PluginRayModifier? =
+        when (item) {
+            is PluginListItemData -> item.itemModifier
+            is PluginGridItemData -> item.itemModifier
+            else -> null
+        }
 
-    fun listItemContent(item: Any): List<PluginRayNodeData> = when (item) {
-        is PluginListItemData -> item.content
-        else -> emptyList()
-    }
+    fun listItemContent(item: Any): List<PluginRayNodeData> =
+        when (item) {
+            is PluginListItemData -> item.content
+            else -> emptyList()
+        }
 
-    fun gridItemImage(item: Any): PluginImage? = when (item) {
-        is PluginGridItemData -> item.content
-        else -> null
-    }
+    fun gridItemImage(item: Any): PluginImage? =
+        when (item) {
+            is PluginGridItemData -> item.content
+            else -> null
+        }
 
     fun emptyViewTitle(emptyView: Any): PluginUiText? = (emptyView as? PluginEmptyViewData)?.title
 
@@ -291,35 +323,41 @@ object SearchInteropBridge {
 
     fun emptyViewIcon(emptyView: Any): PluginIcon? = (emptyView as? PluginEmptyViewData)?.icon
 
-    fun formFields(node: PluginRayNodeData): List<Any> = when (node) {
-        is PluginFormData -> node.fields.map { it as Any }
-        else -> emptyList()
-    }
+    fun formFields(node: PluginRayNodeData): List<Any> =
+        when (node) {
+            is PluginFormData -> node.fields.map { it as Any }
+            else -> emptyList()
+        }
 
-    fun formSubmit(node: PluginRayNodeData): Any? = when (node) {
-        is PluginFormData -> node.submit
-        else -> null
-    }
+    fun formSubmit(node: PluginRayNodeData): Any? =
+        when (node) {
+            is PluginFormData -> node.submit
+            else -> null
+        }
 
-    fun formRequireChanges(node: PluginRayNodeData): Boolean = when (node) {
-        is PluginFormData -> node.requireChanges
-        else -> false
-    }
+    fun formRequireChanges(node: PluginRayNodeData): Boolean =
+        when (node) {
+            is PluginFormData -> node.requireChanges
+            else -> false
+        }
 
-    fun formUnchangedView(node: PluginRayNodeData): Any? = when (node) {
-        is PluginFormData -> node.unchangedView
-        else -> null
-    }
+    fun formUnchangedView(node: PluginRayNodeData): Any? =
+        when (node) {
+            is PluginFormData -> node.unchangedView
+            else -> null
+        }
 
-    fun formActionPanelHintMode(node: PluginRayNodeData): String = when (node) {
-        is PluginFormData -> node.actionPanelHintMode.name
-        else -> PluginActionPanelHintMode.Full.name
-    }
+    fun formActionPanelHintMode(node: PluginRayNodeData): String =
+        when (node) {
+            is PluginFormData -> node.actionPanelHintMode.name
+            else -> PluginActionPanelHintMode.Full.name
+        }
 
-    fun formNavigationTitle(node: PluginRayNodeData): PluginUiText? = when (node) {
-        is PluginFormData -> node.navigationTitle
-        else -> null
-    }
+    fun formNavigationTitle(node: PluginRayNodeData): PluginUiText? =
+        when (node) {
+            is PluginFormData -> node.navigationTitle
+            else -> null
+        }
 
     fun formSubmitTitle(submit: Any): PluginUiText? = (submit as? PluginFormSubmitData)?.title
 
@@ -331,14 +369,15 @@ object SearchInteropBridge {
 
     fun formSubmitCallback(submit: Any): PluginFormSubmitCallback? = (submit as? PluginFormSubmitData)?.callback
 
-    fun formFieldKind(field: Any): String = when (field as PluginFormFieldData) {
-        is PluginFormFieldData.TextField -> "textField"
-        is PluginFormFieldData.Checkbox -> "checkbox"
-        is PluginFormFieldData.Dropdown -> "dropdown"
-        is PluginFormFieldData.DatePicker -> "datePicker"
-        is PluginFormFieldData.Separator -> "separator"
-        is PluginFormFieldData.Description -> "description"
-    }
+    fun formFieldKind(field: Any): String =
+        when (field as PluginFormFieldData) {
+            is PluginFormFieldData.TextField -> "textField"
+            is PluginFormFieldData.Checkbox -> "checkbox"
+            is PluginFormFieldData.Dropdown -> "dropdown"
+            is PluginFormFieldData.DatePicker -> "datePicker"
+            is PluginFormFieldData.Separator -> "separator"
+            is PluginFormFieldData.Description -> "description"
+        }
 
     fun formFieldId(field: Any): String = (field as PluginFormFieldData).id
 
@@ -346,10 +385,11 @@ object SearchInteropBridge {
 
     fun formFieldRequired(field: Any): Boolean = (field as PluginFormFieldData).required
 
-    fun formFieldText(field: Any): PluginUiText? = when (field) {
-        is PluginFormFieldData.Description -> field.text
-        else -> null
-    }
+    fun formFieldText(field: Any): PluginUiText? =
+        when (field) {
+            is PluginFormFieldData.Description -> field.text
+            else -> null
+        }
 
     fun formFieldPlaceholder(field: Any): PluginUiText? = (field as? PluginFormFieldData.TextField)?.placeholder
 
@@ -361,10 +401,11 @@ object SearchInteropBridge {
 
     fun formFieldDefaultBoolean(field: Any): Boolean = (field as? PluginFormFieldData.Checkbox)?.defaultValue ?: false
 
-    fun formFieldOptions(field: Any): List<Any> = when (field) {
-        is PluginFormFieldData.Dropdown -> field.options.map { it as Any }
-        else -> emptyList()
-    }
+    fun formFieldOptions(field: Any): List<Any> =
+        when (field) {
+            is PluginFormFieldData.Dropdown -> field.options.map { it as Any }
+            else -> emptyList()
+        }
 
     fun formFieldDefaultOption(field: Any): String? = (field as? PluginFormFieldData.Dropdown)?.defaultValue
 
@@ -376,26 +417,34 @@ object SearchInteropBridge {
 
     fun formOptionIcon(option: Any): PluginIcon? = (option as PluginFormFieldData.Dropdown.Option).icon
 
-    fun searchResultTitleMatches(result: SearchResultSet.SearchResult): List<Int> = when (result) {
-        is SearchResultSet.CachedSearchResult -> flattenMatches(result.titleMatches)
-        is SearchResultSet.CommandSearchResult,
-        is SearchResultSet.LiveSearchResult -> emptyList()
-    }
+    fun searchResultTitleMatches(result: SearchResultSet.SearchResult): List<Int> =
+        when (result) {
+            is SearchResultSet.CachedSearchResult -> flattenMatches(result.titleMatches)
 
-    fun searchResultDescriptionMatches(result: SearchResultSet.SearchResult): List<Int> = when (result) {
-        is SearchResultSet.CachedSearchResult -> flattenMatches(result.descriptionMatches)
-        is SearchResultSet.CommandSearchResult,
-        is SearchResultSet.LiveSearchResult -> emptyList()
-    }
+            is SearchResultSet.CommandSearchResult,
+            is SearchResultSet.LiveSearchResult,
+            -> emptyList()
+        }
 
-    fun searchResultIsLive(result: SearchResultSet.SearchResult): Boolean =
-        result is SearchResultSet.LiveSearchResult
+    fun searchResultDescriptionMatches(result: SearchResultSet.SearchResult): List<Int> =
+        when (result) {
+            is SearchResultSet.CachedSearchResult -> flattenMatches(result.descriptionMatches)
 
-    fun searchResultContent(result: SearchResultSet.SearchResult): List<PluginRayNodeData> = when (result) {
-        is SearchResultSet.LiveSearchResult -> result.presentation.content
-        is SearchResultSet.CachedSearchResult,
-        is SearchResultSet.CommandSearchResult -> emptyList()
-    }
+            is SearchResultSet.CommandSearchResult,
+            is SearchResultSet.LiveSearchResult,
+            -> emptyList()
+        }
+
+    fun searchResultIsLive(result: SearchResultSet.SearchResult): Boolean = result is SearchResultSet.LiveSearchResult
+
+    fun searchResultContent(result: SearchResultSet.SearchResult): List<PluginRayNodeData> =
+        when (result) {
+            is SearchResultSet.LiveSearchResult -> result.presentation.content
+
+            is SearchResultSet.CachedSearchResult,
+            is SearchResultSet.CommandSearchResult,
+            -> emptyList()
+        }
 
     fun suppressesHostActions(nodes: List<PluginRayNodeData>): Boolean = nodes.suppressesHostActions()
 
@@ -404,16 +453,19 @@ object SearchInteropBridge {
     fun focusedActions(
         nodes: List<PluginRayNodeData>,
         focusedItemValue: String?,
-        query: String
-    ): List<PluginCommandListAction> = nodes.pluginFocusModel(
-        focusedItemId = focusedItemValue?.let(::CommandItemId),
-        query = query
-    ).focusedActions
+        query: String,
+    ): List<PluginCommandListAction> =
+        nodes
+            .pluginFocusModel(
+                focusedItemId = focusedItemValue?.let(::CommandItemId),
+                query = query,
+            ).focusedActions
 
-    private fun flattenMatches(ranges: List<IntRange>): List<Int> = buildList(ranges.size * 2) {
-        ranges.forEach { range ->
-            add(range.first)
-            add(range.last)
+    private fun flattenMatches(ranges: List<IntRange>): List<Int> =
+        buildList(ranges.size * 2) {
+            ranges.forEach { range ->
+                add(range.first)
+                add(range.last)
+            }
         }
-    }
 }

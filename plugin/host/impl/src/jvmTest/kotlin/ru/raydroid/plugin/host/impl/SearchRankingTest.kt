@@ -1,18 +1,11 @@
 package ru.raydroid.plugin.host.impl
 
-import java.io.File
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
-import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -45,6 +38,13 @@ import ru.raydroid.plugin.host.impl.data.search.cache.getAppDatabase
 import ru.raydroid.plugin.host.impl.data.search.cache.getDatabaseBuilder
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListItem
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandPresentation
+import java.io.File
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class SearchRankingTest {
     private val ranker = CachedSearchRanker()
@@ -60,34 +60,36 @@ class SearchRankingTest {
 
     @Test
     fun `manifest command searchable defaults to true and accepts false`() {
-        val defaultCommand = Json.decodeFromString<Command>(
-            """
-            {
-              "service": "CalculatorCommand",
-              "title": "command.title",
-              "description": "command.description",
-              "mode": "View",
-              "match": null,
-              "arguments": [],
-              "preferences": []
-            }
-            """.trimIndent()
-        )
-        val hiddenCommand = Json.decodeFromString<Command>(
-            """
-            {
-              "service": "CalculatorCommand",
-              "title": "command.title",
-              "description": "command.description",
-              "placeholder": "command.placeholder",
-              "mode": "View",
-              "match": null,
-              "searchable": false,
-              "arguments": [],
-              "preferences": []
-            }
-            """.trimIndent()
-        )
+        val defaultCommand =
+            Json.decodeFromString<Command>(
+                """
+                {
+                  "service": "CalculatorCommand",
+                  "title": "command.title",
+                  "description": "command.description",
+                  "mode": "View",
+                  "match": null,
+                  "arguments": [],
+                  "preferences": []
+                }
+                """.trimIndent(),
+            )
+        val hiddenCommand =
+            Json.decodeFromString<Command>(
+                """
+                {
+                  "service": "CalculatorCommand",
+                  "title": "command.title",
+                  "description": "command.description",
+                  "placeholder": "command.placeholder",
+                  "mode": "View",
+                  "match": null,
+                  "searchable": false,
+                  "arguments": [],
+                  "preferences": []
+                }
+                """.trimIndent(),
+            )
 
         assertTrue(defaultCommand.searchable)
         assertNull(defaultCommand.placeholder)
@@ -97,16 +99,18 @@ class SearchRankingTest {
 
     @Test
     fun `cached exact title beats fuzzy title`() {
-        val ranked = ranker.rankCached(
-            query = SearchQueryNormalizer.from("Calculator"),
-            ftsCandidates = listOf(
-                cachedCandidate(contentId = 1, itemId = "calc", title = "Calculator"),
-                cachedCandidate(contentId = 2, itemId = "calendar", title = "Calendar")
-            ),
-            fallbackCandidates = emptyList(),
-            limit = 10,
-            nowEpochMs = 1_000
-        )
+        val ranked =
+            ranker.rankCached(
+                query = SearchQueryNormalizer.from("Calculator"),
+                ftsCandidates =
+                    listOf(
+                        cachedCandidate(contentId = 1, itemId = "calc", title = "Calculator"),
+                        cachedCandidate(contentId = 2, itemId = "calendar", title = "Calendar"),
+                    ),
+                fallbackCandidates = emptyList(),
+                limit = 10,
+                nowEpochMs = 1_000,
+            )
 
         val first = assertIs<SearchResultSet.CachedSearchResult>(ranked.first().result)
         assertEquals("calc", first.resultId.itemId.value)
@@ -115,10 +119,11 @@ class SearchRankingTest {
 
     @Test
     fun `live command regex gates non matching content`() {
-        val runtime = FakeSearchRuntime(
-            manifest = manifest(match = "[0-9].*"),
-            contentItems = listOf(contentItem(title = "Calculator"))
-        )
+        val runtime =
+            FakeSearchRuntime(
+                manifest = manifest(match = "[0-9].*"),
+                contentItems = listOf(contentItem(title = "Calculator")),
+            )
         val content = coordinatorContent(runtime)
 
         assertTrue(ranker.rankLive("abc", content, limit = 10).isEmpty())
@@ -127,18 +132,20 @@ class SearchRankingTest {
 
     @Test
     fun `merge keeps live result for duplicate result id`() {
-        val runtime = FakeSearchRuntime(
-            manifest = manifest(match = null),
-            contentItems = listOf(contentItem(title = "Calculator"))
-        )
+        val runtime =
+            FakeSearchRuntime(
+                manifest = manifest(match = null),
+                contentItems = listOf(contentItem(title = "Calculator")),
+            )
         val live = ranker.rankLive("Calculator", coordinatorContent(runtime), limit = 10)
-        val cached = ranker.rankCached(
-            query = SearchQueryNormalizer.from("Calculator"),
-            ftsCandidates = listOf(cachedCandidate(contentId = 1, itemId = CommandItemId.Static.value, title = "Calculator")),
-            fallbackCandidates = emptyList(),
-            limit = 10,
-            nowEpochMs = 1_000
-        )
+        val cached =
+            ranker.rankCached(
+                query = SearchQueryNormalizer.from("Calculator"),
+                ftsCandidates = listOf(cachedCandidate(contentId = 1, itemId = CommandItemId.Static.value, title = "Calculator")),
+                fallbackCandidates = emptyList(),
+                limit = 10,
+                nowEpochMs = 1_000,
+            )
 
         val merged = ranker.merge(commandResults = emptyList(), liveResults = live, cachedResults = cached, limit = 10)
 
@@ -147,40 +154,45 @@ class SearchRankingTest {
 
     @Test
     fun `merge keeps live result while applying cached usage history`() {
-        val preferredId = SearchResultId(
-            pluginId = PluginId("ru.test.plugin"),
-            commandName = "apps",
-            itemId = CommandItemId("reddit-app")
-        )
-        val competingId = SearchResultId(
-            pluginId = PluginId("ru.test.plugin"),
-            commandName = "apps",
-            itemId = CommandItemId("reddit-apk")
-        )
-        val merged = ranker.merge(
-            commandResults = emptyList(),
-            liveResults = listOf(
-                rankedLiveResult(
-                    resultId = preferredId,
-                    title = "Reddit",
-                    stableOrder = 1
-                ),
-                rankedLiveResult(
-                    resultId = competingId,
-                    title = "Reddit APK",
-                    stableOrder = 0
-                )
-            ),
-            cachedResults = listOf(
-                rankedCachedResult(
-                    resultId = preferredId,
-                    title = "Reddit",
-                    usageBoost = 0.35,
-                    stableOrder = 100
-                )
-            ),
-            limit = 10
-        )
+        val preferredId =
+            SearchResultId(
+                pluginId = PluginId("ru.test.plugin"),
+                commandName = "apps",
+                itemId = CommandItemId("reddit-app"),
+            )
+        val competingId =
+            SearchResultId(
+                pluginId = PluginId("ru.test.plugin"),
+                commandName = "apps",
+                itemId = CommandItemId("reddit-apk"),
+            )
+        val merged =
+            ranker.merge(
+                commandResults = emptyList(),
+                liveResults =
+                    listOf(
+                        rankedLiveResult(
+                            resultId = preferredId,
+                            title = "Reddit",
+                            stableOrder = 1,
+                        ),
+                        rankedLiveResult(
+                            resultId = competingId,
+                            title = "Reddit APK",
+                            stableOrder = 0,
+                        ),
+                    ),
+                cachedResults =
+                    listOf(
+                        rankedCachedResult(
+                            resultId = preferredId,
+                            title = "Reddit",
+                            usageBoost = 0.35,
+                            stableOrder = 100,
+                        ),
+                    ),
+                limit = 10,
+            )
 
         val first = assertIs<SearchResultSet.LiveSearchResult>(merged.first())
         assertEquals("reddit-app", first.resultId.itemId.value)
@@ -188,10 +200,11 @@ class SearchRankingTest {
 
     @Test
     fun `command title is searchable even when live regex rejects query`() {
-        val runtime = FakeSearchRuntime(
-            manifest = manifest(match = "[0-9].*"),
-            contentItems = emptyList()
-        )
+        val runtime =
+            FakeSearchRuntime(
+                manifest = manifest(match = "[0-9].*"),
+                contentItems = emptyList(),
+            )
 
         val rankedCommands = ranker.rankCommands("Calculator", listOf(commandItem(runtime)), limit = 10)
 
@@ -201,147 +214,173 @@ class SearchRankingTest {
 
     @Test
     fun `inline calculator result stays ahead of dense cached expression matches`() {
-        val runtime = FakeSearchRuntime(
-            manifest = manifest(match = "[0-9].*"),
-            contentItems = emptyList()
-        )
-        val commandResults = ranker.rankCommands(
-            query = "1+1",
-            commandsSnapshot = listOf(commandItem(runtime, trailingText = "2")),
-            limit = 10
-        )
-        val cachedResults = ranker.rankCached(
-            query = SearchQueryNormalizer.from("1+1"),
-            ftsCandidates = listOf(cachedCandidate(contentId = 1, itemId = "history", title = "1 1 1")),
-            fallbackCandidates = emptyList(),
-            limit = 10,
-            nowEpochMs = 1_000
-        )
+        val runtime =
+            FakeSearchRuntime(
+                manifest = manifest(match = "[0-9].*"),
+                contentItems = emptyList(),
+            )
+        val commandResults =
+            ranker.rankCommands(
+                query = "1+1",
+                commandsSnapshot = listOf(commandItem(runtime, trailingText = "2")),
+                limit = 10,
+            )
+        val cachedResults =
+            ranker.rankCached(
+                query = SearchQueryNormalizer.from("1+1"),
+                ftsCandidates = listOf(cachedCandidate(contentId = 1, itemId = "history", title = "1 1 1")),
+                fallbackCandidates = emptyList(),
+                limit = 10,
+                nowEpochMs = 1_000,
+            )
 
-        val merged = ranker.merge(
-            commandResults = commandResults,
-            liveResults = emptyList(),
-            cachedResults = cachedResults,
-            limit = 10
-        )
+        val merged =
+            ranker.merge(
+                commandResults = commandResults,
+                liveResults = emptyList(),
+                cachedResults = cachedResults,
+                limit = 10,
+            )
 
         val first = assertIs<SearchResultSet.CommandSearchResult>(merged.first())
         assertEquals(PluginUiText.Plain("2"), first.listEntry.trailingText)
     }
 
     @Test
-    fun `room fts finds normalized prefix and acronym columns`() = runTest {
-        val dbFile = File.createTempFile("raydroid-search", ".db").apply { delete() }
-        val database = getAppDatabase(getDatabaseBuilder(dbFile.absolutePath.toPath()))
-        val dao = database.getSearchIndexCacheDao()
-        val titleSearch = SearchQueryNormalizer.searchable("Visual Studio Code")
-        val descriptionSearch = SearchQueryNormalizer.searchable("Code editor")
+    fun `room fts finds normalized prefix and acronym columns`() =
+        runTest {
+            val dbFile = File.createTempFile("raydroid-search", ".db").apply { delete() }
+            val database = getAppDatabase(getDatabaseBuilder(dbFile.absolutePath.toPath()))
+            val dao = database.getSearchIndexCacheDao()
+            val titleSearch = SearchQueryNormalizer.searchable("Visual Studio Code")
+            val descriptionSearch = SearchQueryNormalizer.searchable("Code editor")
 
-        try {
-            dao.insert(
-                SearchIndexCacheWithContent(
-                    searchIndexCache = SearchIndexCacheEntity(
-                        pluginId = "ru.test.plugin",
-                        command = "apps",
-                        itemId = "vscode",
-                        icon = null,
-                        iconType = null,
-                        iconColor = null
+            try {
+                dao.insert(
+                    SearchIndexCacheWithContent(
+                        searchIndexCache =
+                            SearchIndexCacheEntity(
+                                pluginId = "ru.test.plugin",
+                                command = "apps",
+                                itemId = "vscode",
+                                icon = null,
+                                iconType = null,
+                                iconColor = null,
+                            ),
+                        content =
+                            listOf(
+                                SearchIndexCacheContentEntity(
+                                    title = "Visual Studio Code",
+                                    description = "Code editor",
+                                    titleSearch = titleSearch,
+                                    descriptionSearch = descriptionSearch,
+                                    acronymSearch = SearchQueryNormalizer.acronym("Visual Studio Code"),
+                                ),
+                            ),
                     ),
-                    content = listOf(
-                        SearchIndexCacheContentEntity(
-                            title = "Visual Studio Code",
-                            description = "Code editor",
-                            titleSearch = titleSearch,
-                            descriptionSearch = descriptionSearch,
-                            acronymSearch = SearchQueryNormalizer.acronym("Visual Studio Code")
-                        )
-                    )
                 )
-            )
 
-            assertEquals("Visual Studio Code", dao.searchFtsCandidates("visual*", 10).first().single().title)
-            assertEquals("Visual Studio Code", dao.searchFtsCandidates("vsc*", 10).first().single().title)
-        } finally {
-            database.close()
-            dbFile.delete()
+                assertEquals(
+                    "Visual Studio Code",
+                    dao
+                        .searchFtsCandidates("visual*", 10)
+                        .first()
+                        .single()
+                        .title,
+                )
+                assertEquals(
+                    "Visual Studio Code",
+                    dao
+                        .searchFtsCandidates("vsc*", 10)
+                        .first()
+                        .single()
+                        .title,
+                )
+            } finally {
+                database.close()
+                dbFile.delete()
+            }
         }
-    }
 
     @Test
-    fun `cache refresh preserves usage history for ranking`() = runTest {
-        val dbFile = File.createTempFile("raydroid-search-usage", ".db").apply { delete() }
-        val database = getAppDatabase(getDatabaseBuilder(dbFile.absolutePath.toPath()))
-        val dao = database.getSearchIndexCacheDao()
+    fun `cache refresh preserves usage history for ranking`() =
+        runTest {
+            val dbFile = File.createTempFile("raydroid-search-usage", ".db").apply { delete() }
+            val database = getAppDatabase(getDatabaseBuilder(dbFile.absolutePath.toPath()))
+            val dao = database.getSearchIndexCacheDao()
 
-        try {
-            dao.insert(
-                SearchIndexCacheWithContent(
-                    searchIndexCache = SearchIndexCacheEntity(
-                        pluginId = "ru.test.plugin",
-                        command = "apps",
-                        itemId = "calc",
-                        icon = null,
-                        iconType = null,
-                        iconColor = null
+            try {
+                dao.insert(
+                    SearchIndexCacheWithContent(
+                        searchIndexCache =
+                            SearchIndexCacheEntity(
+                                pluginId = "ru.test.plugin",
+                                command = "apps",
+                                itemId = "calc",
+                                icon = null,
+                                iconType = null,
+                                iconColor = null,
+                            ),
+                        content =
+                            listOf(
+                                SearchIndexCacheContentEntity(
+                                    title = "Calculator",
+                                    description = "System app",
+                                    titleSearch = SearchQueryNormalizer.searchable("Calculator"),
+                                    descriptionSearch = SearchQueryNormalizer.searchable("System app"),
+                                    acronymSearch = SearchQueryNormalizer.acronym("Calculator"),
+                                ),
+                            ),
                     ),
-                    content = listOf(
-                        SearchIndexCacheContentEntity(
-                            title = "Calculator",
-                            description = "System app",
-                            titleSearch = SearchQueryNormalizer.searchable("Calculator"),
-                            descriptionSearch = SearchQueryNormalizer.searchable("System app"),
-                            acronymSearch = SearchQueryNormalizer.acronym("Calculator")
-                        )
-                    )
                 )
-            )
-            dao.updateUsage(
-                pluginId = "ru.test.plugin",
-                command = "apps",
-                itemId = "calc",
-                nowEpochMs = 1_000L
-            )
+                dao.updateUsage(
+                    pluginId = "ru.test.plugin",
+                    command = "apps",
+                    itemId = "calc",
+                    nowEpochMs = 1_000L,
+                )
 
-            dao.insert(
-                SearchIndexCacheWithContent(
-                    searchIndexCache = SearchIndexCacheEntity(
-                        pluginId = "ru.test.plugin",
-                        command = "apps",
-                        itemId = "calc",
-                        icon = "updated-icon",
-                        iconType = "resource",
-                        iconColor = null
+                dao.insert(
+                    SearchIndexCacheWithContent(
+                        searchIndexCache =
+                            SearchIndexCacheEntity(
+                                pluginId = "ru.test.plugin",
+                                command = "apps",
+                                itemId = "calc",
+                                icon = "updated-icon",
+                                iconType = "resource",
+                                iconColor = null,
+                            ),
+                        content =
+                            listOf(
+                                SearchIndexCacheContentEntity(
+                                    title = "Calculator",
+                                    description = "Updated app entry",
+                                    titleSearch = SearchQueryNormalizer.searchable("Calculator"),
+                                    descriptionSearch = SearchQueryNormalizer.searchable("Updated app entry"),
+                                    acronymSearch = SearchQueryNormalizer.acronym("Calculator"),
+                                ),
+                            ),
                     ),
-                    content = listOf(
-                        SearchIndexCacheContentEntity(
-                            title = "Calculator",
-                            description = "Updated app entry",
-                            titleSearch = SearchQueryNormalizer.searchable("Calculator"),
-                            descriptionSearch = SearchQueryNormalizer.searchable("Updated app entry"),
-                            acronymSearch = SearchQueryNormalizer.acronym("Calculator")
-                        )
-                    )
                 )
-            )
 
-            val recent = dao.recent(limit = 10).first().single()
-            assertEquals(1L, recent.usageCount)
-            assertEquals(1_000L, recent.lastUsedAtEpochMs)
-            assertEquals("Updated app entry", recent.description)
-        } finally {
-            database.close()
-            dbFile.delete()
+                val recent = dao.recent(limit = 10).first().single()
+                assertEquals(1L, recent.usageCount)
+                assertEquals(1_000L, recent.lastUsedAtEpochMs)
+                assertEquals("Updated app entry", recent.description)
+            } finally {
+                database.close()
+                dbFile.delete()
+            }
         }
-    }
 
     private fun cachedCandidate(
         contentId: Long,
         itemId: String,
         title: String,
-        description: String? = null
-    ): SearchIndexCacheSearchEntity {
-        return SearchIndexCacheSearchEntity(
+        description: String? = null,
+    ): SearchIndexCacheSearchEntity =
+        SearchIndexCacheSearchEntity(
             cacheId = contentId,
             contentId = contentId,
             pluginId = "ru.test.plugin",
@@ -353,124 +392,136 @@ class SearchRankingTest {
             title = title,
             description = description,
             lastUsedAtEpochMs = null,
-            usageCount = 0
+            usageCount = 0,
         )
-    }
 
     private fun contentItem(title: String): PluginRuntime.ContentItem {
-        val listEntry = CommandListItem(
-            id = CommandItemId.Static,
-            icon = null,
-            title = UiText.Plain(title),
-            description = UiText.Plain("Inline result")
-        )
+        val listEntry =
+            CommandListItem(
+                id = CommandItemId.Static,
+                icon = null,
+                title = UiText.Plain(title),
+                description = UiText.Plain("Inline result"),
+            )
         return PluginRuntime.ContentItem(
             commandName = "apps",
-            presentation = CommandPresentation(
-                listEntry = listEntry,
-                content = emptyList()
-            ).toPluginCommandPresentation(PluginId("ru.test.plugin"))
+            presentation =
+                CommandPresentation(
+                    listEntry = listEntry,
+                    content = emptyList(),
+                ).toPluginCommandPresentation(PluginId("ru.test.plugin")),
         )
     }
 
     private fun rankedLiveResult(
         resultId: SearchResultId,
         title: String,
-        stableOrder: Long
-    ): RankedSearchResult {
-        return RankedSearchResult(
-            result = SearchResultSet.LiveSearchResult(
-                resultId = resultId,
-                listEntry = PluginCommandListItem(
-                    id = resultId.itemId,
-                    icon = null,
-                    title = PluginUiText.Plain(title),
-                    description = null
+        stableOrder: Long,
+    ): RankedSearchResult =
+        RankedSearchResult(
+            result =
+                SearchResultSet.LiveSearchResult(
+                    resultId = resultId,
+                    listEntry =
+                        PluginCommandListItem(
+                            id = resultId.itemId,
+                            icon = null,
+                            title = PluginUiText.Plain(title),
+                            description = null,
+                        ),
+                    presentation =
+                        CommandPresentation(
+                            listEntry =
+                                CommandListItem(
+                                    id = resultId.itemId,
+                                    icon = null,
+                                    title = UiText.Plain(title),
+                                    description = null,
+                                ),
+                            content = emptyList(),
+                        ).toPluginCommandPresentation(resultId.pluginId),
                 ),
-                presentation = CommandPresentation(
-                    listEntry = CommandListItem(
-                        id = resultId.itemId,
-                        icon = null,
-                        title = UiText.Plain(title),
-                        description = null
-                    ),
-                    content = emptyList()
-                ).toPluginCommandPresentation(resultId.pluginId)
-            ),
-            score = SearchResultScore(
-                textScore = 100.0,
-                prefix = true,
-                titleMatch = true,
-                live = true,
-                stableOrder = stableOrder
-            )
+            score =
+                SearchResultScore(
+                    textScore = 100.0,
+                    prefix = true,
+                    titleMatch = true,
+                    live = true,
+                    stableOrder = stableOrder,
+                ),
         )
-    }
 
     private fun rankedCachedResult(
         resultId: SearchResultId,
         title: String,
         usageBoost: Double,
-        stableOrder: Long
-    ): RankedSearchResult {
-        return RankedSearchResult(
-            result = SearchResultSet.CachedSearchResult(
-                resultId = resultId,
-                listEntry = PluginCommandListItem(
-                    id = resultId.itemId,
-                    icon = null,
-                    title = PluginUiText.Plain(title),
-                    description = null
+        stableOrder: Long,
+    ): RankedSearchResult =
+        RankedSearchResult(
+            result =
+                SearchResultSet.CachedSearchResult(
+                    resultId = resultId,
+                    listEntry =
+                        PluginCommandListItem(
+                            id = resultId.itemId,
+                            icon = null,
+                            title = PluginUiText.Plain(title),
+                            description = null,
+                        ),
+                    titleMatches = emptyList(),
+                    descriptionMatches = emptyList(),
                 ),
-                titleMatches = emptyList(),
-                descriptionMatches = emptyList()
-            ),
-            score = SearchResultScore(
-                textScore = 100.0,
-                usageBoost = usageBoost,
-                prefix = true,
-                titleMatch = true,
-                stableOrder = stableOrder
-            )
+            score =
+                SearchResultScore(
+                    textScore = 100.0,
+                    usageBoost = usageBoost,
+                    prefix = true,
+                    titleMatch = true,
+                    stableOrder = stableOrder,
+                ),
         )
-    }
 
-    private fun coordinatorContent(runtime: PluginRuntime): List<PluginRuntimeCoordinator.ContentItem> {
-        return runtime.content().value.map { contentItem ->
+    private fun coordinatorContent(runtime: PluginRuntime): List<PluginRuntimeCoordinator.ContentItem> =
+        runtime.content().value.map { contentItem ->
             PluginRuntimeCoordinator.ContentItem(
                 runtime = runtime,
                 presentation = contentItem.presentation,
                 listEntry = contentItem.presentation.listEntry,
-                resultId = SearchResultId(
-                    pluginId = runtime.pluginId,
-                    commandName = contentItem.commandName,
-                    itemId = contentItem.presentation.listEntry.id
-                )
+                resultId =
+                    SearchResultId(
+                        pluginId = runtime.pluginId,
+                        commandName = contentItem.commandName,
+                        itemId = contentItem.presentation.listEntry.id,
+                    ),
             )
         }
-    }
 
-    private fun commandItem(runtime: PluginRuntime, trailingText: String? = null): PluginRuntimeCoordinator.CommandItem {
+    private fun commandItem(
+        runtime: PluginRuntime,
+        trailingText: String? = null,
+    ): PluginRuntimeCoordinator.CommandItem {
         val command = runtime.manifest.commands.single()
         return PluginRuntimeCoordinator.CommandItem(
             runtime = runtime,
-            listEntry = PluginCommandListItem(
-                id = CommandItemId.CommandRoot,
-                icon = null,
-                title = command.title.toPluginText(runtime.pluginId),
-                description = command.description.toPluginText(runtime.pluginId),
-                trailingText = trailingText?.let(PluginUiText::Plain)
-            ),
-            resultId = SearchResultId(
-                pluginId = runtime.pluginId,
-                commandName = command.service,
-                itemId = CommandItemId.CommandRoot
-            )
+            listEntry =
+                PluginCommandListItem(
+                    id = CommandItemId.CommandRoot,
+                    icon = null,
+                    title = command.title.toPluginText(runtime.pluginId),
+                    description = command.description.toPluginText(runtime.pluginId),
+                    trailingText = trailingText?.let(PluginUiText::Plain),
+                ),
+            resultId =
+                SearchResultId(
+                    pluginId = runtime.pluginId,
+                    commandName = command.service,
+                    itemId = CommandItemId.CommandRoot,
+                ),
         )
     }
 
-    private fun manifest(match: String?): Manifest {
-        return Manifest(
+    private fun manifest(match: String?): Manifest =
+        Manifest(
             name = "ru.test.plugin",
             title = UiText.Plain("Test Plugin"),
             description = UiText.Plain("Test plugin"),
@@ -479,53 +530,61 @@ class SearchRankingTest {
             platforms = listOf(Platform.MacOS),
             categories = emptyList(),
             license = "MIT",
-            commands = listOf(
-                Command(
-                    service = "apps",
-                    title = UiText.Plain("Calculator"),
-                    description = UiText.Plain("Calculator command"),
-                    mode = Command.Mode.Inline,
-                    match = match,
-                    arguments = emptyList(),
-                    preferences = emptyList()
-                )
-            ),
-            resources = emptyMap()
+            commands =
+                listOf(
+                    Command(
+                        service = "apps",
+                        title = UiText.Plain("Calculator"),
+                        description = UiText.Plain("Calculator command"),
+                        mode = Command.Mode.Inline,
+                        match = match,
+                        arguments = emptyList(),
+                        preferences = emptyList(),
+                    ),
+                ),
+            resources = emptyMap(),
         )
-    }
 }
 
 private class FakeSearchRuntime(
     override val manifest: Manifest,
-    contentItems: List<PluginRuntime.ContentItem>
+    contentItems: List<PluginRuntime.ContentItem>,
 ) : PluginRuntime {
     override val pluginId: PluginId = PluginId(manifest.name)
     override val resources: FileSystem = FakeFileSystem()
     private val content = MutableStateFlow(contentItems)
 
     override fun cachedItems(chunkSize: Int) = emptyFlow<List<SearchIndexMutation>>()
+
     override suspend fun cachedItems(
         commandName: String,
         requestedItems: List<CommandItemId>,
-        chunkSize: Int
+        chunkSize: Int,
     ): List<SearchIndexMutation> = emptyList()
 
     override fun content() = content
 
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = MutableStateFlow(null)
 
-    override suspend fun actions(commandName: String, itemId: CommandItemId) = emptyList<PluginCommandListAction>()
+    override suspend fun actions(
+        commandName: String,
+        itemId: CommandItemId,
+    ) = emptyList<PluginCommandListAction>()
 
     override suspend fun update(action: CommandActionBridge) = Unit
 
-    override suspend fun update(commandName: String, action: CommandActionBridge) = Unit
+    override suspend fun update(
+        commandName: String,
+        action: CommandActionBridge,
+    ) = Unit
 
     override suspend fun back(commandName: String): Boolean = false
 
     override suspend fun unload() = Unit
 }
 
-private fun UiText.toPluginText(pluginId: PluginId): PluginUiText = when (type) {
-    UiText.Type.Plain -> PluginUiText.Plain(text)
-    UiText.Type.Resource -> PluginUiText.Resource(pluginId = pluginId, key = text)
-}
+private fun UiText.toPluginText(pluginId: PluginId): PluginUiText =
+    when (type) {
+        UiText.Type.Plain -> PluginUiText.Plain(text)
+        UiText.Type.Resource -> PluginUiText.Resource(pluginId = pluginId, key = text)
+    }

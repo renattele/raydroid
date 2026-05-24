@@ -6,8 +6,8 @@ import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.PluginManager
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 internal fun Project.applyKmpBaseConvention() {
@@ -66,8 +66,15 @@ private fun PluginManager.configureWhenKmpPresent(
 private fun Project.appleTargetsEnabled(): Boolean {
     val projectPath = path.removePrefix(":").replace(':', '.')
     val propertyName = "raydroid.$projectPath.appleTargets"
-    return providers.gradleProperty(propertyName)
-        .orNull
-        ?.toBooleanStrictOrNull()
-        ?: true
+    val moduleOverride =
+        providers
+            .gradleProperty(propertyName)
+            .orNull
+            ?.toBooleanStrictOrNull()
+    val globalDefault =
+        providers
+            .gradleProperty("raydroid.appleTargets.default")
+            .orNull
+            ?.toBooleanStrictOrNull()
+    return moduleOverride ?: globalDefault ?: true
 }

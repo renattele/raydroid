@@ -8,8 +8,7 @@ internal fun noteIdBase(title: String): String =
                 char.isLetterOrDigit() -> char
                 else -> '-'
             }
-        }
-        .joinToString("")
+        }.joinToString("")
         .trim('-')
         .take(48)
         .ifBlank { "note" }

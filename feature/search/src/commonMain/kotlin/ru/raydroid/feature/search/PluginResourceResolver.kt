@@ -12,46 +12,79 @@ import ru.raydroid.plugin.host.api.ui.PluginUiText
 
 class PluginResourceResolver(
     private val plugins: Map<PluginId, PluginRuntime>,
-    private val language: String
+    private val language: String,
 ) {
-    fun resolveText(text: PluginUiText): String = when (text) {
-        is PluginUiText.Plain -> text.text
-        is PluginUiText.Resource -> {
-            val runtime = plugins[text.pluginId]
-            runtime?.let {
-                resolveLocalizedString(it.manifest.resources, text.key, language)
-            } ?: text.key
+    fun resolveText(text: PluginUiText): String =
+        when (text) {
+            is PluginUiText.Plain -> {
+                text.text
+            }
+
+            is PluginUiText.Resource -> {
+                val runtime = plugins[text.pluginId]
+                runtime?.let {
+                    resolveLocalizedString(it.manifest.resources, text.key, language)
+                } ?: text.key
+            }
         }
-    }
 
-    fun resolveIcon(icon: PluginIcon): ResolvedPluginAsset? = when (icon) {
-        is PluginIcon.Url -> ResolvedPluginAsset.RemoteUrl(icon.url)
-        is PluginIcon.Base64 -> ResolvedPluginAsset.Base64Data(icon.base64)
-        is PluginIcon.Resource -> plugins[icon.pluginId]
-            ?.let { runtime -> readBinaryResource(runtime.resources, icon.key) }
-            ?.let(ResolvedPluginAsset::BinaryData)
-        is PluginIcon.Builtin -> ResolvedPluginAsset.BuiltinName(icon.name)
-    }
+    fun resolveIcon(icon: PluginIcon): ResolvedPluginAsset? =
+        when (icon) {
+            is PluginIcon.Url -> {
+                ResolvedPluginAsset.RemoteUrl(icon.url)
+            }
 
-    fun resolveImage(image: PluginImage): ResolvedPluginAsset? = when (image) {
-        is PluginImage.Url -> ResolvedPluginAsset.RemoteUrl(image.url)
-        is PluginImage.Resource -> plugins[image.pluginId]
-            ?.let { runtime -> readBinaryResource(runtime.resources, image.key) }
-            ?.let(ResolvedPluginAsset::BinaryData)
-    }
+            is PluginIcon.Base64 -> {
+                ResolvedPluginAsset.Base64Data(icon.base64)
+            }
+
+            is PluginIcon.Resource -> {
+                plugins[icon.pluginId]
+                    ?.let { runtime -> readBinaryResource(runtime.resources, icon.key) }
+                    ?.let(ResolvedPluginAsset::BinaryData)
+            }
+
+            is PluginIcon.Builtin -> {
+                ResolvedPluginAsset.BuiltinName(icon.name)
+            }
+        }
+
+    fun resolveImage(image: PluginImage): ResolvedPluginAsset? =
+        when (image) {
+            is PluginImage.Url -> {
+                ResolvedPluginAsset.RemoteUrl(image.url)
+            }
+
+            is PluginImage.Resource -> {
+                plugins[image.pluginId]
+                    ?.let { runtime -> readBinaryResource(runtime.resources, image.key) }
+                    ?.let(ResolvedPluginAsset::BinaryData)
+            }
+        }
 }
 
 sealed interface ResolvedPluginAsset {
-    data class RemoteUrl(val url: String) : ResolvedPluginAsset
-    data class Base64Data(val base64: String) : ResolvedPluginAsset
-    data class BinaryData(val bytes: ByteArray) : ResolvedPluginAsset
-    data class BuiltinName(val name: String) : ResolvedPluginAsset
+    data class RemoteUrl(
+        val url: String,
+    ) : ResolvedPluginAsset
+
+    data class Base64Data(
+        val base64: String,
+    ) : ResolvedPluginAsset
+
+    data class BinaryData(
+        val bytes: ByteArray,
+    ) : ResolvedPluginAsset
+
+    data class BuiltinName(
+        val name: String,
+    ) : ResolvedPluginAsset
 }
 
 private fun resolveLocalizedString(
     resources: Resources,
     key: String,
-    language: String
+    language: String,
 ): String? {
     val localizedBucket = resources["strings-$language"]
     val defaultBucket = resources[DEFAULT_STRINGS_BUCKET]
@@ -60,15 +93,14 @@ private fun resolveLocalizedString(
 
 private fun readBinaryResource(
     resources: FileSystem,
-    key: String
-): ByteArray? {
-    return try {
+    key: String,
+): ByteArray? =
+    try {
         resources.read("plugin/resources/$key".toPath()) {
             readByteArray()
         }
     } catch (_: IOException) {
         null
     }
-}
 
 private const val DEFAULT_STRINGS_BUCKET = "strings"

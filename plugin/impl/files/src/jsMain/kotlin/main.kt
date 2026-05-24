@@ -3,6 +3,7 @@ import ru.raydroid.plugin.impl.files.FilesCommand
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-fun main() = plugin {
-    command(FilesCommand())
-}
+fun main() =
+    plugin {
+        command(FilesCommand())
+    }

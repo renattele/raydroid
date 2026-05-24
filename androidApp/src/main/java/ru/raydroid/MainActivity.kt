@@ -6,13 +6,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import ru.raydroid.plugin.host.impl.services.AndroidRuntimePermissionGateway
 
+private const val DefaultBackgroundBlurRadius = 25
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AndroidRuntimePermissionGateway.attach(this)
         enableEdgeToEdge()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            window.setBackgroundBlurRadius(25);
+            window.setBackgroundBlurRadius(DefaultBackgroundBlurRadius)
         }
         setContent {
             AndroidApp()
@@ -27,7 +29,7 @@ class MainActivity : ComponentActivity() {
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,
-        grantResults: IntArray
+        grantResults: IntArray,
     ) {
         if (!AndroidRuntimePermissionGateway.onRequestPermissionsResult(requestCode, permissions, grantResults)) {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)

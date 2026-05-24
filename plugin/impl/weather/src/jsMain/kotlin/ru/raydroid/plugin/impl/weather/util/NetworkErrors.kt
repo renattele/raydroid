@@ -5,7 +5,9 @@ import ru.raydroid.plugin.api.model.UiText
 
 internal fun Int.isSuccess(): Boolean = this in 200..299
 
-internal class WeatherUserException(val text: UiText) : Throwable()
+internal class WeatherUserException(
+    val text: UiText,
+) : Throwable()
 
 internal fun openWeatherException(statusCode: Int): WeatherUserException =
     when (statusCode) {
@@ -15,8 +17,7 @@ internal fun openWeatherException(statusCode: Int): WeatherUserException =
         else -> WeatherUserException(UiText.Resource("weather.error.openWeather"))
     }
 
-internal fun Throwable.isCancellation(): Boolean =
-    this is CancellationException || message == "cancelled" || message == "canceled"
+internal fun Throwable.isCancellation(): Boolean = this is CancellationException || message == "cancelled" || message == "canceled"
 
 internal fun Throwable.weatherErrorText(fallback: UiText): UiText {
     val text = message.orEmpty().lowercase()

@@ -20,11 +20,12 @@ private fun getLocalFilesPath(): Path {
     val os = System.getProperty("os.name").lowercase()
     val userHome = System.getProperty("user.home")
 
-    val baseDir = when {
-        os.contains("win") -> System.getenv("APPDATA")
-        os.contains("mac") -> "$userHome/Library/Application Support"
-        else -> "$userHome/.local/share"
-    }
+    val baseDir =
+        when {
+            os.contains("win") -> System.getenv("APPDATA")
+            os.contains("mac") -> "$userHome/Library/Application Support"
+            else -> "$userHome/.local/share"
+        }
 
     val appDir = File(baseDir, "Raydroid")
     if (!appDir.exists()) {
@@ -34,23 +35,29 @@ private fun getLocalFilesPath(): Path {
     return appDir.absolutePath.toPath()
 }
 
-internal actual val pluginPlatformModule = module {
-    single<ClipboardServiceBridge> { ClipboardServiceBridgeImpl() }
-    single<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
-    single<FileSystem>(named("localFileSystem")) {
-        FileSystem.SYSTEM
+internal actual val pluginPlatformModule =
+    module {
+        single<ClipboardServiceBridge> { ClipboardServiceBridgeImpl() }
+        single<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
+        single<FileSystem>(named("localFileSystem")) {
+            FileSystem.SYSTEM
+        }
+        single<Path>(named("localPath")) {
+            getLocalFilesPath()
+        }
+        factory<CoroutineDispatcher> {
+            Executors
+                .newSingleThreadExecutor {
+                    Thread(
+                        // group =
+                        null,
+                        // task =
+                        it,
+                        // name =
+                        "Zipline Executor",
+                        // stackSize =
+                        256000,
+                    )
+                }.asCoroutineDispatcher()
+        }
     }
-    single<Path>(named("localPath")) {
-        getLocalFilesPath()
-    }
-    factory<CoroutineDispatcher> {
-        Executors.newSingleThreadExecutor {
-            Thread(
-                /* group = */ null,
-                /* task = */ it,
-                /* name = */ "Zipline Executor",
-                /* stackSize = */ 256000
-            )
-        }.asCoroutineDispatcher()
-    }
-}

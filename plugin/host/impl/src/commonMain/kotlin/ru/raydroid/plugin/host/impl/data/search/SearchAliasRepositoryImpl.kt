@@ -6,9 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -31,64 +31,72 @@ import ru.raydroid.plugin.host.api.domain.repository.SearchAliasRepository
 
 internal class SearchAliasRepositoryImpl(
     private val dataStore: DataStore<Preferences>,
-    private val json: Json
+    private val json: Json,
 ) : SearchAliasRepository {
-    override fun observeAliases(): Flow<Map<SearchResultId, String>> {
-        return callbackFlow {
-            val job = launch {
-                dataStore.data.collect { preferences ->
-                    val storedValue = preferences[AliasesKey]
-                    val document = decode(storedValue)
-                    val canonical = document.canonicalize()
-                    if (storedValue != canonical.encode()) {
-                        dataStore.updateData { latest ->
-                            latest.toMutablePreferences().also { mutablePreferences ->
-                                mutablePreferences.writeDocument(
-                                    decode(latest[AliasesKey]).canonicalize()
-                                )
+    override fun observeAliases(): Flow<Map<SearchResultId, String>> =
+        callbackFlow {
+            val job =
+                launch {
+                    dataStore.data.collect { preferences ->
+                        val storedValue = preferences[AliasesKey]
+                        val document = decode(storedValue)
+                        val canonical = document.canonicalize()
+                        if (storedValue != canonical.encode()) {
+                            dataStore.updateData { latest ->
+                                latest.toMutablePreferences().also { mutablePreferences ->
+                                    mutablePreferences.writeDocument(
+                                        decode(latest[AliasesKey]).canonicalize(),
+                                    )
+                                }
                             }
                         }
+                        trySend(canonical.toAliasMap())
                     }
-                    trySend(canonical.toAliasMap())
                 }
-            }
             awaitClose { job.cancel() }
         }
-    }
 
     override suspend fun saveAlias(
         resultId: SearchResultId,
-        alias: String
-    ): SearchAliasSaveResult {
-        return when (val normalized = SearchAliasNormalizer.normalize(alias)) {
-            is SearchAliasNormalizationResult.Invalid -> SearchAliasSaveResult.Invalid(normalized.reason)
+        alias: String,
+    ): SearchAliasSaveResult =
+        when (val normalized = SearchAliasNormalizer.normalize(alias)) {
+            is SearchAliasNormalizationResult.Invalid -> {
+                SearchAliasSaveResult.Invalid(normalized.reason)
+            }
+
             is SearchAliasNormalizationResult.Valid -> {
                 var saveResult: SearchAliasSaveResult? = null
                 dataStore.updateData { preferences ->
                     val document = decode(preferences[AliasesKey]).canonicalize()
-                    val conflict = document.entries.firstOrNull { entry ->
-                        entry.alias == normalized.normalized && entry.resultId() != resultId
-                    }
-                    val nextDocument = if (conflict != null) {
-                        saveResult = SearchAliasSaveResult.Conflict(
-                            alias = conflict.alias,
-                            existingResultId = conflict.resultId()
-                        )
-                        document
-                    } else {
-                        saveResult = SearchAliasSaveResult.Success(
-                            SearchAliasEntry(
-                                resultId = resultId,
-                                alias = normalized.normalized
+                    val conflict =
+                        document.entries.firstOrNull { entry ->
+                            entry.alias == normalized.normalized && entry.resultId() != resultId
+                        }
+                    val nextDocument =
+                        if (conflict != null) {
+                            saveResult =
+                                SearchAliasSaveResult.Conflict(
+                                    alias = conflict.alias,
+                                    existingResultId = conflict.resultId(),
+                                )
+                            document
+                        } else {
+                            saveResult =
+                                SearchAliasSaveResult.Success(
+                                    SearchAliasEntry(
+                                        resultId = resultId,
+                                        alias = normalized.normalized,
+                                    ),
+                                )
+                            SearchAliasDocument(
+                                entries =
+                                    document.entries
+                                        .filterNot { entry -> entry.resultId() == resultId }
+                                        .plus(SearchAliasRecord.from(resultId, normalized.normalized))
+                                        .sortedBy { entry -> entry.alias },
                             )
-                        )
-                        SearchAliasDocument(
-                            entries = document.entries
-                                .filterNot { entry -> entry.resultId() == resultId }
-                                .plus(SearchAliasRecord.from(resultId, normalized.normalized))
-                                .sortedBy { entry -> entry.alias }
-                        )
-                    }
+                        }
                     preferences.toMutablePreferences().also { mutablePreferences ->
                         mutablePreferences.writeDocument(nextDocument)
                     }
@@ -96,12 +104,14 @@ internal class SearchAliasRepositoryImpl(
                 checkNotNull(saveResult)
             }
         }
-    }
 
     override suspend fun removeAlias(resultId: SearchResultId) {
         dataStore.updateData { preferences ->
-            val updatedEntries = decode(preferences[AliasesKey]).canonicalize().entries
-                .filterNot { entry -> entry.resultId() == resultId }
+            val updatedEntries =
+                decode(preferences[AliasesKey])
+                    .canonicalize()
+                    .entries
+                    .filterNot { entry -> entry.resultId() == resultId }
             preferences.toMutablePreferences().also { mutablePreferences ->
                 mutablePreferences.writeDocument(SearchAliasDocument(updatedEntries))
             }
@@ -110,7 +120,9 @@ internal class SearchAliasRepositoryImpl(
 
     override suspend fun resolveExactAlias(alias: String): SearchResultId? {
         val normalized = SearchAliasNormalizer.normalizeLookup(alias) ?: return null
-        return decode(dataStore.data.first()[AliasesKey]).canonicalize().entries
+        return decode(dataStore.data.first()[AliasesKey])
+            .canonicalize()
+            .entries
             .firstOrNull { entry -> entry.alias == normalized }
             ?.resultId()
     }
@@ -119,23 +131,23 @@ internal class SearchAliasRepositoryImpl(
         if (value.isNullOrBlank()) return SearchAliasDocument()
         return runCatching {
             val root = json.parseToJsonElement(value).jsonObject
-            val entries = root["entries"]
-                ?.jsonArray
-                ?.mapNotNull { item ->
-                    item.jsonObject.toSearchAliasRecordOrNull()
-                }
-                .orEmpty()
+            val entries =
+                root["entries"]
+                    ?.jsonArray
+                    ?.mapNotNull { item ->
+                        item.jsonObject.toSearchAliasRecordOrNull()
+                    }.orEmpty()
             SearchAliasDocument(entries)
         }.getOrDefault(SearchAliasDocument())
     }
 
-    private fun SearchAliasDocument.toAliasMap(): Map<SearchResultId, String> {
-        return entries.mapNotNull { entry ->
-            runCatching {
-                entry.resultId() to entry.alias
-            }.getOrNull()
-        }.toMap()
-    }
+    private fun SearchAliasDocument.toAliasMap(): Map<SearchResultId, String> =
+        entries
+            .mapNotNull { entry ->
+                runCatching {
+                    entry.resultId() to entry.alias
+                }.getOrNull()
+            }.toMap()
 
     private fun MutablePreferences.writeDocument(document: SearchAliasDocument) {
         this[AliasesKey] = document.encode()
@@ -147,40 +159,42 @@ internal class SearchAliasRepositoryImpl(
 }
 
 private data class SearchAliasDocument(
-    val entries: List<SearchAliasRecord> = emptyList()
+    val entries: List<SearchAliasRecord> = emptyList(),
 ) {
     fun encode(): String {
-        val root = buildJsonObject {
-            put(
-                "entries",
-                buildJsonArray {
-                    entries.forEach { entry ->
-                        add(
-                            buildJsonObject {
-                                put("pluginId", JsonPrimitive(entry.pluginId))
-                                put("commandName", JsonPrimitive(entry.commandName))
-                                put("itemId", JsonPrimitive(entry.itemId))
-                                put("alias", JsonPrimitive(entry.alias))
-                            }
-                        )
-                    }
-                }
-            )
-        }
+        val root =
+            buildJsonObject {
+                put(
+                    "entries",
+                    buildJsonArray {
+                        entries.forEach { entry ->
+                            add(
+                                buildJsonObject {
+                                    put("pluginId", JsonPrimitive(entry.pluginId))
+                                    put("commandName", JsonPrimitive(entry.commandName))
+                                    put("itemId", JsonPrimitive(entry.itemId))
+                                    put("alias", JsonPrimitive(entry.alias))
+                                },
+                            )
+                        }
+                    },
+                )
+            }
         return root.toString()
     }
 
     fun canonicalize(): SearchAliasDocument {
         val seenResultIds = linkedSetOf<SearchResultId>()
         val seenAliases = linkedSetOf<String>()
-        val canonicalEntries = buildList {
-            entries.forEach { entry ->
-                val resultId = runCatching { entry.resultId() }.getOrNull() ?: return@forEach
-                val normalizedAlias = SearchAliasNormalizer.normalizeLookup(entry.alias) ?: return@forEach
-                if (!seenResultIds.add(resultId) || !seenAliases.add(normalizedAlias)) return@forEach
-                add(SearchAliasRecord.from(resultId, normalizedAlias))
-            }
-        }.sortedBy { entry -> entry.alias }
+        val canonicalEntries =
+            buildList {
+                entries.forEach { entry ->
+                    val resultId = runCatching { entry.resultId() }.getOrNull() ?: return@forEach
+                    val normalizedAlias = SearchAliasNormalizer.normalizeLookup(entry.alias) ?: return@forEach
+                    if (!seenResultIds.add(resultId) || !seenAliases.add(normalizedAlias)) return@forEach
+                    add(SearchAliasRecord.from(resultId, normalizedAlias))
+                }
+            }.sortedBy { entry -> entry.alias }
         return SearchAliasDocument(canonicalEntries)
     }
 }
@@ -189,25 +203,26 @@ private data class SearchAliasRecord(
     val pluginId: String,
     val commandName: String,
     val itemId: String,
-    val alias: String
+    val alias: String,
 ) {
-    fun resultId(): SearchResultId {
-        return SearchResultId(
+    fun resultId(): SearchResultId =
+        SearchResultId(
             pluginId = PluginId(pluginId),
             commandName = commandName,
-            itemId = CommandItemId(itemId)
+            itemId = CommandItemId(itemId),
         )
-    }
 
     companion object {
-        fun from(resultId: SearchResultId, alias: String): SearchAliasRecord {
-            return SearchAliasRecord(
+        fun from(
+            resultId: SearchResultId,
+            alias: String,
+        ): SearchAliasRecord =
+            SearchAliasRecord(
                 pluginId = resultId.pluginId.id,
                 commandName = resultId.commandName,
                 itemId = resultId.itemId.value,
-                alias = alias
+                alias = alias,
             )
-        }
     }
 }
 
@@ -220,6 +235,6 @@ private fun JsonObject.toSearchAliasRecordOrNull(): SearchAliasRecord? {
         pluginId = pluginId,
         commandName = commandName,
         itemId = itemId,
-        alias = alias
+        alias = alias,
     )
 }

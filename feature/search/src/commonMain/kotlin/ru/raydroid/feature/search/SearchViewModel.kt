@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
-import ru.raydroid.plugin.api.host.service.SearchFieldState as ApiSearchFieldState
 import ru.raydroid.plugin.api.manifest.Command
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.runtime.CommandAction
@@ -36,9 +35,9 @@ import ru.raydroid.plugin.host.api.application.usecase.GetEventsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetPluginsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.GetSearchFieldRequestsUseCase
 import ru.raydroid.plugin.host.api.application.usecase.LoadRuntimesUseCase
+import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.RemoveSearchAliasUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SaveSearchAliasUseCase
-import ru.raydroid.plugin.host.api.application.usecase.OpenCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SearchUseCase
 import ru.raydroid.plugin.host.api.application.usecase.SyncCacheUseCase
 import ru.raydroid.plugin.host.api.application.usecase.UpdateCommandQueryUseCase
@@ -61,6 +60,7 @@ import ru.raydroid.plugin.host.api.ui.PluginRayNodeData
 import ru.raydroid.plugin.host.api.ui.PluginUiText
 import ru.raydroid.plugin.host.api.ui.pluginFocusModel
 import ru.raydroid.plugin.host.api.ui.toPluginUiText
+import ru.raydroid.plugin.api.host.service.SearchFieldState as ApiSearchFieldState
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class SearchViewModel(
@@ -80,7 +80,7 @@ class SearchViewModel(
     private val updateCommandQueryUseCase: UpdateCommandQueryUseCase,
     private val saveSearchAliasUseCase: SaveSearchAliasUseCase,
     private val removeSearchAliasUseCase: RemoveSearchAliasUseCase,
-    private val backCommandUseCase: BackCommandUseCase? = null
+    private val backCommandUseCase: BackCommandUseCase? = null,
 ) {
     constructor(
         syncCacheUseCase: SyncCacheUseCase,
@@ -98,7 +98,7 @@ class SearchViewModel(
         getSearchFieldRequestsUseCase: GetSearchFieldRequestsUseCase,
         updateCommandQueryUseCase: UpdateCommandQueryUseCase,
         saveSearchAliasUseCase: SaveSearchAliasUseCase,
-        removeSearchAliasUseCase: RemoveSearchAliasUseCase
+        removeSearchAliasUseCase: RemoveSearchAliasUseCase,
     ) : this(
         applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
         syncCacheUseCase = syncCacheUseCase,
@@ -116,20 +116,22 @@ class SearchViewModel(
         updateCommandQueryUseCase = updateCommandQueryUseCase,
         saveSearchAliasUseCase = saveSearchAliasUseCase,
         removeSearchAliasUseCase = removeSearchAliasUseCase,
-        backCommandUseCase = backCommandUseCase
+        backCommandUseCase = backCommandUseCase,
     )
 
     private val backingState = MutableStateFlow(SearchViewModelState())
-    private val scope = CoroutineScope(
-        applicationScope.coroutineContext.minusKey(Job) + SupervisorJob()
-    )
-    val state = backingState
-        .map { it.toScreenState() }
-        .stateIn(
-            scope = scope,
-            started = SharingStarted.Eagerly,
-            initialValue = backingState.value.toScreenState()
+    private val scope =
+        CoroutineScope(
+            applicationScope.coroutineContext.minusKey(Job) + SupervisorJob(),
         )
+    val state =
+        backingState
+            .map { it.toScreenState() }
+            .stateIn(
+                scope = scope,
+                started = SharingStarted.Eagerly,
+                initialValue = backingState.value.toScreenState(),
+            )
 
     private var fullscreenJob: Job? = null
     private val toastDismissJobs = mutableMapOf<String, Job>()
@@ -159,15 +161,16 @@ class SearchViewModel(
                     }
                     focusFullscreenItem(currentState.fullscreen.focusedItemId)
                 } else {
-                    val focusedActions = currentState.searchResults.actionsForFocused(
-                        currentState.focusedItemIndex,
-                        pluginMap
-                    )
+                    val focusedActions =
+                        currentState.searchResults.actionsForFocused(
+                            currentState.focusedItemIndex,
+                            pluginMap,
+                        )
                     backingState.update { uiState ->
                         uiState.copy(
                             plugins = pluginMap,
                             focusedActions = focusedActions,
-                            showActions = uiState.showActions && focusedActions.isNotEmpty()
+                            showActions = uiState.showActions && focusedActions.isNotEmpty(),
                         )
                     }
                 }
@@ -200,35 +203,37 @@ class SearchViewModel(
                     backingState.update { uiState ->
                         uiState.copy(
                             isSearching = uiState.searchResults == null,
-                            focusedItemIndex = uiState.searchResults
-                                ?.results
-                                ?.takeIf { results -> results.isNotEmpty() }
-                                ?.let { 0 },
+                            focusedItemIndex =
+                                uiState.searchResults
+                                    ?.results
+                                    ?.takeIf { results -> results.isNotEmpty() }
+                                    ?.let { 0 },
                             focusedActions = emptyList(),
                             showActions = false,
                             contextActions = emptyList(),
                             showContextActions = false,
-                            activeContextSourceId = null
+                            activeContextSourceId = null,
                         )
                     }
-                }
-                .debounce(SEARCH_DEBOUNCE_MS)
+                }.debounce(SEARCH_DEBOUNCE_MS)
                 .collectLatest { query ->
                     var focusInitialized = false
                     searchUseCase(query).collectLatest { searchResults ->
                         val currentState = backingState.value
-                        val focusedIndex = if (!focusInitialized) {
-                            searchResults.results.takeIf { it.isNotEmpty() }?.let { 0 }
-                        } else {
-                            searchResults.results.takeIf { it.isNotEmpty() }?.let { results ->
-                                currentState.focusedItemIndex?.coerceIn(0, results.lastIndex)
+                        val focusedIndex =
+                            if (!focusInitialized) {
+                                searchResults.results.takeIf { it.isNotEmpty() }?.let { 0 }
+                            } else {
+                                searchResults.results.takeIf { it.isNotEmpty() }?.let { results ->
+                                    currentState.focusedItemIndex?.coerceIn(0, results.lastIndex)
+                                }
                             }
-                        }
                         focusInitialized = true
-                        val focusedActions = searchResults.actionsForFocused(
-                            focusedIndex,
-                            currentState.plugins
-                        )
+                        val focusedActions =
+                            searchResults.actionsForFocused(
+                                focusedIndex,
+                                currentState.plugins,
+                            )
                         backingState.update { uiState ->
                             uiState.copy(
                                 searchResults = searchResults,
@@ -238,7 +243,7 @@ class SearchViewModel(
                                 showActions = uiState.showActions && focusedActions.isNotEmpty(),
                                 contextActions = emptyList(),
                                 showContextActions = false,
-                                activeContextSourceId = null
+                                activeContextSourceId = null,
                             )
                         }
                     }
@@ -250,8 +255,7 @@ class SearchViewModel(
                     uiState.fullscreen?.let { fullscreen ->
                         FullscreenQuery(fullscreen.resultId, fullscreen.searchFieldState.query)
                     }
-                }
-                .distinctUntilChanged()
+                }.distinctUntilChanged()
                 .onEach { fullscreenQuery ->
                     if (fullscreenQuery?.query?.isNotEmpty() == true) {
                         backingState.update { uiState ->
@@ -260,18 +264,17 @@ class SearchViewModel(
                                 uiState
                             } else {
                                 uiState.copy(
-                                    fullscreen = fullscreen.copy(exitBackspaceCount = 0)
+                                    fullscreen = fullscreen.copy(exitBackspaceCount = 0),
                                 )
                             }
                         }
                     }
-                }
-                .debounce(SEARCH_DEBOUNCE_MS)
+                }.debounce(SEARCH_DEBOUNCE_MS)
                 .collectLatest { fullscreenQuery ->
                     if (fullscreenQuery != null) {
                         updateCommandQueryUseCase(
                             resultId = fullscreenQuery.resultId,
-                            query = fullscreenQuery.query
+                            query = fullscreenQuery.query,
                         )
                         focusFullscreenItem(backingState.value.fullscreen?.focusedItemId)
                     }
@@ -289,10 +292,11 @@ class SearchViewModel(
                         uiState
                     } else {
                         uiState.copy(
-                            fullscreen = currentFullscreen.copy(
-                                searchFieldState = currentFullscreen.searchFieldState.apply(request.state),
-                                exitBackspaceCount = 0
-                            )
+                            fullscreen =
+                                currentFullscreen.copy(
+                                    searchFieldState = currentFullscreen.searchFieldState.apply(request.state),
+                                    exitBackspaceCount = 0,
+                                ),
                         )
                     }
                 }
@@ -315,10 +319,11 @@ class SearchViewModel(
     fun openSearch(query: String) {
         backingState.update { uiState ->
             uiState.copy(
-                searchFieldState = SearchFieldUiState(
-                    query = query,
-                    selection = SearchFieldSelection.CursorAtEnd
-                )
+                searchFieldState =
+                    SearchFieldUiState(
+                        query = query,
+                        selection = SearchFieldSelection.CursorAtEnd,
+                    ),
             )
         }
     }
@@ -326,10 +331,11 @@ class SearchViewModel(
     fun openCommand(query: String) {
         backingState.update { uiState ->
             uiState.copy(
-                searchFieldState = SearchFieldUiState(
-                    query = query,
-                    selection = SearchFieldSelection.CursorAtEnd
-                )
+                searchFieldState =
+                    SearchFieldUiState(
+                        query = query,
+                        selection = SearchFieldSelection.CursorAtEnd,
+                    ),
             )
         }
     }
@@ -339,7 +345,7 @@ class SearchViewModel(
             uiState.copy(
                 showActions = !uiState.showActions,
                 showContextActions = false,
-                activeContextSourceId = null
+                activeContextSourceId = null,
             )
         }
     }
@@ -349,7 +355,7 @@ class SearchViewModel(
             uiState.copy(
                 showActions = false,
                 showContextActions = false,
-                activeContextSourceId = null
+                activeContextSourceId = null,
             )
         }
     }
@@ -368,19 +374,22 @@ class SearchViewModel(
                 backingState.update { uiState ->
                     if (uiState.fullscreen != null) {
                         uiState.copy(
-                            fullscreen = uiState.fullscreen.copy(
-                                searchFieldState = uiState.fullscreen.searchFieldState.copy(
-                                    query = event.query,
-                                    selection = event.selection
-                                )
-                            )
+                            fullscreen =
+                                uiState.fullscreen.copy(
+                                    searchFieldState =
+                                        uiState.fullscreen.searchFieldState.copy(
+                                            query = event.query,
+                                            selection = event.selection,
+                                        ),
+                                ),
                         )
                     } else {
                         uiState.copy(
-                            searchFieldState = uiState.searchFieldState.copy(
-                                query = event.query,
-                                selection = event.selection
-                            )
+                            searchFieldState =
+                                uiState.searchFieldState.copy(
+                                    query = event.query,
+                                    selection = event.selection,
+                                ),
                         )
                     }
                 }
@@ -389,10 +398,11 @@ class SearchViewModel(
             is SearchScreenEvent.OpenSearch -> {
                 backingState.update { uiState ->
                     uiState.copy(
-                        searchFieldState = SearchFieldUiState(
-                            query = event.query,
-                            selection = SearchFieldSelection.CursorAtEnd
-                        )
+                        searchFieldState =
+                            SearchFieldUiState(
+                                query = event.query,
+                                selection = SearchFieldSelection.CursorAtEnd,
+                            ),
                     )
                 }
             }
@@ -400,10 +410,11 @@ class SearchViewModel(
             is SearchScreenEvent.OpenCommand -> {
                 backingState.update { uiState ->
                     uiState.copy(
-                        searchFieldState = SearchFieldUiState(
-                            query = event.query,
-                            selection = SearchFieldSelection.CursorAtEnd
-                        )
+                        searchFieldState =
+                            SearchFieldUiState(
+                                query = event.query,
+                                selection = SearchFieldSelection.CursorAtEnd,
+                            ),
                     )
                 }
             }
@@ -419,9 +430,10 @@ class SearchViewModel(
                 if (openResultId == null) {
                     return
                 }
-                val openResult = uiState.searchResults
-                    ?.results
-                    ?.firstOrNull { result -> result.resultId == openResultId }
+                val openResult =
+                    uiState.searchResults
+                        ?.results
+                        ?.firstOrNull { result -> result.resultId == openResultId }
                 when (openResult) {
                     is SearchResultSet.CommandSearchResult -> {
                         if (openResultId.commandMode() != Command.Mode.NoView) {
@@ -434,12 +446,12 @@ class SearchViewModel(
                         if (shouldOpenFullscreenOnSubmit(openResultId.commandMode())) {
                             collectFullscreen(
                                 result = openResult,
-                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot),
                             )
                         } else if (shouldCollectDeferredFullscreenOnCachedSubmit(openResultId.commandMode())) {
                             collectFullscreenWhenContentAppears(
                                 result = openResult,
-                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+                                fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot),
                             )
                         }
                         enterItemUseCase(openResultId)
@@ -455,18 +467,20 @@ class SearchViewModel(
                             if (shouldCollectDeferredFullscreenOnSubmit(openResultId.commandMode(), openResult)) {
                                 collectFullscreenWhenContentAppears(
                                     result = openResult,
-                                    fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot)
+                                    fullscreenResultId = openResultId.copy(itemId = CommandItemId.CommandRoot),
                                 )
                             }
                             executeCommandCallbackUseCase(
                                 resultId = openResultId,
                                 callback = primaryCallback,
-                                updateUsage = true
+                                updateUsage = true,
                             )
                         }
                     }
 
-                    null -> Unit
+                    null -> {
+                        Unit
+                    }
                 }
             }
 
@@ -476,25 +490,27 @@ class SearchViewModel(
                     moveFullscreenFocus(1)
                     return
                 }
-                val focusedIndex = uiState.searchResults?.let { searchResults ->
-                    nextSearchResultsFocusIndex(
-                        currentIndex = uiState.focusedItemIndex,
-                        resultCount = searchResults.results.size
-                    )
-                }
-                val focusedActions = uiState.searchResults.actionsForFocused(
-                    focusedIndex,
-                    uiState.plugins
-                )
-                backingState.update { currentState ->
-                        currentState.copy(
-                            focusedItemIndex = focusedIndex,
-                            focusedActions = focusedActions,
-                            showActions = false,
-                            contextActions = emptyList(),
-                            showContextActions = false,
-                            activeContextSourceId = null
+                val focusedIndex =
+                    uiState.searchResults?.let { searchResults ->
+                        nextSearchResultsFocusIndex(
+                            currentIndex = uiState.focusedItemIndex,
+                            resultCount = searchResults.results.size,
                         )
+                    }
+                val focusedActions =
+                    uiState.searchResults.actionsForFocused(
+                        focusedIndex,
+                        uiState.plugins,
+                    )
+                backingState.update { currentState ->
+                    currentState.copy(
+                        focusedItemIndex = focusedIndex,
+                        focusedActions = focusedActions,
+                        showActions = false,
+                        contextActions = emptyList(),
+                        showContextActions = false,
+                        activeContextSourceId = null,
+                    )
                 }
             }
 
@@ -504,25 +520,27 @@ class SearchViewModel(
                     moveFullscreenFocus(-1)
                     return
                 }
-                val focusedIndex = uiState.searchResults?.let { searchResults ->
-                    previousSearchResultsFocusIndex(
-                        currentIndex = uiState.focusedItemIndex,
-                        resultCount = searchResults.results.size
-                    )
-                }
-                val focusedActions = uiState.searchResults.actionsForFocused(
-                    focusedIndex,
-                    uiState.plugins
-                )
-                backingState.update { currentState ->
-                        currentState.copy(
-                            focusedItemIndex = focusedIndex,
-                            focusedActions = focusedActions,
-                            showActions = false,
-                            contextActions = emptyList(),
-                            showContextActions = false,
-                            activeContextSourceId = null
+                val focusedIndex =
+                    uiState.searchResults?.let { searchResults ->
+                        previousSearchResultsFocusIndex(
+                            currentIndex = uiState.focusedItemIndex,
+                            resultCount = searchResults.results.size,
                         )
+                    }
+                val focusedActions =
+                    uiState.searchResults.actionsForFocused(
+                        focusedIndex,
+                        uiState.plugins,
+                    )
+                backingState.update { currentState ->
+                    currentState.copy(
+                        focusedItemIndex = focusedIndex,
+                        focusedActions = focusedActions,
+                        showActions = false,
+                        contextActions = emptyList(),
+                        showContextActions = false,
+                        activeContextSourceId = null,
+                    )
                 }
             }
 
@@ -531,7 +549,7 @@ class SearchViewModel(
                     uiState.copy(
                         showActions = !uiState.showActions,
                         showContextActions = false,
-                        activeContextSourceId = null
+                        activeContextSourceId = null,
                     )
                 }
             }
@@ -541,7 +559,7 @@ class SearchViewModel(
                     uiState.copy(
                         showActions = false,
                         showContextActions = false,
-                        activeContextSourceId = null
+                        activeContextSourceId = null,
                     )
                 }
             }
@@ -553,7 +571,7 @@ class SearchViewModel(
                     currentState.copy(
                         contextActions = emptyList(),
                         showContextActions = false,
-                        activeContextSourceId = null
+                        activeContextSourceId = null,
                     )
                 }
                 if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
@@ -561,7 +579,7 @@ class SearchViewModel(
                         val currentFullscreen = currentState.fullscreen ?: return@update currentState
                         if (currentFullscreen.resultId == fullscreen.resultId) {
                             currentState.copy(
-                                fullscreen = currentFullscreen.copy(exitBackspaceCount = 0)
+                                fullscreen = currentFullscreen.copy(exitBackspaceCount = 0),
                             )
                         } else {
                             currentState
@@ -573,9 +591,10 @@ class SearchViewModel(
                 backingState.update { currentState ->
                     val currentFullscreen = currentState.fullscreen ?: return@update currentState
                     currentState.copy(
-                        fullscreen = currentFullscreen.copy(
-                            exitBackspaceCount = exitBackspaceCount
-                        )
+                        fullscreen =
+                            currentFullscreen.copy(
+                                exitBackspaceCount = exitBackspaceCount,
+                            ),
                     )
                 }
                 if (exitBackspaceCount >= 2) {
@@ -590,7 +609,7 @@ class SearchViewModel(
                     currentState.copy(
                         contextActions = emptyList(),
                         showContextActions = false,
-                        activeContextSourceId = null
+                        activeContextSourceId = null,
                     )
                 }
                 if (backCommandUseCase?.invoke(fullscreen.resultId) == true) {
@@ -607,28 +626,29 @@ class SearchViewModel(
                                 showActions = false,
                                 contextActions = emptyList(),
                                 showContextActions = false,
-                                activeContextSourceId = null
+                                activeContextSourceId = null,
                             )
                         }
                         executeCommandCallbackUseCase(
                             resultId = event.action.resultId,
                             callback = kind.callback,
-                            updateUsage = kind.updateUsage && event.action.updateUsage
+                            updateUsage = kind.updateUsage && event.action.updateUsage,
                         )
                     }
 
                     is SearchPanelAction.Kind.OpenAliasEditor -> {
                         backingState.update { uiState ->
                             uiState.copy(
-                                aliasEditor = SearchAliasEditorState(
-                                    resultId = event.action.resultId,
-                                    title = currentResultTitle(event.action.resultId),
-                                    input = kind.existingAlias.orEmpty(),
-                                    existingAlias = kind.existingAlias
-                                ),
+                                aliasEditor =
+                                    SearchAliasEditorState(
+                                        resultId = event.action.resultId,
+                                        title = currentResultTitle(event.action.resultId),
+                                        input = kind.existingAlias.orEmpty(),
+                                        existingAlias = kind.existingAlias,
+                                    ),
                                 showActions = false,
                                 showContextActions = false,
-                                activeContextSourceId = null
+                                activeContextSourceId = null,
                             )
                         }
                     }
@@ -637,11 +657,12 @@ class SearchViewModel(
                         removeSearchAliasUseCase(event.action.resultId)
                         backingState.update { uiState ->
                             uiState.copy(
-                                aliasEditor = uiState.aliasEditor
-                                    ?.takeUnless { editor -> editor.resultId == event.action.resultId },
+                                aliasEditor =
+                                    uiState.aliasEditor
+                                        ?.takeUnless { editor -> editor.resultId == event.action.resultId },
                                 showActions = false,
                                 showContextActions = false,
-                                activeContextSourceId = null
+                                activeContextSourceId = null,
                             )
                         }
                     }
@@ -658,55 +679,58 @@ class SearchViewModel(
                         showActions = false,
                         contextActions = emptyList(),
                         showContextActions = false,
-                        activeContextSourceId = null
+                        activeContextSourceId = null,
                     )
                 }
                 executeCommandCallbackUseCase(
                     resultId = event.resultId,
                     callback = event.callback,
-                    updateUsage = event.updateUsage
+                    updateUsage = event.updateUsage,
                 )
             }
 
             is SearchScreenEvent.ShowContextActions -> {
                 backingState.update { uiState ->
                     uiState.copy(
-                        contextActions = event.actions.toSearchPanelActions(updateUsage = false).map { action ->
-                            FocusedCommandAction(
-                                resultId = event.resultId,
-                                action = action,
-                                updateUsage = false
-                            )
-                        },
+                        contextActions =
+                            event.actions.toSearchPanelActions(updateUsage = false).map { action ->
+                                FocusedCommandAction(
+                                    resultId = event.resultId,
+                                    action = action,
+                                    updateUsage = false,
+                                )
+                            },
                         showContextActions = event.actions.isNotEmpty(),
                         showActions = false,
-                        activeContextSourceId = event.sourceId.takeIf { event.actions.isNotEmpty() }
+                        activeContextSourceId = event.sourceId.takeIf { event.actions.isNotEmpty() },
                     )
                 }
             }
 
             is SearchScreenEvent.ShowResultContextActions -> {
                 val currentState = backingState.value
-                val result = currentState.searchResults
-                    ?.results
-                    ?.firstOrNull { searchResult -> searchResult.resultId == event.resultId }
-                    ?: return
+                val result =
+                    currentState.searchResults
+                        ?.results
+                        ?.firstOrNull { searchResult -> searchResult.resultId == event.resultId }
+                        ?: return
                 val actions = result.actions(currentState.plugins)
                 if (actions.isEmpty()) {
                     return
                 }
                 backingState.update { uiState ->
                     uiState.copy(
-                        contextActions = actions.map { action ->
-                            FocusedCommandAction(
-                                resultId = event.resultId,
-                                action = action,
-                                updateUsage = false
-                            )
-                        },
+                        contextActions =
+                            actions.map { action ->
+                                FocusedCommandAction(
+                                    resultId = event.resultId,
+                                    action = action,
+                                    updateUsage = false,
+                                )
+                            },
                         showContextActions = true,
                         showActions = false,
-                        activeContextSourceId = event.sourceId
+                        activeContextSourceId = event.sourceId,
                     )
                 }
             }
@@ -714,10 +738,11 @@ class SearchViewModel(
             is SearchScreenEvent.UpdateAliasEditorInput -> {
                 backingState.update { uiState ->
                     uiState.copy(
-                        aliasEditor = uiState.aliasEditor?.copy(
-                            input = event.value,
-                            error = null
-                        )
+                        aliasEditor =
+                            uiState.aliasEditor?.copy(
+                                input = event.value,
+                                error = null,
+                            ),
                     )
                 }
             }
@@ -734,9 +759,10 @@ class SearchViewModel(
                     is SearchAliasSaveResult.Conflict -> {
                         backingState.update { uiState ->
                             uiState.copy(
-                                aliasEditor = uiState.aliasEditor?.copy(
-                                    error = PluginUiText.Plain("Alias '${result.alias}' is already in use")
-                                )
+                                aliasEditor =
+                                    uiState.aliasEditor?.copy(
+                                        error = PluginUiText.Plain("Alias '${result.alias}' is already in use"),
+                                    ),
                             )
                         }
                     }
@@ -744,9 +770,10 @@ class SearchViewModel(
                     is SearchAliasSaveResult.Invalid -> {
                         backingState.update { uiState ->
                             uiState.copy(
-                                aliasEditor = uiState.aliasEditor?.copy(
-                                    error = PluginUiText.Plain(result.reason.message())
-                                )
+                                aliasEditor =
+                                    uiState.aliasEditor?.copy(
+                                        error = PluginUiText.Plain(result.reason.message()),
+                                    ),
                             )
                         }
                     }
@@ -781,12 +808,12 @@ class SearchViewModel(
                         alerts = uiState.alerts - event.alert,
                         contextActions = emptyList(),
                         showContextActions = false,
-                        activeContextSourceId = null
+                        activeContextSourceId = null,
                     )
                 }
                 emitEventUseCase.invoke(
                     event.alert.pluginId,
-                    AlertResult(Selection.Dismiss)
+                    AlertResult(Selection.Dismiss),
                 )
             }
 
@@ -796,12 +823,12 @@ class SearchViewModel(
                         alerts = uiState.alerts - event.alert,
                         contextActions = emptyList(),
                         showContextActions = false,
-                        activeContextSourceId = null
+                        activeContextSourceId = null,
                     )
                 }
                 emitEventUseCase.invoke(
                     event.alert.pluginId,
-                    AlertResult(Selection.Confirm)
+                    AlertResult(Selection.Confirm),
                 )
             }
 
@@ -825,7 +852,7 @@ class SearchViewModel(
                 uiState
             } else {
                 uiState.copy(
-                    fullscreen = fullscreen.copy(exitBackspaceCount = 2)
+                    fullscreen = fullscreen.copy(exitBackspaceCount = 2),
                 )
             }
         }
@@ -841,10 +868,11 @@ class SearchViewModel(
         fullscreenJob?.cancel()
         fullscreenJob = null
         closeCommandUseCase(fullscreen.resultId)
-        val focusedActions = uiState.searchResults.actionsForFocused(
-            uiState.focusedItemIndex,
-            uiState.plugins
-        )
+        val focusedActions =
+            uiState.searchResults.actionsForFocused(
+                uiState.focusedItemIndex,
+                uiState.plugins,
+            )
         backingState.update { currentState ->
             currentState.copy(
                 fullscreen = null,
@@ -852,48 +880,53 @@ class SearchViewModel(
                 showActions = currentState.showActions && focusedActions.isNotEmpty(),
                 contextActions = emptyList(),
                 showContextActions = false,
-                activeContextSourceId = null
+                activeContextSourceId = null,
             )
         }
     }
 
-    private fun currentResultTitle(resultId: SearchResultId): PluginUiText? {
-        return backingState.value.searchResults
+    private fun currentResultTitle(resultId: SearchResultId): PluginUiText? =
+        backingState.value.searchResults
             ?.results
             ?.firstOrNull { result -> result.resultId == resultId }
             ?.listEntry
             ?.title
-    }
 
     private fun showToast(toast: ShowToast) {
-        val replacedToastIds = backingState.value.toasts
-            .filter { existing -> existing.shouldBeReplacedBy(toast) }
-            .map { existing -> existing.toastId }
+        val replacedToastIds =
+            backingState.value.toasts
+                .filter { existing -> existing.shouldBeReplacedBy(toast) }
+                .map { existing -> existing.toastId }
         replacedToastIds.forEach { toastId ->
             toastDismissJobs.remove(toastId)?.cancel()
         }
         backingState.update { uiState ->
             uiState.copy(
-                toasts = uiState.toasts
-                    .filterNot { existing -> existing.shouldBeReplacedBy(toast) } + toast
+                toasts =
+                    uiState.toasts
+                        .filterNot { existing -> existing.shouldBeReplacedBy(toast) } + toast,
             )
         }
         val autoDismissMillis = toast.toast.autoDismissMillis ?: return
         toastDismissJobs.remove(toast.toastId)?.cancel()
-        toastDismissJobs[toast.toastId] = scope.launch {
-            delay(autoDismissMillis)
-            dismissToast(toast.toastId, cancelJob = false)
-        }
+        toastDismissJobs[toast.toastId] =
+            scope.launch {
+                delay(autoDismissMillis)
+                dismissToast(toast.toastId, cancelJob = false)
+            }
     }
 
-    private fun dismissToast(toastId: String, cancelJob: Boolean) {
+    private fun dismissToast(
+        toastId: String,
+        cancelJob: Boolean,
+    ) {
         val job = toastDismissJobs.remove(toastId)
         if (cancelJob) {
             job?.cancel()
         }
         backingState.update { uiState ->
             uiState.copy(
-                toasts = uiState.toasts.filterNot { toast -> toast.toastId == toastId }
+                toasts = uiState.toasts.filterNot { toast -> toast.toastId == toastId },
             )
         }
     }
@@ -910,56 +943,62 @@ class SearchViewModel(
 
     private suspend fun focusFullscreenItem(
         itemId: CommandItemId?,
-        notifyPlugin: Boolean = true
+        notifyPlugin: Boolean = true,
     ) {
         val uiState = backingState.value
         val fullscreen = uiState.fullscreen ?: return
         val query = fullscreen.searchFieldState.query
         val model = fullscreen.content.pluginFocusModel(itemId, query)
         val focusedItem = model.focusedItem
-        val currentFocusedActions = uiState.focusedActions
-            .takeIf {
-                fullscreen.focusedItemId == model.focusedItemId &&
-                    it.all { action -> action.resultId == fullscreen.resultId }
-            }
-            ?.map { action -> action.action }
-            .orEmpty()
-        val focusedActions = focusedItem?.actions
-            ?.takeIf { actions -> actions.isNotEmpty() }
-            ?.toSearchPanelActions(updateUsage = false)
-            ?: currentFocusedActions.takeIf { actions -> actions.isNotEmpty() }
-            ?: fullscreen.resultId.let { resultId ->
-                focusedItem?.let { item ->
-                    uiState.plugins[resultId.pluginId]?.actions(resultId.commandName, item.id)
-                }?.toSearchPanelActions(updateUsage = false)
-            }.orEmpty()
+        val currentFocusedActions =
+            uiState.focusedActions
+                .takeIf {
+                    fullscreen.focusedItemId == model.focusedItemId &&
+                        it.all { action -> action.resultId == fullscreen.resultId }
+                }?.map { action -> action.action }
+                .orEmpty()
+        val focusedActions =
+            focusedItem
+                ?.actions
+                ?.takeIf { actions -> actions.isNotEmpty() }
+                ?.toSearchPanelActions(updateUsage = false)
+                ?: currentFocusedActions.takeIf { actions -> actions.isNotEmpty() }
+                ?: fullscreen.resultId
+                    .let { resultId ->
+                        focusedItem
+                            ?.let { item ->
+                                uiState.plugins[resultId.pluginId]?.actions(resultId.commandName, item.id)
+                            }?.toSearchPanelActions(updateUsage = false)
+                    }.orEmpty()
         backingState.update { currentState ->
             val currentFullscreen = currentState.fullscreen ?: return@update currentState
             if (currentFullscreen.resultId != fullscreen.resultId) {
                 currentState
             } else {
                 currentState.copy(
-                    fullscreen = currentFullscreen.copy(
-                        focusedItemId = model.focusedItemId
-                    ),
-                    focusedActions = focusedActions.map { action ->
-                        FocusedCommandAction(
-                            resultId = fullscreen.resultId,
-                            action = action,
-                            updateUsage = false
-                        )
-                    },
+                    fullscreen =
+                        currentFullscreen.copy(
+                            focusedItemId = model.focusedItemId,
+                        ),
+                    focusedActions =
+                        focusedActions.map { action ->
+                            FocusedCommandAction(
+                                resultId = fullscreen.resultId,
+                                action = action,
+                                updateUsage = false,
+                            )
+                        },
                     showActions = currentState.showActions && focusedActions.isNotEmpty(),
                     contextActions = emptyList(),
                     showContextActions = false,
-                    activeContextSourceId = null
+                    activeContextSourceId = null,
                 )
             }
         }
         if (notifyPlugin && fullscreen.focusedItemId != model.focusedItemId) {
             uiState.plugins[fullscreen.resultId.pluginId]?.update(
                 fullscreen.resultId.commandName,
-                CommandActionBridge.Regular(CommandAction.Focus(model.focusedItemId))
+                CommandActionBridge.Regular(CommandAction.Focus(model.focusedItemId)),
             )
         }
     }
@@ -971,20 +1010,23 @@ class SearchViewModel(
 
     private suspend fun enterQuickAction(resultId: SearchResultId) {
         val uiState = backingState.value
-        val result = uiState.searchResults
-            ?.results
-            ?.firstOrNull { result -> result.resultId == resultId }
-            ?: return
-        val action = result.actions(uiState.plugins)
-            .firstOrNull { action -> action.primary }
-            ?: return
+        val result =
+            uiState.searchResults
+                ?.results
+                ?.firstOrNull { result -> result.resultId == resultId }
+                ?: return
+        val action =
+            result
+                .actions(uiState.plugins)
+                .firstOrNull { action -> action.primary }
+                ?: return
         handleEvent(
             SearchScreenEvent.EnterAction(
                 FocusedCommandAction(
                     resultId = resultId,
-                    action = action
-                )
-            )
+                    action = action,
+                ),
+            ),
         )
     }
 
@@ -992,106 +1034,116 @@ class SearchViewModel(
         val uiState = backingState.value
         val fullscreen = uiState.fullscreen ?: return
         focusFullscreenItem(itemId)
-        val focusedAction = backingState.value.focusedActions
-            .firstOrNull { action -> action.action.primary }
-            ?: backingState.value.focusedActions.firstOrNull()
+        val focusedAction =
+            backingState.value.focusedActions
+                .firstOrNull { action -> action.action.primary }
+                ?: backingState.value.focusedActions.firstOrNull()
         if (focusedAction != null) {
             when (val kind = focusedAction.action.kind) {
                 is SearchPanelAction.Kind.PluginCallback -> {
                     executeCommandCallbackUseCase(
                         resultId = focusedAction.resultId,
                         callback = kind.callback,
-                        updateUsage = false
+                        updateUsage = false,
                     )
                 }
 
                 is SearchPanelAction.Kind.OpenAliasEditor,
-                SearchPanelAction.Kind.RemoveAlias -> Unit
+                SearchPanelAction.Kind.RemoveAlias,
+                -> {
+                    Unit
+                }
             }
         } else {
             uiState.plugins[fullscreen.resultId.pluginId]?.update(
                 fullscreen.resultId.commandName,
-                CommandActionBridge.Regular(CommandAction.Enter(itemId))
+                CommandActionBridge.Regular(CommandAction.Enter(itemId)),
             )
         }
     }
 
     private fun collectFullscreenWhenContentAppears(
         result: SearchResultSet.SearchResult,
-        fullscreenResultId: SearchResultId
+        fullscreenResultId: SearchResultId,
     ) {
         fullscreenJob?.cancel()
         val runtime = backingState.value.plugins[fullscreenResultId.pluginId]
-        val command = runtime
-            ?.manifest
-            ?.commands
-            ?.firstOrNull { command -> command.service == fullscreenResultId.commandName }
-        fullscreenJob = scope.launch {
-            getCommandFullscreenUseCase(fullscreenResultId).collectLatest { content ->
-                val newContent = content?.content.orEmpty()
-                if (newContent.isEmpty()) return@collectLatest
-                backingState.update { uiState ->
-                    uiState.copy(
-                        fullscreen = SearchFullscreenContentState(
-                            resultId = fullscreenResultId,
-                            title = result.listEntry.title,
-                            placeholder = command?.placeholder?.toPluginUiText(fullscreenResultId.pluginId),
-                            searchFieldState = SearchFieldUiState(),
-                            exitBackspaceCount = 0,
-                            content = newContent,
-                            focusedItemId = null
-                        ),
-                        focusedActions = emptyList(),
-                        showActions = false,
-                        contextActions = emptyList(),
-                        showContextActions = false
-                    )
+        val command =
+            runtime
+                ?.manifest
+                ?.commands
+                ?.firstOrNull { command -> command.service == fullscreenResultId.commandName }
+        fullscreenJob =
+            scope.launch {
+                getCommandFullscreenUseCase(fullscreenResultId).collectLatest { content ->
+                    val newContent = content?.content.orEmpty()
+                    if (newContent.isEmpty()) return@collectLatest
+                    backingState.update { uiState ->
+                        uiState.copy(
+                            fullscreen =
+                                SearchFullscreenContentState(
+                                    resultId = fullscreenResultId,
+                                    title = result.listEntry.title,
+                                    placeholder = command?.placeholder?.toPluginUiText(fullscreenResultId.pluginId),
+                                    searchFieldState = SearchFieldUiState(),
+                                    exitBackspaceCount = 0,
+                                    content = newContent,
+                                    focusedItemId = null,
+                                ),
+                            focusedActions = emptyList(),
+                            showActions = false,
+                            contextActions = emptyList(),
+                            showContextActions = false,
+                        )
+                    }
+                    focusFullscreenItem(backingState.value.fullscreen?.focusedItemId)
                 }
-                focusFullscreenItem(backingState.value.fullscreen?.focusedItemId)
             }
-        }
     }
 
     private fun collectFullscreen(
         result: SearchResultSet.SearchResult,
-        fullscreenResultId: SearchResultId = result.resultId
+        fullscreenResultId: SearchResultId = result.resultId,
     ) {
         fullscreenJob?.cancel()
         val runtime = backingState.value.plugins[fullscreenResultId.pluginId]
-        val command = runtime
-            ?.manifest
-            ?.commands
-            ?.firstOrNull { command -> command.service == fullscreenResultId.commandName }
+        val command =
+            runtime
+                ?.manifest
+                ?.commands
+                ?.firstOrNull { command -> command.service == fullscreenResultId.commandName }
         backingState.update { uiState ->
             uiState.copy(
-                fullscreen = SearchFullscreenContentState(
-                    resultId = fullscreenResultId,
-                    title = result.listEntry.title,
-                    placeholder = command?.placeholder?.toPluginUiText(fullscreenResultId.pluginId),
-                    searchFieldState = SearchFieldUiState(),
-                    exitBackspaceCount = 0,
-                    content = emptyList(),
-                    focusedItemId = null
-                ),
+                fullscreen =
+                    SearchFullscreenContentState(
+                        resultId = fullscreenResultId,
+                        title = result.listEntry.title,
+                        placeholder = command?.placeholder?.toPluginUiText(fullscreenResultId.pluginId),
+                        searchFieldState = SearchFieldUiState(),
+                        exitBackspaceCount = 0,
+                        content = emptyList(),
+                        focusedItemId = null,
+                    ),
                 focusedActions = emptyList(),
                 showActions = false,
                 contextActions = emptyList(),
                 showContextActions = false,
-                activeContextSourceId = null
+                activeContextSourceId = null,
             )
         }
         scope.launch {
-            val focusedActions = if (result.resultId == fullscreenResultId) {
-                result.actions(backingState.value.plugins).map { action ->
-                    FocusedCommandAction(
-                        resultId = fullscreenResultId,
-                        action = action,
-                        updateUsage = false
-                    )
+            val focusedActions =
+                if (result.resultId == fullscreenResultId) {
+                    result.actions(backingState.value.plugins).map { action ->
+                        FocusedCommandAction(
+                            resultId = fullscreenResultId,
+                            action = action,
+                            updateUsage = false,
+                        )
+                    }
+                } else {
+                    emptyList()
                 }
-            } else {
-                emptyList()
-            }
             backingState.update { uiState ->
                 val fullscreen = uiState.fullscreen
                 if (fullscreen?.resultId == fullscreenResultId) {
@@ -1101,7 +1153,7 @@ class SearchViewModel(
                     } else {
                         uiState.copy(
                             focusedActions = focusedActions,
-                            showActions = uiState.showActions && focusedActions.isNotEmpty()
+                            showActions = uiState.showActions && focusedActions.isNotEmpty(),
                         )
                     }
                 } else {
@@ -1109,22 +1161,23 @@ class SearchViewModel(
                 }
             }
         }
-        fullscreenJob = scope.launch {
-            getCommandFullscreenUseCase(fullscreenResultId).collectLatest { content ->
-                val newContent = content?.content.orEmpty()
-                backingState.update { uiState ->
-                    val fullscreen = uiState.fullscreen
-                    if (fullscreen?.resultId != fullscreenResultId) {
-                        uiState
-                    } else {
-                        uiState.copy(
-                            fullscreen = fullscreen.copy(content = newContent)
-                        )
+        fullscreenJob =
+            scope.launch {
+                getCommandFullscreenUseCase(fullscreenResultId).collectLatest { content ->
+                    val newContent = content?.content.orEmpty()
+                    backingState.update { uiState ->
+                        val fullscreen = uiState.fullscreen
+                        if (fullscreen?.resultId != fullscreenResultId) {
+                            uiState
+                        } else {
+                            uiState.copy(
+                                fullscreen = fullscreen.copy(content = newContent),
+                            )
+                        }
                     }
+                    focusFullscreenItem(backingState.value.fullscreen?.focusedItemId)
                 }
-                focusFullscreenItem(backingState.value.fullscreen?.focusedItemId)
             }
-        }
     }
 
     private companion object {
@@ -1147,19 +1200,18 @@ private data class SearchViewModelState(
     val aliasEditor: SearchAliasEditorState? = null,
     val fullscreen: SearchFullscreenContentState? = null,
     val alerts: List<Alert> = emptyList(),
-    val toasts: List<ShowToast> = emptyList()
+    val toasts: List<ShowToast> = emptyList(),
 )
 
 data class SearchFieldUiState(
     val query: String = "",
-    val selection: SearchFieldSelection = SearchFieldSelection.CursorAtEnd
+    val selection: SearchFieldSelection = SearchFieldSelection.CursorAtEnd,
 ) {
-    fun apply(state: ApiSearchFieldState): SearchFieldUiState {
-        return copy(
+    fun apply(state: ApiSearchFieldState): SearchFieldUiState =
+        copy(
             query = state.text,
-            selection = state.selection
+            selection = state.selection,
         )
-    }
 }
 
 data class SearchFullscreenContentState(
@@ -1170,7 +1222,7 @@ data class SearchFullscreenContentState(
     val exitBackspaceCount: Int,
     val content: List<PluginRayNodeData>,
     val focusedItemId: CommandItemId?,
-    val plugins: Map<PluginId, PluginRuntime> = emptyMap()
+    val plugins: Map<PluginId, PluginRuntime> = emptyMap(),
 )
 
 data class SearchAliasEditorState(
@@ -1178,18 +1230,18 @@ data class SearchAliasEditorState(
     val title: PluginUiText?,
     val input: String,
     val existingAlias: String?,
-    val error: PluginUiText? = null
+    val error: PluginUiText? = null,
 )
 
 data class FocusedCommandAction(
     val resultId: SearchResultId,
     val action: SearchPanelAction,
-    val updateUsage: Boolean = true
+    val updateUsage: Boolean = true,
 )
 
 private data class FullscreenQuery(
     val resultId: SearchResultId,
-    val query: String
+    val query: String,
 )
 
 data class SearchOverlayState(
@@ -1198,7 +1250,7 @@ data class SearchOverlayState(
     val showActions: Boolean = false,
     val showContextActions: Boolean = false,
     val activeContextSourceId: String? = null,
-    val aliasEditor: SearchAliasEditorState? = null
+    val aliasEditor: SearchAliasEditorState? = null,
 )
 
 data class SearchResultsContentState(
@@ -1206,7 +1258,7 @@ data class SearchResultsContentState(
     val searchResults: SearchResultSet? = null,
     val plugins: Map<PluginId, PluginRuntime> = emptyMap(),
     val focusedItemIndex: Int? = null,
-    val isSearching: Boolean = false
+    val isSearching: Boolean = false,
 )
 
 sealed class SearchScreenState {
@@ -1222,7 +1274,7 @@ sealed class SearchScreenState {
         val content: SearchResultsContentState = SearchResultsContentState(isSearching = true),
         override val overlayState: SearchOverlayState = SearchOverlayState(),
         override val alerts: List<Alert> = emptyList(),
-        override val toasts: List<ShowToast> = emptyList()
+        override val toasts: List<ShowToast> = emptyList(),
     ) : SearchScreenState() {
         override val searchFieldState: SearchFieldUiState
             get() = content.searchFieldState
@@ -1236,7 +1288,7 @@ sealed class SearchScreenState {
         val content: SearchResultsContentState,
         override val overlayState: SearchOverlayState = SearchOverlayState(),
         override val alerts: List<Alert> = emptyList(),
-        override val toasts: List<ShowToast> = emptyList()
+        override val toasts: List<ShowToast> = emptyList(),
     ) : SearchScreenState() {
         override val searchFieldState: SearchFieldUiState
             get() = content.searchFieldState
@@ -1250,7 +1302,7 @@ sealed class SearchScreenState {
         val content: SearchFullscreenContentState,
         override val overlayState: SearchOverlayState = SearchOverlayState(),
         override val alerts: List<Alert> = emptyList(),
-        override val toasts: List<ShowToast> = emptyList()
+        override val toasts: List<ShowToast> = emptyList(),
     ) : SearchScreenState() {
         override val searchFieldState: SearchFieldUiState
             get() = content.searchFieldState
@@ -1264,47 +1316,87 @@ sealed class SearchScreenState {
 sealed interface SearchScreenEvent {
     data class UpdateQuery(
         val query: String,
-        val selection: SearchFieldSelection = SearchFieldSelection.CursorAtEnd
+        val selection: SearchFieldSelection = SearchFieldSelection.CursorAtEnd,
     ) : SearchScreenEvent
 
-    data class OpenSearch(val query: String = "") : SearchScreenEvent
-    data class OpenCommand(val query: String) : SearchScreenEvent
-    data class Submit(val resultId: SearchResultId? = null) : SearchScreenEvent
-    data class EnterAction(val action: FocusedCommandAction) : SearchScreenEvent
+    data class OpenSearch(
+        val query: String = "",
+    ) : SearchScreenEvent
+
+    data class OpenCommand(
+        val query: String,
+    ) : SearchScreenEvent
+
+    data class Submit(
+        val resultId: SearchResultId? = null,
+    ) : SearchScreenEvent
+
+    data class EnterAction(
+        val action: FocusedCommandAction,
+    ) : SearchScreenEvent
+
     data class EnterCallback(
         val resultId: SearchResultId,
         val callback: PluginCommandCallback,
-        val updateUsage: Boolean = false
+        val updateUsage: Boolean = false,
     ) : SearchScreenEvent
-    data class EnterQuickAction(val resultId: SearchResultId) : SearchScreenEvent
+
+    data class EnterQuickAction(
+        val resultId: SearchResultId,
+    ) : SearchScreenEvent
 
     data class ShowContextActions(
         val resultId: SearchResultId,
         val sourceId: String,
-        val actions: List<PluginCommandListAction>
+        val actions: List<PluginCommandListAction>,
     ) : SearchScreenEvent
 
     data class ShowResultContextActions(
         val resultId: SearchResultId,
-        val sourceId: String
+        val sourceId: String,
     ) : SearchScreenEvent
 
-    data class UpdateAliasEditorInput(val value: String) : SearchScreenEvent
+    data class UpdateAliasEditorInput(
+        val value: String,
+    ) : SearchScreenEvent
+
     data object SaveAliasEditor : SearchScreenEvent
+
     data object RemoveAlias : SearchScreenEvent
+
     data object DismissAliasEditor : SearchScreenEvent
 
-    data class FocusPluginItem(val itemId: CommandItemId) : SearchScreenEvent
-    data class EnterPluginItem(val itemId: CommandItemId) : SearchScreenEvent
+    data class FocusPluginItem(
+        val itemId: CommandItemId,
+    ) : SearchScreenEvent
+
+    data class EnterPluginItem(
+        val itemId: CommandItemId,
+    ) : SearchScreenEvent
+
     data object MoveFocusPrevious : SearchScreenEvent
+
     data object MoveFocusNext : SearchScreenEvent
+
     data object ToggleActions : SearchScreenEvent
+
     data object HideActions : SearchScreenEvent
+
     data object BackspaceOnEmpty : SearchScreenEvent
+
     data object CloseFullscreen : SearchScreenEvent
-    data class DismissAlert(val alert: Alert) : SearchScreenEvent
-    data class ConfirmAlert(val alert: Alert) : SearchScreenEvent
-    data class DismissToast(val toastId: String) : SearchScreenEvent
+
+    data class DismissAlert(
+        val alert: Alert,
+    ) : SearchScreenEvent
+
+    data class ConfirmAlert(
+        val alert: Alert,
+    ) : SearchScreenEvent
+
+    data class DismissToast(
+        val toastId: String,
+    ) : SearchScreenEvent
 }
 
 private fun ShowToast.shouldBeReplacedBy(incoming: ShowToast): Boolean =
@@ -1327,55 +1419,69 @@ private fun SearchViewModelState.overlayState(): SearchOverlayState =
         showActions = showActions,
         showContextActions = showContextActions,
         activeContextSourceId = activeContextSourceId,
-        aliasEditor = aliasEditor
+        aliasEditor = aliasEditor,
     )
 
 private fun SearchViewModelState.toScreenState(): SearchScreenState {
     val overlayState = overlayState()
     return when {
-        fullscreen != null -> SearchScreenState.Fullscreen(
-            content = fullscreen.copy(plugins = plugins),
-            overlayState = overlayState,
-            alerts = alerts,
-            toasts = toasts
-        )
+        fullscreen != null -> {
+            SearchScreenState.Fullscreen(
+                content = fullscreen.copy(plugins = plugins),
+                overlayState = overlayState,
+                alerts = alerts,
+                toasts = toasts,
+            )
+        }
 
-        searchResults != null || !isSearching -> SearchScreenState.Results(
-            content = SearchResultsContentState(
-                searchFieldState = searchFieldState,
-                searchResults = searchResults,
-                plugins = plugins,
-                focusedItemIndex = focusedItemIndex,
-                isSearching = isSearching
-            ),
-            overlayState = overlayState,
-            alerts = alerts,
-            toasts = toasts
-        )
+        searchResults != null || !isSearching -> {
+            SearchScreenState.Results(
+                content =
+                    SearchResultsContentState(
+                        searchFieldState = searchFieldState,
+                        searchResults = searchResults,
+                        plugins = plugins,
+                        focusedItemIndex = focusedItemIndex,
+                        isSearching = isSearching,
+                    ),
+                overlayState = overlayState,
+                alerts = alerts,
+                toasts = toasts,
+            )
+        }
 
-        else -> SearchScreenState.Loading(
-            content = SearchResultsContentState(
-                searchFieldState = searchFieldState,
-                searchResults = searchResults,
-                plugins = plugins,
-                focusedItemIndex = focusedItemIndex,
-                isSearching = isSearching
-            ),
-            overlayState = overlayState,
-            alerts = alerts,
-            toasts = toasts
-        )
+        else -> {
+            SearchScreenState.Loading(
+                content =
+                    SearchResultsContentState(
+                        searchFieldState = searchFieldState,
+                        searchResults = searchResults,
+                        plugins = plugins,
+                        focusedItemIndex = focusedItemIndex,
+                        isSearching = isSearching,
+                    ),
+                overlayState = overlayState,
+                alerts = alerts,
+                toasts = toasts,
+            )
+        }
     }
 }
 
-internal fun nextSearchResultsFocusIndex(currentIndex: Int?, resultCount: Int): Int? {
+internal fun nextSearchResultsFocusIndex(
+    currentIndex: Int?,
+    resultCount: Int,
+): Int? {
     if (resultCount <= 0) return null
     return currentIndex?.let { itemIndex ->
         (itemIndex + 1).coerceIn(0, resultCount - 1)
     } ?: 0
 }
 
-internal fun previousSearchResultsFocusIndex(currentIndex: Int?, resultCount: Int): Int? {
+internal fun previousSearchResultsFocusIndex(
+    currentIndex: Int?,
+    resultCount: Int,
+): Int? {
     if (resultCount <= 0) return null
     return currentIndex?.let { itemIndex ->
         (itemIndex - 1).coerceIn(0, resultCount - 1)
@@ -1384,46 +1490,47 @@ internal fun previousSearchResultsFocusIndex(currentIndex: Int?, resultCount: In
 
 private suspend fun SearchResultSet?.actionsForFocused(
     index: Int?,
-    plugins: Map<PluginId, PluginRuntime>
+    plugins: Map<PluginId, PluginRuntime>,
 ): List<FocusedCommandAction> {
     val result = index?.let { itemIndex -> this?.results?.getOrNull(itemIndex) } ?: return emptyList()
     val actions = result.actions(plugins)
     return actions.map { action ->
         FocusedCommandAction(
             resultId = result.resultId,
-            action = action
+            action = action,
         )
     }
 }
 
-internal suspend fun SearchResultSet.SearchResult.actions(
-    plugins: Map<PluginId, PluginRuntime>
-): List<SearchPanelAction> {
-    val pluginActions = when (this) {
-        is SearchResultSet.LiveSearchResult -> presentation.actions.toSearchPanelActions(updateUsage = true)
-        is SearchResultSet.CachedSearchResult,
-        is SearchResultSet.CommandSearchResult -> plugins[resultId.pluginId]?.actions(
-            commandName = resultId.commandName,
-            itemId = resultId.itemId
-        ).orEmpty().toSearchPanelActions(updateUsage = true)
-    }
+internal suspend fun SearchResultSet.SearchResult.actions(plugins: Map<PluginId, PluginRuntime>): List<SearchPanelAction> {
+    val pluginActions =
+        when (this) {
+            is SearchResultSet.LiveSearchResult -> {
+                presentation.actions.toSearchPanelActions(updateUsage = true)
+            }
+
+            is SearchResultSet.CachedSearchResult,
+            is SearchResultSet.CommandSearchResult,
+            -> {
+                plugins[resultId.pluginId]
+                    ?.actions(
+                        commandName = resultId.commandName,
+                        itemId = resultId.itemId,
+                    ).orEmpty()
+                    .toSearchPanelActions(updateUsage = true)
+            }
+        }
     return pluginActions + hostAliasActions()
 }
 
-internal fun shouldOpenFullscreenOnSubmit(commandMode: Command.Mode?): Boolean {
-    return commandMode != Command.Mode.NoView
-}
+internal fun shouldOpenFullscreenOnSubmit(commandMode: Command.Mode?): Boolean = commandMode != Command.Mode.NoView
 
-internal fun shouldCollectDeferredFullscreenOnCachedSubmit(commandMode: Command.Mode?): Boolean {
-    return commandMode == Command.Mode.NoView
-}
+internal fun shouldCollectDeferredFullscreenOnCachedSubmit(commandMode: Command.Mode?): Boolean = commandMode == Command.Mode.NoView
 
 internal fun shouldCollectDeferredFullscreenOnSubmit(
     commandMode: Command.Mode?,
-    result: SearchResultSet.LiveSearchResult
-): Boolean {
-    return result.presentation.content.isEmpty()
-}
+    result: SearchResultSet.LiveSearchResult,
+): Boolean = result.presentation.content.isEmpty()
 
 private fun SearchResultSet.SearchResult.hostAliasActions(): List<SearchPanelAction> {
     val alias = listEntry.alias
@@ -1434,8 +1541,8 @@ private fun SearchResultSet.SearchResult.hostAliasActions(): List<SearchPanelAct
                 title = PluginUiText.Plain("Add Alias"),
                 icon = PluginIcon.Builtin("Add"),
                 group = group,
-                kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = null)
-            )
+                kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = null),
+            ),
         )
     } else {
         listOf(
@@ -1444,7 +1551,7 @@ private fun SearchResultSet.SearchResult.hostAliasActions(): List<SearchPanelAct
                 description = PluginUiText.Plain(alias),
                 icon = PluginIcon.Builtin("Edit"),
                 group = group,
-                kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = alias)
+                kind = SearchPanelAction.Kind.OpenAliasEditor(existingAlias = alias),
             ),
             SearchPanelAction(
                 title = PluginUiText.Plain("Remove Alias"),
@@ -1452,14 +1559,15 @@ private fun SearchResultSet.SearchResult.hostAliasActions(): List<SearchPanelAct
                 icon = PluginIcon.Builtin("Delete"),
                 group = group,
                 destructive = true,
-                kind = SearchPanelAction.Kind.RemoveAlias
-            )
+                kind = SearchPanelAction.Kind.RemoveAlias,
+            ),
         )
     }
 }
 
-private fun SearchAliasInvalidReason.message(): String = when (this) {
-    SearchAliasInvalidReason.Blank -> "Alias cannot be empty"
-    SearchAliasInvalidReason.ContainsWhitespace -> "Alias cannot contain spaces"
-    SearchAliasInvalidReason.NonAscii -> "Alias must use ASCII characters only"
-}
+private fun SearchAliasInvalidReason.message(): String =
+    when (this) {
+        SearchAliasInvalidReason.Blank -> "Alias cannot be empty"
+        SearchAliasInvalidReason.ContainsWhitespace -> "Alias cannot contain spaces"
+        SearchAliasInvalidReason.NonAscii -> "Alias must use ASCII characters only"
+    }

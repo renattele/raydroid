@@ -5,9 +5,10 @@ internal object SearchQueryNormalizer {
         val normalized = NormalizedText.from(raw)
         val ftsTokens = normalized.tokens.filter { token -> token.length >= MIN_FTS_TOKEN_LENGTH }
         val acronym = acronym(normalized)
-        val relaxedTokens = (ftsTokens + acronym.takeIf { it.length >= MIN_FTS_TOKEN_LENGTH })
-            .filterNotNull()
-            .distinct()
+        val relaxedTokens =
+            (ftsTokens + acronym.takeIf { it.length >= MIN_FTS_TOKEN_LENGTH })
+                .filterNotNull()
+                .distinct()
         return SearchQuery(
             raw = raw,
             normalized = normalized,
@@ -15,23 +16,18 @@ internal object SearchQueryNormalizer {
             strictFtsQuery = ftsTokens.takeIf { it.isNotEmpty() }?.joinToString(" AND ") { token -> "$token*" },
             relaxedFtsQuery = relaxedTokens.takeIf { it.size > 1 }?.joinToString(" OR ") { token -> "$token*" },
             isShort = normalized.text.length < MIN_FUZZY_QUERY_LENGTH,
-            isBlank = normalized.text.isBlank()
+            isBlank = normalized.text.isBlank(),
         )
     }
 
-    fun searchable(raw: String?): String {
-        return raw?.let { NormalizedText.from(it).text }.orEmpty()
-    }
+    fun searchable(raw: String?): String = raw?.let { NormalizedText.from(it).text }.orEmpty()
 
-    fun acronym(raw: String?): String {
-        return acronym(NormalizedText.from(raw.orEmpty()))
-    }
+    fun acronym(raw: String?): String = acronym(NormalizedText.from(raw.orEmpty()))
 
-    fun acronym(text: NormalizedText): String {
-        return text.tokenRanges
+    fun acronym(text: NormalizedText): String =
+        text.tokenRanges
             .mapNotNull { range -> text.text.getOrNull(range.first) }
             .joinToString("")
-    }
 
     private const val MIN_FTS_TOKEN_LENGTH = 2
     private const val MIN_FUZZY_QUERY_LENGTH = 3
@@ -44,24 +40,23 @@ internal data class SearchQuery(
     val strictFtsQuery: String?,
     val relaxedFtsQuery: String?,
     val isShort: Boolean,
-    val isBlank: Boolean
+    val isBlank: Boolean,
 )
 
 internal data class NormalizedText(
     val text: String,
     val originalIndices: List<Int>,
     val tokens: List<String>,
-    val tokenRanges: List<IntRange>
+    val tokenRanges: List<IntRange>,
 ) {
-    fun toOriginalRanges(ranges: List<IntRange>): List<IntRange> {
-        return ranges.mapNotNull { range ->
+    fun toOriginalRanges(ranges: List<IntRange>): List<IntRange> =
+        ranges.mapNotNull { range ->
             if (range.first !in originalIndices.indices || range.last !in originalIndices.indices) {
                 null
             } else {
                 originalIndices[range.first]..originalIndices[range.last]
             }
         }
-    }
 
     companion object {
         fun from(raw: String): NormalizedText {
@@ -74,6 +69,7 @@ internal data class NormalizedText(
                         normalized.append(char.lowercaseChar())
                         originalIndices += index
                     }
+
                     else -> {
                         if (normalized.isNotEmpty() && normalized.last() != ' ') {
                             normalized.append(' ')
@@ -113,7 +109,7 @@ internal data class NormalizedText(
                 text = text,
                 originalIndices = originalIndices,
                 tokens = tokenRanges.map { range -> text.substring(range.first, range.last + 1) },
-                tokenRanges = tokenRanges
+                tokenRanges = tokenRanges,
             )
         }
     }

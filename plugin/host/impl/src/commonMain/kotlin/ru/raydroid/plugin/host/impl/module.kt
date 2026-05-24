@@ -1,14 +1,13 @@
 package ru.raydroid.plugin.host.impl
 
-import kotlin.time.Clock
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.BackCommandUseCase
+import ru.raydroid.plugin.host.api.application.usecase.CloseCommandUseCase
 import ru.raydroid.plugin.host.api.application.usecase.CommandActionDispatcher
 import ru.raydroid.plugin.host.api.application.usecase.EmitEventUseCase
 import ru.raydroid.plugin.host.api.application.usecase.EnterItemUseCase
@@ -55,77 +54,79 @@ import ru.raydroid.plugin.host.impl.runtime.HostBridgeFactoryImpl
 import ru.raydroid.plugin.host.impl.runtime.PluginLoaderImpl
 import ru.raydroid.plugin.host.impl.runtime.PluginRuntimeRegistryImpl
 import ru.raydroid.plugin.host.impl.services.hostServiceModule
+import kotlin.time.Clock
 
 internal expect val pluginPlatformModule: Module
 
-val pluginHostModule = module {
-    includes(pluginPlatformModule)
-    includes(hostServiceModule)
-    includes(dbModule)
+val pluginHostModule =
+    module {
+        includes(pluginPlatformModule)
+        includes(hostServiceModule)
+        includes(dbModule)
 
-    single<PluginLoader> {
-        PluginLoaderImpl(
-            dispatcher = { get() },
-            json = get(),
-            coroutineScope = get(),
-            hostFactory = get()
-        )
-    }
-    single<LocalPluginDataSource> {
-        LocalPluginDataSourceImpl(
-            localFs = get(named("localFileSystem")),
-            basePath = get(named("localPath"))
-        )
-    }
-    single<Clock> { Clock.System }
-    single<ResourcePluginDataSource> {
-        ResourcePluginDataSourceImpl(get())
-    }
-    singleOf(::CachedSearchRanker)
-    single<SearchRanker> { get<CachedSearchRanker>() }
-    single<SearchResultRanker> { get<CachedSearchRanker>() }
-    singleOf(::SearchResourceResolverImpl) bind SearchResourceResolver::class
-    singleOf(::SearchAliasRepositoryImpl) bind SearchAliasRepository::class
-    singleOf(::RemotePluginDataSourceImpl) bind RemotePluginDataSource::class
-    singleOf(::PluginRepositoryImpl) bind PluginRepository::class
-    singleOf(::EventGatewayImpl) bind EventGateway::class
-    singleOf(::SearchFieldGatewayImpl) bind SearchFieldGateway::class
-    singleOf(::SearchIndexRepositoryImpl) bind SearchIndexRepository::class
-    singleOf(::PluginRuntimeRegistryImpl) bind PluginRuntimeRegistry::class
+        single<PluginLoader> {
+            PluginLoaderImpl(
+                dispatcher = { get() },
+                json = get(),
+                coroutineScope = get(),
+                hostFactory = get(),
+            )
+        }
+        single<LocalPluginDataSource> {
+            LocalPluginDataSourceImpl(
+                localFs = get(named("localFileSystem")),
+                basePath = get(named("localPath")),
+            )
+        }
+        single<Clock> { Clock.System }
+        single<ResourcePluginDataSource> {
+            ResourcePluginDataSourceImpl(get())
+        }
+        singleOf(::CachedSearchRanker)
+        single<SearchRanker> { get<CachedSearchRanker>() }
+        single<SearchResultRanker> { get<CachedSearchRanker>() }
+        singleOf(::SearchResourceResolverImpl) bind SearchResourceResolver::class
+        singleOf(::SearchAliasRepositoryImpl) bind SearchAliasRepository::class
+        singleOf(::RemotePluginDataSourceImpl) bind RemotePluginDataSource::class
+        singleOf(::PluginRepositoryImpl) bind PluginRepository::class
+        singleOf(::EventGatewayImpl) bind EventGateway::class
+        singleOf(::SearchFieldGatewayImpl) bind SearchFieldGateway::class
+        singleOf(::SearchIndexRepositoryImpl) bind SearchIndexRepository::class
+        singleOf(::PluginRuntimeRegistryImpl) bind PluginRuntimeRegistry::class
 
-    singleOf(::GetEventsUseCase)
-    singleOf(::GetSearchFieldRequestsUseCase)
-    singleOf(::EmitEventUseCase)
-    singleOf(::SyncCacheUseCase)
-    singleOf(::LoadRuntimesUseCase)
-    singleOf(::SearchUseCase)
-    singleOf(::ObserveSearchAliasesUseCase)
-    singleOf(::SaveSearchAliasUseCase)
-    singleOf(::RemoveSearchAliasUseCase)
-    singleOf(::ResolveSearchAliasUseCase)
-    singleOf(::CommandActionDispatcher)
-    singleOf(::BackCommandUseCase)
-    singleOf(::OpenCommandUseCase)
-    singleOf(::EnterItemUseCase)
-    singleOf(::CloseCommandUseCase)
-    singleOf(::ExecuteCommandCallbackUseCase)
-    singleOf(::GetPluginsUseCase)
-    singleOf(::GetCommandFullscreenUseCase)
-    singleOf(::UpdateCommandQueryUseCase)
+        singleOf(::GetEventsUseCase)
+        singleOf(::GetSearchFieldRequestsUseCase)
+        singleOf(::EmitEventUseCase)
+        singleOf(::SyncCacheUseCase)
+        singleOf(::LoadRuntimesUseCase)
+        singleOf(::SearchUseCase)
+        singleOf(::ObserveSearchAliasesUseCase)
+        singleOf(::SaveSearchAliasUseCase)
+        singleOf(::RemoveSearchAliasUseCase)
+        singleOf(::ResolveSearchAliasUseCase)
+        singleOf(::CommandActionDispatcher)
+        singleOf(::BackCommandUseCase)
+        singleOf(::OpenCommandUseCase)
+        singleOf(::EnterItemUseCase)
+        singleOf(::CloseCommandUseCase)
+        singleOf(::ExecuteCommandCallbackUseCase)
+        singleOf(::GetPluginsUseCase)
+        singleOf(::GetCommandFullscreenUseCase)
+        singleOf(::UpdateCommandQueryUseCase)
 
-    single<HostBridgeFactory> {
-        HostBridgeFactoryImpl(
-            networkBridge = { get { parametersOf(it) } },
-            notificationBridge = { get { parametersOf(it) } },
-            preferencesBridge = { get { parametersOf(it) } },
-            searchFieldBridge = { get { parametersOf(it) } },
-            cacheBridge = { get { parametersOf(it) } },
-            storageBridge = { get { parametersOf(it) } },
-            filesystemBridge = { get { parametersOf(it) } },
-            clipboardBridge = { get { parametersOf(it) } },
-            contactsBridge = { get { parametersOf(it) } },
-            environmentBridge = { get { parametersOf(it) } },
-            systemBridge = { get { parametersOf(it) } },
-        )
+        single<HostBridgeFactory> {
+            HostBridgeFactoryImpl(
+                networkBridge = { get { parametersOf(it) } },
+                notificationBridge = { get { parametersOf(it) } },
+                preferencesBridge = { get { parametersOf(it) } },
+                searchFieldBridge = { get { parametersOf(it) } },
+                cacheBridge = { get { parametersOf(it) } },
+                storageBridge = { get { parametersOf(it) } },
+                filesystemBridge = { get { parametersOf(it) } },
+                clipboardBridge = { get { parametersOf(it) } },
+                contactsBridge = { get { parametersOf(it) } },
+                environmentBridge = { get { parametersOf(it) } },
+                systemBridge = { get { parametersOf(it) } },
+            )
+        }
     }
-}

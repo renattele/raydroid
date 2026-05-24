@@ -6,8 +6,8 @@ import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
-import org.gradle.api.provider.ListProperty
 import org.gradle.api.plugins.ExtensionAware
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
@@ -20,69 +20,76 @@ import org.jetbrains.compose.ComposeExtension
 import org.jetbrains.compose.resources.ResourcesExtension
 import javax.inject.Inject
 
-abstract class PreparePluginComposeResourcesTask @Inject constructor(
-    private val fileSystemOperations: FileSystemOperations,
-) : DefaultTask() {
-    @get:Input
-    abstract val pluginIds: ListProperty<String>
+abstract class PreparePluginComposeResourcesTask
+    @Inject
+    constructor(
+        private val fileSystemOperations: FileSystemOperations,
+    ) : DefaultTask() {
+        @get:Input
+        abstract val pluginIds: ListProperty<String>
 
-    @get:InputFiles
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val composeResourceFiles: ConfigurableFileCollection
+        @get:InputFiles
+        @get:PathSensitive(PathSensitivity.RELATIVE)
+        abstract val composeResourceFiles: ConfigurableFileCollection
 
-    @get:InputFiles
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val rextFiles: ConfigurableFileCollection
+        @get:InputFiles
+        @get:PathSensitive(PathSensitivity.RELATIVE)
+        abstract val rextFiles: ConfigurableFileCollection
 
-    @get:OutputDirectory
-    abstract val outputDir: DirectoryProperty
+        @get:OutputDirectory
+        abstract val outputDir: DirectoryProperty
 
-    @TaskAction
-    fun run() {
-        fileSystemOperations.sync {
-            into(outputDir)
+        @TaskAction
+        fun run() {
+            fileSystemOperations.sync {
+                into(outputDir)
 
-            from(composeResourceFiles)
+                from(composeResourceFiles)
 
-            into("files") {
-                from(rextFiles)
+                into("files") {
+                    from(rextFiles)
+                }
             }
+
+            val pluginListFile = outputDir.file("files/plugin-list.json").get().asFile
+            pluginListFile.parentFile.mkdirs()
+            pluginListFile.writeText(pluginIds.asJsonArray())
         }
-
-        val pluginListFile = outputDir.file("files/plugin-list.json").get().asFile
-        pluginListFile.parentFile.mkdirs()
-        pluginListFile.writeText(pluginIds.asJsonArray())
     }
-}
 
-private fun ListProperty<String>.asJsonArray(): String {
-    return get().joinToString(
+private fun ListProperty<String>.asJsonArray(): String =
+    get().joinToString(
         prefix = "[\n",
         postfix = "\n]\n",
         separator = ",\n",
     ) { pluginId ->
         "  \"$pluginId\""
     }
-}
 
 class RaydroidComposePluginRextResourcesConventionPlugin : Plugin<Project> {
-    override fun apply(target: Project) = with(target) {
-        pluginManager.withPlugin("org.jetbrains.compose") {
-            configurePluginRextComposeResources()
+    override fun apply(target: Project) =
+        with(target) {
+            pluginManager.withPlugin("org.jetbrains.compose") {
+                configurePluginRextComposeResources()
+            }
         }
-    }
 }
 
 private fun Project.configurePluginRextComposeResources() {
-    val requestedTaskNames = gradle.startParameter.taskNames.joinToString(" ").lowercase()
-    val pluginBuildOutputVariant = providers.gradleProperty("raydroidPluginVariant")
-        .orNull
-        ?.lowercase()
-        ?: if (requestedTaskNames.contains("release") || requestedTaskNames.contains("production")) {
-            "production"
-        } else {
-            "development"
-        }
+    val requestedTaskNames =
+        gradle.startParameter.taskNames
+            .joinToString(" ")
+            .lowercase()
+    val pluginBuildOutputVariant =
+        providers
+            .gradleProperty("raydroidPluginVariant")
+            .orNull
+            ?.lowercase()
+            ?: if (requestedTaskNames.contains("release") || requestedTaskNames.contains("production")) {
+                "production"
+            } else {
+                "development"
+            }
 
     require(pluginBuildOutputVariant in setOf("development", "production")) {
         "raydroidPluginVariant must be 'development' or 'production', got '$pluginBuildOutputVariant'"
@@ -92,21 +99,22 @@ private fun Project.configurePluginRextComposeResources() {
     val pluginImplProjects = rootProject.subprojects.filter { it.path.startsWith(":plugin:impl:") }
     val pluginIds = pluginImplProjects.map { it.pluginPackageName() }
 
-    val preparePluginComposeResources = tasks.register<PreparePluginComposeResourcesTask>("preparePluginComposeResources") {
-        group = "build setup"
-        description = "Builds plugin .rext artifacts and copies them into generated Compose resources"
+    val preparePluginComposeResources =
+        tasks.register<PreparePluginComposeResourcesTask>("preparePluginComposeResources") {
+            group = "build setup"
+            description = "Builds plugin .rext artifacts and copies them into generated Compose resources"
 
-        dependsOn(pluginImplProjects.map { "${it.path}:raydroidPlugin${pluginBuildTaskVariant}Build" })
-        this.pluginIds.set(pluginIds)
-        composeResourceFiles.from(layout.projectDirectory.dir("src/commonMain/composeResources"))
+            dependsOn(pluginImplProjects.map { "${it.path}:raydroidPlugin${pluginBuildTaskVariant}Build" })
+            this.pluginIds.set(pluginIds)
+            composeResourceFiles.from(layout.projectDirectory.dir("src/commonMain/composeResources"))
 
-        rextFiles.from(
-            pluginImplProjects.zip(pluginIds).map { (pluginProject, pluginId) ->
-                pluginProject.layout.buildDirectory.file("output/$pluginBuildOutputVariant/$pluginId.rext")
-            }
-        )
-        outputDir.set(layout.buildDirectory.dir("generated/composeResources/pluginRext/$pluginBuildOutputVariant"))
-    }
+            rextFiles.from(
+                pluginImplProjects.zip(pluginIds).map { (pluginProject, pluginId) ->
+                    pluginProject.layout.buildDirectory.file("output/$pluginBuildOutputVariant/$pluginId.rext")
+                },
+            )
+            outputDir.set(layout.buildDirectory.dir("generated/composeResources/pluginRext/$pluginBuildOutputVariant"))
+        }
 
     val composeExtension = extensions.getByType(ComposeExtension::class.java) as ExtensionAware
     composeExtension.extensions.configure<ResourcesExtension> {
@@ -117,12 +125,14 @@ private fun Project.configurePluginRextComposeResources() {
     }
 
     tasks.configureEach {
-        val shouldTrackGeneratedPluginResources = name.startsWith("prepareComposeResourcesTaskFor") ||
-            name.endsWith("ProcessResources")
+        val shouldTrackGeneratedPluginResources =
+            name.startsWith("prepareComposeResourcesTaskFor") ||
+                name.endsWith("ProcessResources")
         if (!shouldTrackGeneratedPluginResources) return@configureEach
 
         dependsOn(preparePluginComposeResources)
-        inputs.dir(preparePluginComposeResources.flatMap { it.outputDir })
+        inputs
+            .dir(preparePluginComposeResources.flatMap { it.outputDir })
             .withPathSensitivity(PathSensitivity.RELATIVE)
     }
 

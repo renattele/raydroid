@@ -5,9 +5,7 @@ import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
 
 class GetPluginsUseCase(
-    private val pluginRuntimeRegistry: PluginRuntimeRegistry
+    private val pluginRuntimeRegistry: PluginRuntimeRegistry,
 ) {
-    operator fun invoke(): StateFlow<List<PluginRuntime>> {
-        return pluginRuntimeRegistry.get().runtimes()
-    }
+    operator fun invoke(): StateFlow<List<PluginRuntime>> = pluginRuntimeRegistry.get().runtimes()
 }

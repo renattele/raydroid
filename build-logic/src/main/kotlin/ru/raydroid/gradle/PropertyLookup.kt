@@ -11,7 +11,10 @@ internal fun Project.findEnvironmentGradleOrLocalProperty(
         ?: findLocalProperty(gradlePropertyName)
 
 private fun Project.findLocalProperty(name: String): String? {
-    val localPropertiesFile = rootProject.layout.projectDirectory.file("local.properties").asFile
+    val localPropertiesFile =
+        rootProject.layout.projectDirectory
+            .file("local.properties")
+            .asFile
     if (!localPropertiesFile.isFile) return null
 
     return localPropertiesFile.useLines { lines ->

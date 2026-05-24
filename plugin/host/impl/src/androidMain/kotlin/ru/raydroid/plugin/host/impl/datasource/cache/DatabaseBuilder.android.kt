@@ -9,6 +9,6 @@ internal fun getDatabaseBuilder(context: Context): RoomDatabase.Builder<PluginDa
     val dbFile = appContext.getDatabasePath("plugins.db")
     return Room.databaseBuilder<PluginDatabase>(
         context = appContext,
-        name = dbFile.absolutePath
+        name = dbFile.absolutePath,
     )
 }

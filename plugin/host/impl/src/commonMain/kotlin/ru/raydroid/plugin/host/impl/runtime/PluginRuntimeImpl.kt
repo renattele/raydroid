@@ -14,19 +14,19 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.FileSystem
-import ru.raydroid.plugin.api.presentation.CommandCallbackRef
+import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.presentation.CommandActionTarget
+import ru.raydroid.plugin.api.presentation.CommandCallbackRef
+import ru.raydroid.plugin.api.presentation.CommandItemId
+import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.api.runtime.CommandServiceBridge
 import ru.raydroid.plugin.api.runtime.InternalCommandActionBridge
 import ru.raydroid.plugin.api.ui.FormValues
-import ru.raydroid.plugin.api.presentation.CommandItemId
-import ru.raydroid.plugin.api.presentation.CommandListItem
-import ru.raydroid.plugin.api.manifest.Manifest
-import ru.raydroid.plugin.host.api.domain.model.SearchResultId
-import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
 import ru.raydroid.plugin.host.api.domain.model.PluginId
+import ru.raydroid.plugin.host.api.domain.model.SearchIndexMutation
+import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
 import ru.raydroid.plugin.host.api.ui.PluginCommandListAction
 import ru.raydroid.plugin.host.impl.ui.toPluginCommandListAction
@@ -39,7 +39,7 @@ internal class PluginRuntimeImpl(
     private val commandServices: List<CommandServiceBridge>,
     private val zipline: Zipline,
     private val pluginRuntimeDispatcher: CoroutineDispatcher,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope,
 ) : PluginRuntime {
     private val contentFlow =
         MutableStateFlow<List<PluginRuntime.ContentItem>>(emptyList())
@@ -52,42 +52,47 @@ internal class PluginRuntimeImpl(
 
     init {
         coroutineScope.launch {
-            val commandNames = withContext(pluginRuntimeDispatcher) {
-                commandServices.associateWith {
-                    it.getServiceName()
+            val commandNames =
+                withContext(pluginRuntimeDispatcher) {
+                    commandServices.associateWith {
+                        it.getServiceName()
+                    }
                 }
-            }
             commandServices.forEach { command ->
                 val commandName = commandNames[command] ?: "Unknown"
-                val renderRequest = object : CommandServiceBridge.RenderRequest {
-                    override fun requestRender() {
-                        coroutineScope.launch(pluginRuntimeDispatcher) {
-                            setCommandContent(commandName, command)
-                        }
-                    }
-                }
-                val fullscreenRenderRequest = object : CommandServiceBridge.FullscreenRenderRequest {
-                    override fun requestFullscreenRender() {
-                        coroutineScope.launch(pluginRuntimeDispatcher) {
-                            setFullscreenContent(commandName, command)
-                        }
-                    }
-                }
-                val invalidationRequest = object : CommandServiceBridge.InvalidateCacheRequest {
-                    override fun requestInvalidation(invalidatedIds: List<CommandItemId>?) {
-                        coroutineScope.launch {
-                            val serviceName = withContext(pluginRuntimeDispatcher) {
-                                command.getServiceName()
+                val renderRequest =
+                    object : CommandServiceBridge.RenderRequest {
+                        override fun requestRender() {
+                            coroutineScope.launch(pluginRuntimeDispatcher) {
+                                setCommandContent(commandName, command)
                             }
-                            invalidationChannel.emit(
-                                InvalidationRequest(
-                                    serviceName,
-                                    invalidatedIds
-                                )
-                            )
                         }
                     }
-                }
+                val fullscreenRenderRequest =
+                    object : CommandServiceBridge.FullscreenRenderRequest {
+                        override fun requestFullscreenRender() {
+                            coroutineScope.launch(pluginRuntimeDispatcher) {
+                                setFullscreenContent(commandName, command)
+                            }
+                        }
+                    }
+                val invalidationRequest =
+                    object : CommandServiceBridge.InvalidateCacheRequest {
+                        override fun requestInvalidation(invalidatedIds: List<CommandItemId>?) {
+                            coroutineScope.launch {
+                                val serviceName =
+                                    withContext(pluginRuntimeDispatcher) {
+                                        command.getServiceName()
+                                    }
+                                invalidationChannel.emit(
+                                    InvalidationRequest(
+                                        serviceName,
+                                        invalidatedIds,
+                                    ),
+                                )
+                            }
+                        }
+                    }
                 withContext(pluginRuntimeDispatcher) {
                     command.initialize(renderRequest, fullscreenRenderRequest, invalidationRequest)
                 }
@@ -95,135 +100,143 @@ internal class PluginRuntimeImpl(
         }
     }
 
-    override fun cachedItems(
-        chunkSize: Int
-    ): Flow<List<SearchIndexMutation>> = channelFlow {
-        commandServices.forEach { command ->
-            launch {
-                val commandName = manifest.commands.find {
-                    // Using plugin context because
-                    // command.serviceName is actually a function
-                    withContext(pluginRuntimeDispatcher) {
-                        it.service == command.getServiceName()
-                    }
-                }?.service ?: return@launch
-                send(
-                    listOf(
-                        SearchIndexMutation.MarkAllAsOutdated(
-                            pluginId = PluginId(manifest.name),
-                            commandName = commandName
-                        )
+    override fun cachedItems(chunkSize: Int): Flow<List<SearchIndexMutation>> =
+        channelFlow {
+            commandServices.forEach { command ->
+                launch {
+                    val commandName =
+                        manifest.commands
+                            .find {
+                                // Using plugin context because
+                                // command.serviceName is actually a function
+                                withContext(pluginRuntimeDispatcher) {
+                                    it.service == command.getServiceName()
+                                }
+                            }?.service ?: return@launch
+                    send(
+                        listOf(
+                            SearchIndexMutation.MarkAllAsOutdated(
+                                pluginId = PluginId(manifest.name),
+                                commandName = commandName,
+                            ),
+                        ),
                     )
-                )
-                withContext(pluginRuntimeDispatcher) {
-                    command.cachedItems(chunkSize = chunkSize).collectLatest { chunk ->
-                        send(chunk.map { it.toMutation(commandName) })
-                    }
-                }
-                send(
-                    listOf(
-                        SearchIndexMutation.ClearOutdated(
-                            pluginId = PluginId(manifest.name),
-                            commandName = commandName
-                        )
-                    )
-                )
-                invalidationChannel.collectLatest { invalidationRequest ->
-                    if (invalidationRequest.commandName != commandName) return@collectLatest
-                    if (invalidationRequest.invalidatedIds != null) {
-                        val deleteUpdate =
-                            invalidationRequest.invalidatedIds.map { invalidatedId ->
-                                SearchIndexMutation.Delete(
-                                    resultId = SearchResultId(
-                                        pluginId = PluginId(manifest.name),
-                                        commandName = commandName,
-                                        itemId = invalidatedId
-                                    )
-                                )
-                            }
-                        send(deleteUpdate)
-                    } else {
-                        send(
-                            listOf(
-                                SearchIndexMutation.MarkAllAsOutdated(
-                                    pluginId = PluginId(manifest.name),
-                                    commandName = commandName
-                                )
-                            )
-                        )
-                    }
                     withContext(pluginRuntimeDispatcher) {
-                        command.cachedItems(
-                            invalidationRequest.invalidatedIds,
-                            chunkSize = chunkSize
-                        ).collect { chunk ->
+                        command.cachedItems(chunkSize = chunkSize).collectLatest { chunk ->
                             send(chunk.map { it.toMutation(commandName) })
                         }
                     }
-                    if (invalidationRequest.invalidatedIds == null) {
-                        send(
-                            listOf(
-                                SearchIndexMutation.ClearOutdated(
-                                    pluginId = PluginId(manifest.name),
-                                    commandName = commandName
-                                )
+                    send(
+                        listOf(
+                            SearchIndexMutation.ClearOutdated(
+                                pluginId = PluginId(manifest.name),
+                                commandName = commandName,
+                            ),
+                        ),
+                    )
+                    invalidationChannel.collectLatest { invalidationRequest ->
+                        if (invalidationRequest.commandName != commandName) return@collectLatest
+                        if (invalidationRequest.invalidatedIds != null) {
+                            val deleteUpdate =
+                                invalidationRequest.invalidatedIds.map { invalidatedId ->
+                                    SearchIndexMutation.Delete(
+                                        resultId =
+                                            SearchResultId(
+                                                pluginId = PluginId(manifest.name),
+                                                commandName = commandName,
+                                                itemId = invalidatedId,
+                                            ),
+                                    )
+                                }
+                            send(deleteUpdate)
+                        } else {
+                            send(
+                                listOf(
+                                    SearchIndexMutation.MarkAllAsOutdated(
+                                        pluginId = PluginId(manifest.name),
+                                        commandName = commandName,
+                                    ),
+                                ),
                             )
-                        )
+                        }
+                        withContext(pluginRuntimeDispatcher) {
+                            command
+                                .cachedItems(
+                                    invalidationRequest.invalidatedIds,
+                                    chunkSize = chunkSize,
+                                ).collect { chunk ->
+                                    send(chunk.map { it.toMutation(commandName) })
+                                }
+                        }
+                        if (invalidationRequest.invalidatedIds == null) {
+                            send(
+                                listOf(
+                                    SearchIndexMutation.ClearOutdated(
+                                        pluginId = PluginId(manifest.name),
+                                        commandName = commandName,
+                                    ),
+                                ),
+                            )
+                        }
                     }
                 }
             }
         }
-    }
 
     override suspend fun cachedItems(
         commandName: String,
         requestedItems: List<CommandItemId>,
-        chunkSize: Int
+        chunkSize: Int,
     ): List<SearchIndexMutation> {
         if (requestedItems.isEmpty()) return emptyList()
         return withContext(pluginRuntimeDispatcher) {
-            val command = commandServices.firstOrNull { service ->
-                service.getServiceName() == commandName
-            } ?: return@withContext emptyList()
+            val command =
+                commandServices.firstOrNull { service ->
+                    service.getServiceName() == commandName
+                } ?: return@withContext emptyList()
             buildList {
-                command.cachedItems(
-                    requestedItems = requestedItems,
-                    chunkSize = chunkSize
-                ).collect { chunk ->
-                    addAll(chunk.map { item -> item.toMutation(commandName) })
-                }
+                command
+                    .cachedItems(
+                        requestedItems = requestedItems,
+                        chunkSize = chunkSize,
+                    ).collect { chunk ->
+                        addAll(chunk.map { item -> item.toMutation(commandName) })
+                    }
             }
         }
     }
 
-    private fun CommandListItem.toMutation(commandName: String) = SearchIndexMutation.Upsert(
-        resultId = SearchResultId(
-            PluginId(manifest.name), commandName = commandName, itemId = id
-        ), listEntry = this
-    )
+    private fun CommandListItem.toMutation(commandName: String) =
+        SearchIndexMutation.Upsert(
+            resultId =
+                SearchResultId(
+                    PluginId(manifest.name),
+                    commandName = commandName,
+                    itemId = id,
+                ),
+            listEntry = this,
+        )
 
     override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = contentFlow
 
-    override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> =
-        fullscreenFlow(commandName)
+    override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = fullscreenFlow(commandName)
 
     override suspend fun actions(
         commandName: String,
-        itemId: CommandItemId
+        itemId: CommandItemId,
     ): List<PluginCommandListAction> {
         return withContext(pluginRuntimeDispatcher) {
-            val command = commandServices.firstOrNull { command ->
-                command.getServiceName() == commandName
-            } ?: return@withContext emptyList()
+            val command =
+                commandServices.firstOrNull { command ->
+                    command.getServiceName() == commandName
+                } ?: return@withContext emptyList()
             command.actions(CommandActionTarget(itemId)).map { action ->
                 action.toPluginCommandListAction(pluginId, dispatchCallback(command))
             }
         }
     }
 
-    override suspend fun update(
-        action: CommandActionBridge
-    ) {
+    override suspend fun update(action: CommandActionBridge) {
         withContext(pluginRuntimeDispatcher) {
             commandServices.forEach { command ->
                 launch {
@@ -235,12 +248,13 @@ internal class PluginRuntimeImpl(
 
     override suspend fun update(
         commandName: String,
-        action: CommandActionBridge
+        action: CommandActionBridge,
     ) {
         withContext(pluginRuntimeDispatcher) {
-            val command = commandServices.firstOrNull { command ->
-                command.getServiceName() == commandName
-            } ?: return@withContext
+            val command =
+                commandServices.firstOrNull { command ->
+                    command.getServiceName() == commandName
+                } ?: return@withContext
             command.update(action)
             if (action is CommandActionBridge.Regular) {
                 when (action.action) {
@@ -254,9 +268,10 @@ internal class PluginRuntimeImpl(
 
     override suspend fun back(commandName: String): Boolean {
         return withContext(pluginRuntimeDispatcher) {
-            val command = commandServices.firstOrNull { command ->
-                command.getServiceName() == commandName
-            } ?: return@withContext false
+            val command =
+                commandServices.firstOrNull { command ->
+                    command.getServiceName() == commandName
+                } ?: return@withContext false
             command.back()
         }
     }
@@ -269,15 +284,16 @@ internal class PluginRuntimeImpl(
 
     private fun setCommandContent(
         commandName: String,
-        command: CommandServiceBridge
+        command: CommandServiceBridge,
     ) {
         val dispatchCallback = dispatchCallback(command)
-        val content = command.content().values.map {
-            PluginRuntime.ContentItem(
-                commandName = commandName,
-                presentation = it.toPluginCommandPresentation(pluginId, dispatchCallback, dispatchFormCallback(command))
-            )
-        }
+        val content =
+            command.content().values.map {
+                PluginRuntime.ContentItem(
+                    commandName = commandName,
+                    presentation = it.toPluginCommandPresentation(pluginId, dispatchCallback, dispatchFormCallback(command)),
+                )
+            }
         contentFlow.update { data ->
             data.filter { contentItem ->
                 contentItem.commandName != commandName
@@ -285,50 +301,49 @@ internal class PluginRuntimeImpl(
         }
     }
 
-    private fun fullscreenFlow(commandName: String): MutableStateFlow<PluginRuntime.FullscreenContent?> {
-        return fullscreenFlows.getOrPut(commandName) {
+    private fun fullscreenFlow(commandName: String): MutableStateFlow<PluginRuntime.FullscreenContent?> =
+        fullscreenFlows.getOrPut(commandName) {
             MutableStateFlow(null)
         }
-    }
 
     private fun setFullscreenContent(
         commandName: String,
-        command: CommandServiceBridge
+        command: CommandServiceBridge,
     ) {
-        fullscreenFlow(commandName).value = PluginRuntime.FullscreenContent(
-            commandName = commandName,
-            content = command.fullscreen().map { node ->
-                node.toPluginRayNodeData(pluginId, dispatchCallback(command), dispatchFormCallback(command))
+        fullscreenFlow(commandName).value =
+            PluginRuntime.FullscreenContent(
+                commandName = commandName,
+                content =
+                    command.fullscreen().map { node ->
+                        node.toPluginRayNodeData(pluginId, dispatchCallback(command), dispatchFormCallback(command))
+                    },
+            )
+    }
+
+    private fun dispatchCallback(command: CommandServiceBridge): suspend (CommandCallbackRef) -> Unit =
+        { callback ->
+            withContext(pluginRuntimeDispatcher) {
+                command.update(
+                    CommandActionBridge.Internal(
+                        InternalCommandActionBridge.Click(callback),
+                    ),
+                )
             }
-        )
-    }
-
-    private fun dispatchCallback(
-        command: CommandServiceBridge
-    ): suspend (CommandCallbackRef) -> Unit = { callback ->
-        withContext(pluginRuntimeDispatcher) {
-            command.update(
-                CommandActionBridge.Internal(
-                    InternalCommandActionBridge.Click(callback)
-                )
-            )
         }
-    }
 
-    private fun dispatchFormCallback(
-        command: CommandServiceBridge
-    ): suspend (CommandCallbackRef, FormValues) -> Unit = { callback, values ->
-        withContext(pluginRuntimeDispatcher) {
-            command.update(
-                CommandActionBridge.Internal(
-                    InternalCommandActionBridge.SubmitForm(callback, values)
+    private fun dispatchFormCallback(command: CommandServiceBridge): suspend (CommandCallbackRef, FormValues) -> Unit =
+        { callback, values ->
+            withContext(pluginRuntimeDispatcher) {
+                command.update(
+                    CommandActionBridge.Internal(
+                        InternalCommandActionBridge.SubmitForm(callback, values),
+                    ),
                 )
-            )
+            }
         }
-    }
 
     private class InvalidationRequest(
         val commandName: String,
-        val invalidatedIds: List<CommandItemId>?
+        val invalidatedIds: List<CommandItemId>?,
     )
 }

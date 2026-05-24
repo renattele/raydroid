@@ -29,11 +29,12 @@ fun RText(
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
 ) {
-    val resolvedColor = if (color == Color.Unspecified) {
-        RaydroidTheme.colorScheme.onSurface
-    } else {
-        color
-    }
+    val resolvedColor =
+        if (color == Color.Unspecified) {
+            RaydroidTheme.colorScheme.onSurface
+        } else {
+            color
+        }
     Text(
         text = text,
         modifier = modifier,
@@ -45,7 +46,7 @@ fun RText(
         textDecoration = textDecoration,
         style = style,
         maxLines = maxLines,
-        overflow = overflow
+        overflow = overflow,
     )
 }
 
@@ -63,11 +64,12 @@ fun RText(
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
 ) {
-    val resolvedColor = if (color == Color.Unspecified) {
-        RaydroidTheme.colorScheme.onSurface
-    } else {
-        color
-    }
+    val resolvedColor =
+        if (color == Color.Unspecified) {
+            RaydroidTheme.colorScheme.onSurface
+        } else {
+            color
+        }
     Text(
         text = text,
         modifier = modifier,
@@ -79,6 +81,6 @@ fun RText(
         textDecoration = textDecoration,
         style = style,
         maxLines = maxLines,
-        overflow = overflow
+        overflow = overflow,
     )
 }

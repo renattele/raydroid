@@ -14,24 +14,24 @@ data class SearchPanelAction(
     override val showPrimaryHint: Boolean = true,
     override val enabled: Boolean = true,
     override val destructive: Boolean = false,
-    val kind: Kind
+    val kind: Kind,
 ) : ActionPanelActionUi {
     sealed interface Kind {
         data class PluginCallback(
             val callback: ru.raydroid.plugin.host.api.ui.PluginCommandCallback,
-            val updateUsage: Boolean
+            val updateUsage: Boolean,
         ) : Kind
 
         data class OpenAliasEditor(
-            val existingAlias: String?
+            val existingAlias: String?,
         ) : Kind
 
         data object RemoveAlias : Kind
     }
 }
 
-fun PluginCommandListAction.toSearchPanelAction(updateUsage: Boolean): SearchPanelAction {
-    return SearchPanelAction(
+fun PluginCommandListAction.toSearchPanelAction(updateUsage: Boolean): SearchPanelAction =
+    SearchPanelAction(
         title = title,
         description = description,
         icon = icon,
@@ -40,13 +40,12 @@ fun PluginCommandListAction.toSearchPanelAction(updateUsage: Boolean): SearchPan
         showPrimaryHint = showPrimaryHint,
         enabled = enabled,
         destructive = style == PluginCommandListAction.Style.Destructive,
-        kind = SearchPanelAction.Kind.PluginCallback(
-            callback = callback,
-            updateUsage = updateUsage
-        )
+        kind =
+            SearchPanelAction.Kind.PluginCallback(
+                callback = callback,
+                updateUsage = updateUsage,
+            ),
     )
-}
 
-fun List<PluginCommandListAction>.toSearchPanelActions(updateUsage: Boolean): List<SearchPanelAction> {
-    return map { action -> action.toSearchPanelAction(updateUsage) }
-}
+fun List<PluginCommandListAction>.toSearchPanelActions(updateUsage: Boolean): List<SearchPanelAction> =
+    map { action -> action.toSearchPanelAction(updateUsage) }

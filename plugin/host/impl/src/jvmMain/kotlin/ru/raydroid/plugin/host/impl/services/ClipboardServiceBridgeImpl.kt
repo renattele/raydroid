@@ -1,13 +1,11 @@
 package ru.raydroid.plugin.host.impl.services
 
-
 import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
 
-
-internal class ClipboardServiceBridgeImpl: ClipboardServiceBridge {
+internal class ClipboardServiceBridgeImpl : ClipboardServiceBridge {
     override suspend fun copy(
         content: ClipboardServiceBridge.ClipboardContent,
-        secret: Boolean
+        secret: Boolean,
     ) {
         TODO("Not yet implemented")
     }
@@ -19,5 +17,4 @@ internal class ClipboardServiceBridgeImpl: ClipboardServiceBridge {
     override suspend fun read(historyOffset: Int): ClipboardServiceBridge.ClipboardContent {
         TODO("Not yet implemented")
     }
-
 }

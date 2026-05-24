@@ -8,13 +8,13 @@ import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 
 class EnterItemUseCase(
     private val commandActionDispatcher: CommandActionDispatcher,
-    private val searchIndexRepository: SearchIndexRepository
+    private val searchIndexRepository: SearchIndexRepository,
 ) {
     suspend operator fun invoke(resultId: SearchResultId) {
         if (resultId.itemId == CommandItemId.CommandRoot) return
         commandActionDispatcher.dispatch(
             resultId = resultId,
-            action = CommandActionBridge.Regular(CommandAction.Enter(resultId.itemId))
+            action = CommandActionBridge.Regular(CommandAction.Enter(resultId.itemId)),
         )
         searchIndexRepository.updateUsage(resultId)
     }

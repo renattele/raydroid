@@ -19,6 +19,6 @@ fun RAlertDialog(
         modifier = modifier,
         dismissButton = dismissButton,
         title = title,
-        text = text
+        text = text,
     )
 }

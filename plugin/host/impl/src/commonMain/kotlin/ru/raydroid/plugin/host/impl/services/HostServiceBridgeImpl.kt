@@ -24,5 +24,5 @@ internal class HostServiceBridgeImpl(
     override val preferencesBridge: PreferencesServiceBridge,
     override val searchFieldBridge: SearchFieldServiceBridge,
     override val storageBridge: StorageServiceBridge,
-    override val systemBridge: SystemServiceBridge
+    override val systemBridge: SystemServiceBridge,
 ) : HostServiceBridge

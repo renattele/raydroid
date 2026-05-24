@@ -57,7 +57,7 @@ enum class PluginColor {
 
     Scrim,
 
-    Transparent
+    Transparent,
 }
 
 enum class PluginFontSize {
@@ -65,12 +65,12 @@ enum class PluginFontSize {
     Small,
     Medium,
     Large,
-    ExtraLarge
+    ExtraLarge,
 }
 
 enum class PluginFontWeight {
     Normal,
-    Bold
+    Bold,
 }
 
 enum class PluginIconSize {
@@ -78,7 +78,7 @@ enum class PluginIconSize {
     Small,
     Medium,
     Large,
-    ExtraLarge
+    ExtraLarge,
 }
 
 enum class PluginShapeToken {
@@ -88,14 +88,14 @@ enum class PluginShapeToken {
     Medium,
     Large,
     ExtraLarge,
-    Full
+    Full,
 }
 
 enum class PluginMotionToken {
     None,
     Fast,
     Default,
-    Emphasized
+    Emphasized,
 }
 
 enum class PluginSpacing {
@@ -106,13 +106,13 @@ enum class PluginSpacing {
     Small,
     Medium,
     Large,
-    ExtraLarge
+    ExtraLarge,
 }
 
 enum class PluginAlignment {
     Start,
     Center,
-    End
+    End,
 }
 
 enum class PluginBoxAlignment {
@@ -124,12 +124,12 @@ enum class PluginBoxAlignment {
     CenterEnd,
     BottomStart,
     BottomCenter,
-    BottomEnd
+    BottomEnd,
 }
 
 enum class PluginOrientation {
     Vertical,
-    Horizontal
+    Horizontal,
 }
 
 enum class PluginArrangement {
@@ -138,5 +138,5 @@ enum class PluginArrangement {
     End,
     SpaceBetween,
     SpaceAround,
-    SpaceEvenly
+    SpaceEvenly,
 }

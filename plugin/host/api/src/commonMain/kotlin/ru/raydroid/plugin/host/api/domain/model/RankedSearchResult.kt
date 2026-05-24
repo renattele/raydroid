@@ -2,7 +2,7 @@ package ru.raydroid.plugin.host.api.domain.model
 
 data class RankedSearchResult(
     val result: SearchResultSet.SearchResult,
-    val score: SearchResultScore
+    val score: SearchResultScore,
 )
 
 data class SearchResultScore(
@@ -15,5 +15,5 @@ data class SearchResultScore(
     val titleMatch: Boolean = false,
     val live: Boolean = false,
     val fieldLength: Int = Int.MAX_VALUE,
-    val stableOrder: Long = 0
+    val stableOrder: Long = 0,
 )

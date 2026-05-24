@@ -8,19 +8,19 @@ interface SearchResultRanker {
     fun rankLive(
         query: String,
         contentSnapshot: List<PluginRuntimeCoordinator.ContentItem>,
-        limit: Int
+        limit: Int,
     ): List<RankedSearchResult>
 
     fun rankCommands(
         query: String,
         commandsSnapshot: List<PluginRuntimeCoordinator.CommandItem>,
-        limit: Int
+        limit: Int,
     ): List<RankedSearchResult>
 
     fun merge(
         commandResults: List<RankedSearchResult>,
         liveResults: List<RankedSearchResult>,
         cachedResults: List<RankedSearchResult>,
-        limit: Int
+        limit: Int,
     ): List<SearchResultSet.SearchResult>
 }

@@ -3,6 +3,7 @@ import ru.raydroid.plugin.impl.contacts.ContactsCommand
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-fun main() = plugin {
-    command(ContactsCommand())
-}
+fun main() =
+    plugin {
+        command(ContactsCommand())
+    }

@@ -57,5 +57,5 @@ enum class Color {
 
     Scrim,
 
-    Transparent
+    Transparent,
 }

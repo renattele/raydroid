@@ -36,14 +36,17 @@ object AndroidRuntimePermissionGateway {
     fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
-        grantResults: IntArray
+        grantResults: IntArray,
     ): Boolean {
         val complete = pendingRequests.remove(requestCode) ?: return false
         complete()
         return true
     }
 
-    private suspend fun requestPermission(context: Context, permission: String) {
+    private suspend fun requestPermission(
+        context: Context,
+        permission: String,
+    ) {
         if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED) {
             return
         }

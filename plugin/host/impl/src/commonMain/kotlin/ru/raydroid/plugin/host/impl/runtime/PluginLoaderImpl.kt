@@ -17,15 +17,15 @@ import okio.fakefilesystem.FakeFileSystem
 import okio.openZip
 import okio.use
 import ru.raydroid.plugin.api.ZiplineServices
-import ru.raydroid.plugin.api.runtime.CommandServiceBridge
 import ru.raydroid.plugin.api.manifest.Manifest
-import ru.raydroid.plugin.host.api.domain.service.HostBridgeFactory
-import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
+import ru.raydroid.plugin.api.runtime.CommandServiceBridge
 import ru.raydroid.plugin.host.api.domain.model.PluginArtifact
-import ru.raydroid.plugin.host.api.domain.model.PluginId
-import ru.raydroid.plugin.host.api.domain.service.PluginLoader
 import ru.raydroid.plugin.host.api.domain.model.PluginDescriptor
+import ru.raydroid.plugin.host.api.domain.model.PluginId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntime
+import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeCoordinator
+import ru.raydroid.plugin.host.api.domain.service.HostBridgeFactory
+import ru.raydroid.plugin.host.api.domain.service.PluginLoader
 
 internal val REXT_VIRTUAL_FS_PATH = "/plugin.rext".toPath()
 internal val REXT_UNPACKED_VIRTUAL_FS_PATH = "/plugin".toPath()
@@ -35,46 +35,53 @@ internal const val NONEXISTENT_URL = "https://nonexistent.jkjk"
 
 internal class PluginLoaderImpl(
     private val dispatcher: () -> CoroutineDispatcher,
-    private val json: Json = Json {
-        ignoreUnknownKeys = true
-    },
+    private val json: Json =
+        Json {
+            ignoreUnknownKeys = true
+        },
     private val coroutineScope: CoroutineScope,
-    private val hostFactory: HostBridgeFactory
+    private val hostFactory: HostBridgeFactory,
 ) : PluginLoader {
     override suspend fun loadPlugin(plugin: PluginArtifact): PluginRuntime {
         val dispatcher = dispatcher()
         val fs = pluginFs(plugin)
         val httpClient = RextZiplineHttpClient(fs)
-        val loader = ZiplineLoader(
-            dispatcher,
-            manifestVerifier = ManifestVerifier.NO_SIGNATURE_CHECKS,
-            httpClient = httpClient
-        )
+        val loader =
+            ZiplineLoader(
+                dispatcher,
+                manifestVerifier = ManifestVerifier.NO_SIGNATURE_CHECKS,
+                httpClient = httpClient,
+            )
         return withContext(dispatcher) {
             val manifest = loadManifest(httpClient)
-            val loadResult = loader.loadOnce(
-                applicationName = "$NONEXISTENT_URL/manifest.zipline.json",
-                freshnessChecker = DefaultFreshnessCheckerNotFresh,
-                manifestUrl = "$NONEXISTENT_URL/manifest.zipline.json"
-            )
+            val loadResult =
+                loader.loadOnce(
+                    applicationName = "$NONEXISTENT_URL/manifest.zipline.json",
+                    freshnessChecker = DefaultFreshnessCheckerNotFresh,
+                    manifestUrl = "$NONEXISTENT_URL/manifest.zipline.json",
+                )
             val pluginId = PluginId(manifest.name)
 
             when (loadResult) {
-                is LoadResult.Failure -> throw loadResult.exception
+                is LoadResult.Failure -> {
+                    throw loadResult.exception
+                }
+
                 is LoadResult.Success -> {
                     val zipline = loadResult.zipline
                     val host = hostFactory.get(pluginId, manifest)
                     zipline.bind(ZiplineServices.Host.toString(), host)
-                    val services = manifest.commands.map { command ->
-                        zipline.take<CommandServiceBridge>(command.service)
-                    }
+                    val services =
+                        manifest.commands.map { command ->
+                            zipline.take<CommandServiceBridge>(command.service)
+                        }
                     return@withContext PluginRuntimeImpl(
                         manifest = manifest,
                         commandServices = services,
                         resources = fs,
                         zipline = zipline,
                         pluginRuntimeDispatcher = dispatcher,
-                        coroutineScope = coroutineScope
+                        coroutineScope = coroutineScope,
                     )
                 }
             }
@@ -92,24 +99,19 @@ internal class PluginLoaderImpl(
         }
     }
 
-    override suspend fun join(plugins: StateFlow<List<PluginRuntime>>): PluginRuntimeCoordinator {
-        return PluginRuntimeCoordinatorImpl(
+    override suspend fun join(plugins: StateFlow<List<PluginRuntime>>): PluginRuntimeCoordinator =
+        PluginRuntimeCoordinatorImpl(
             coroutineScope = coroutineScope,
-            pluginRuntimes = plugins
+            pluginRuntimes = plugins,
         )
-    }
 
-    private suspend fun loadManifest(
-        httpClient: RextZiplineHttpClient
-    ): Manifest {
+    private suspend fun loadManifest(httpClient: RextZiplineHttpClient): Manifest {
         val data =
             httpClient.download("$NONEXISTENT_URL/resources/plugin-manifest.json", emptyList())
         return json.decodeFromString<Manifest>(data.toByteArray().decodeToString())
     }
 
-    private fun pluginFs(
-        plugin: PluginArtifact
-    ): FileSystem {
+    private fun pluginFs(plugin: PluginArtifact): FileSystem {
         val fs = FakeFileSystem()
         loadPluginToFs(fs, plugin)
         return fs
@@ -117,7 +119,7 @@ internal class PluginLoaderImpl(
 
     private fun loadPluginToFs(
         fs: FileSystem,
-        plugin: PluginArtifact
+        plugin: PluginArtifact,
     ) {
         if (!fs.exists(REXT_VIRTUAL_FS_PATH)) {
             fs.write(REXT_VIRTUAL_FS_PATH) {
@@ -128,7 +130,10 @@ internal class PluginLoaderImpl(
     }
 }
 
-internal fun FileSystem.unpackZip(zipFile: Path, destDir: Path) {
+internal fun FileSystem.unpackZip(
+    zipFile: Path,
+    destDir: Path,
+) {
     fun Path.createParentDirectories() {
         this.parent?.let { parent ->
             createDirectories(parent)
@@ -136,9 +141,11 @@ internal fun FileSystem.unpackZip(zipFile: Path, destDir: Path) {
     }
 
     val zipFileSystem = openZip(zipFile)
-    val paths = zipFileSystem.listRecursively("/".toPath())
-        .filter { zipFileSystem.metadata(it).isRegularFile }
-        .toList()
+    val paths =
+        zipFileSystem
+            .listRecursively("/".toPath())
+            .filter { zipFileSystem.metadata(it).isRegularFile }
+            .toList()
 
     paths.forEach { zipFilePath ->
         zipFileSystem.source(zipFilePath).buffer().use { source ->

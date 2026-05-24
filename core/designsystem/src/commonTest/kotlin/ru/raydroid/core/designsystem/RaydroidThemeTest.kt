@@ -1,7 +1,7 @@
 package ru.raydroid.core.designsystem
 
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -55,7 +55,21 @@ class RaydroidThemeTest {
 
     @Test
     fun `interactive scale follows focused state`() {
-        assertEquals(1f, RInteractiveDefaults.targetScale(focused = false))
-        assertEquals(1.02f, RInteractiveDefaults.targetScale(focused = true))
+        assertEquals(
+            1f,
+            RInteractiveDefaults.targetScale(
+                focused = false,
+                pressed = false,
+                contextMenuActive = false,
+            ),
+        )
+        assertEquals(
+            1.02f,
+            RInteractiveDefaults.targetScale(
+                focused = true,
+                pressed = false,
+                contextMenuActive = false,
+            ),
+        )
     }
 }

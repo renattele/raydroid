@@ -6,13 +6,13 @@ import ru.raydroid.plugin.api.runtime.CommandActionBridge
 import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 
 class CloseCommandUseCase(
-    private val commandActionDispatcher: CommandActionDispatcher
+    private val commandActionDispatcher: CommandActionDispatcher,
 ) {
     suspend operator fun invoke(resultId: SearchResultId) {
         if (resultId.itemId != CommandItemId.CommandRoot) return
         commandActionDispatcher.dispatch(
             resultId = resultId,
-            action = CommandActionBridge.Regular(CommandAction.CloseCommand())
+            action = CommandActionBridge.Regular(CommandAction.CloseCommand()),
         )
     }
 }

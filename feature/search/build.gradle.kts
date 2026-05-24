@@ -3,18 +3,31 @@ plugins {
     alias(libs.plugins.raydroidMultiplatform)
 }
 
+val appleTargetsEnabled =
+    providers
+        .gradleProperty("raydroid.feature.search.appleTargets")
+        .orNull
+        ?.toBooleanStrictOrNull()
+        ?: providers
+            .gradleProperty("raydroid.appleTargets.default")
+            .orNull
+            ?.toBooleanStrictOrNull()
+        ?: true
+
 kotlin {
     android {
         namespace = "ru.raydroid.feature.search"
     }
 
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "RaydroidShared"
-            isStatic = true
+    if (appleTargetsEnabled) {
+        listOf(
+            iosArm64(),
+            iosSimulatorArm64(),
+        ).forEach { iosTarget ->
+            iosTarget.binaries.framework {
+                baseName = "RaydroidShared"
+                isStatic = true
+            }
         }
     }
 

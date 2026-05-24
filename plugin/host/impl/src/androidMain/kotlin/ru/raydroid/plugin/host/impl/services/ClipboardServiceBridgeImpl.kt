@@ -10,32 +10,33 @@ import androidx.core.net.toFile
 import androidx.core.net.toUri
 import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
 
-
 internal class ClipboardServiceBridgeImpl(
-    private val context: Context
-): ClipboardServiceBridge {
+    private val context: Context,
+) : ClipboardServiceBridge {
     private val clipboardManager by lazy {
         context.getSystemService(ClipboardManager::class.java)
     }
+
     override suspend fun copy(
         content: ClipboardServiceBridge.ClipboardContent,
-        secret: Boolean
+        secret: Boolean,
     ) {
-        val clip = if (content.text != null) {
-            ClipData.newPlainText("text", content.text)
-        } else if (content.filePath != null) {
-            ClipData.newUri(context.contentResolver, "path", content.filePath!!.toUri())
-        } else {
-            return
-        }
-        clip.description.extras = PersistableBundle().apply {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, secret)
+        val clip =
+            if (content.text != null) {
+                ClipData.newPlainText("text", content.text)
+            } else if (content.filePath != null) {
+                ClipData.newUri(context.contentResolver, "path", content.filePath!!.toUri())
+            } else {
+                return
             }
-            else {
-                putBoolean("android.content.extra.IS_SENSITIVE", secret)
+        clip.description.extras =
+            PersistableBundle().apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, secret)
+                } else {
+                    putBoolean("android.content.extra.IS_SENSITIVE", secret)
+                }
             }
-        }
         clipboardManager.setPrimaryClip(clip)
     }
 
@@ -48,7 +49,7 @@ internal class ClipboardServiceBridgeImpl(
         val item = clip.getItemAt(0) ?: return ClipboardServiceBridge.ClipboardContent()
         return ClipboardServiceBridge.ClipboardContent(
             text = item.text?.toString(),
-            filePath = item.uri?.toFile()?.absolutePath
+            filePath = item.uri?.toFile()?.absolutePath,
         )
     }
 }

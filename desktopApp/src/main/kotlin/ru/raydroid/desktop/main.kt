@@ -10,7 +10,6 @@ import androidx.compose.ui.window.rememberWindowState
 import org.koin.core.context.startKoin
 import ru.raydroid.App
 import ru.raydroid.sharedui.appModule
-import java.util.concurrent.Executors
 
 fun main() {
     startKoin {
@@ -27,7 +26,7 @@ fun main() {
             state = windowState,
             alwaysOnTop = true,
             resizable = false,
-            undecorated = !hotReloadEnabled, // disabling on hot reload to properly move window so IDE properly visible
+            undecorated = !hotReloadEnabled,
             transparent = !hotReloadEnabled,
             title = "KotlinTest",
         ) {

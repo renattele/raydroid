@@ -3,30 +3,31 @@ package ru.raydroid.plugin.api.host.internal
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.json.Json
-import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 import ru.raydroid.plugin.api.host.service.NetworkService
+import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 
 internal class NetworkServiceImpl(
     private val bridge: NetworkServiceBridge,
-    private val serializer: Json
-): NetworkService {
+    private val serializer: Json,
+) : NetworkService {
     override suspend fun request(
         url: String,
         body: ByteArray?,
         requestType: NetworkService.RequestType,
-        headers: Map<String, String>
+        headers: Map<String, String>,
     ): NetworkService.NetworkResponse {
-        val response = bridge.request(
-            NetworkServiceBridge.RawNetworkRequest(
-                url = url,
-                body = body,
-                method = requestType.toString(),
-                headers = headers
+        val response =
+            bridge.request(
+                NetworkServiceBridge.RawNetworkRequest(
+                    url = url,
+                    body = body,
+                    method = requestType.toString(),
+                    headers = headers,
+                ),
             )
-        )
         return NetworkService.NetworkResponse(
             statusCode = response.statusCode,
-            body = response.body
+            body = response.body,
         )
     }
 
@@ -36,19 +37,21 @@ internal class NetworkServiceImpl(
         requestType: NetworkService.RequestType,
         headers: Map<String, String>,
         requestStrategy: SerializationStrategy<T>,
-        responseStrategy: DeserializationStrategy<R>
+        responseStrategy: DeserializationStrategy<R>,
     ): NetworkService.TypedNetworkResponse<R> {
-        val response = request(
-            url = url,
-            body = body?.let { serializer.encodeToString(requestStrategy, it).encodeToByteArray() },
-            requestType = requestType,
-            headers = headers
-        )
+        val response =
+            request(
+                url = url,
+                body = body?.let { serializer.encodeToString(requestStrategy, it).encodeToByteArray() },
+                requestType = requestType,
+                headers = headers,
+            )
         return NetworkService.TypedNetworkResponse(
             statusCode = response.statusCode,
-            body = response.body?.let { body ->
-                serializer.decodeFromString(responseStrategy, body.decodeToString())
-            }
+            body =
+                response.body?.let { body ->
+                    serializer.decodeFromString(responseStrategy, body.decodeToString())
+                },
         )
     }
 }

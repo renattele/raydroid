@@ -20,7 +20,7 @@ class ContactsCommand : CommandService() {
 
     override suspend fun cachedItems(
         requestedItems: List<CommandItemId>?,
-        chunkSize: Int
+        chunkSize: Int,
     ) = flow {
         if (!Host.contacts.hasContactsAccess()) {
             contacts = emptyList()
@@ -28,8 +28,10 @@ class ContactsCommand : CommandService() {
             return@flow
         }
         val requestedIds = requestedItems?.map { itemId -> itemId.value }?.toSet()
-        val loadedContacts = Host.contacts.getContacts()
-            .filter { contact -> requestedIds == null || contact.id in requestedIds }
+        val loadedContacts =
+            Host.contacts
+                .getContacts()
+                .filter { contact -> requestedIds == null || contact.id in requestedIds }
         if (requestedIds == null) {
             contacts = loadedContacts
             contactsLoaded = true
@@ -53,7 +55,7 @@ class ContactsCommand : CommandService() {
                     title = UiText.Plain(contact.name),
                     description = UiText.Plain(contact.phones.joinToString()),
                     icon = ContactIcon,
-                    quickAction = CallQuickAction
+                    quickAction = CallQuickAction,
                 )
             }
     }
@@ -65,19 +67,19 @@ class ContactsCommand : CommandService() {
         action(
             title = UiText.Resource("contacts.action.call"),
             icon = Icon.Builtin("Call"),
-            primary = true
+            primary = true,
         ) {
             Host.contacts.dial(phone)
         }
         action(
             title = UiText.Resource("contacts.action.message"),
-            icon = Icon.Builtin("Message")
+            icon = Icon.Builtin("Message"),
         ) {
             Host.contacts.message(phone)
         }
         action(
             title = UiText.Resource("contacts.action.open"),
-            icon = Icon.Builtin("Contacts")
+            icon = Icon.Builtin("Contacts"),
         ) {
             Host.contacts.openContact(contact.id)
         }
@@ -124,7 +126,10 @@ class ContactsCommand : CommandService() {
             }
 
             is CommandAction.Focus,
-            is CommandAction.CloseCommand -> Unit
+            is CommandAction.CloseCommand,
+            -> {
+                Unit
+            }
         }
     }
 
@@ -146,11 +151,10 @@ class ContactsCommand : CommandService() {
             description = UiText.Plain(phones.joinToString()),
             icon = ContactIcon,
             iconColor = null,
-            quickAction = CallQuickAction
+            quickAction = CallQuickAction,
         )
 
-    private fun ContactsService.Contact.primaryPhone(): String? =
-        phones.firstOrNull { phone -> phone.isNotBlank() }
+    private fun ContactsService.Contact.primaryPhone(): String? = phones.firstOrNull { phone -> phone.isNotBlank() }
 
     private fun ContactsService.Contact.matches(filter: String): Boolean {
         val normalizedFilter = filter.lowercase()
@@ -161,9 +165,10 @@ class ContactsCommand : CommandService() {
     private companion object {
         const val LIVE_RESULT_LIMIT = 8
         val ContactIcon = Icon.Resource("icons/contact.png")
-        val CallQuickAction = CommandListQuickAction(
-            title = UiText.Resource("contacts.action.call"),
-            icon = Icon.Builtin("Call")
-        )
+        val CallQuickAction =
+            CommandListQuickAction(
+                title = UiText.Resource("contacts.action.call"),
+                icon = Icon.Builtin("Call"),
+            )
     }
 }

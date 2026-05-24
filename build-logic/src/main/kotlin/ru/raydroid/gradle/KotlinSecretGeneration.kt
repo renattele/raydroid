@@ -21,19 +21,21 @@ fun Project.generateKotlinSecret(
 ): GenerateKotlinSecret {
     val taskName = "generate${constantName.replaceFirstChar { it.uppercaseChar() }}Secret"
     val outputDir = layout.buildDirectory.dir("generated/secrets/$sourceSetName/kotlin")
-    val secret = providers.provider {
-        findEnvironmentGradleOrLocalProperty(
-            gradlePropertyName = propertyName,
-            environmentName = environmentName,
-        ).orEmpty()
-    }
+    val secret =
+        providers.provider {
+            findEnvironmentGradleOrLocalProperty(
+                gradlePropertyName = propertyName,
+                environmentName = environmentName,
+            ).orEmpty()
+        }
 
-    val task = tasks.register<GenerateKotlinSecretTask>(taskName) {
-        this.packageName.set(packageName)
-        this.constantName.set(constantName)
-        this.secret.set(secret)
-        this.outputDir.set(outputDir)
-    }
+    val task =
+        tasks.register<GenerateKotlinSecretTask>(taskName) {
+            this.packageName.set(packageName)
+            this.constantName.set(constantName)
+            this.secret.set(secret)
+            this.outputDir.set(outputDir)
+        }
 
     extensions.configure<KotlinMultiplatformExtension> {
         sourceSets.named(sourceSetName) {
@@ -67,9 +69,11 @@ abstract class GenerateKotlinSecretTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        val outputFile = outputDir.get()
-            .file("${packageName.get().replace('.', '/')}/${constantName.get()}.kt")
-            .asFile
+        val outputFile =
+            outputDir
+                .get()
+                .file("${packageName.get().replace('.', '/')}/${constantName.get()}.kt")
+                .asFile
 
         outputFile.parentFile.mkdirs()
         outputFile.writeText(
@@ -77,7 +81,7 @@ abstract class GenerateKotlinSecretTask : DefaultTask() {
             package ${packageName.get()}
 
             internal const val ${constantName.get()} = "${secret.get().escapeKotlinString()}"
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 }

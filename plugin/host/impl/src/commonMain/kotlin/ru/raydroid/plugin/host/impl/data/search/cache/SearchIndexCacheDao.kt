@@ -14,7 +14,11 @@ internal abstract class SearchIndexCacheDao {
     protected abstract suspend fun insertListItem(entity: SearchIndexCacheEntity): Long
 
     @Query("DELETE FROM list_item_cache WHERE plugin_id = :pluginId AND command = :command AND item_id = :itemId")
-    protected abstract suspend fun deleteListItem(pluginId: String, command: String, itemId: String)
+    protected abstract suspend fun deleteListItem(
+        pluginId: String,
+        command: String,
+        itemId: String,
+    )
 
     @Update
     protected abstract suspend fun updateListItem(entity: SearchIndexCacheEntity)
@@ -23,7 +27,11 @@ internal abstract class SearchIndexCacheDao {
     protected abstract suspend fun insertContent(entities: List<SearchIndexCacheContentEntity>)
 
     @Query("SELECT id FROM list_item_cache WHERE plugin_id = :pluginId AND command = :command AND item_id = :itemId LIMIT 1")
-    protected abstract suspend fun getSearchIndexId(pluginId: String, command: String, itemId: String): Long?
+    protected abstract suspend fun getSearchIndexId(
+        pluginId: String,
+        command: String,
+        itemId: String,
+    ): Long?
 
     @Query(
         """
@@ -33,12 +41,12 @@ internal abstract class SearchIndexCacheDao {
             AND command = :command
             AND item_id = :itemId
         LIMIT 1
-        """
+        """,
     )
     protected abstract suspend fun getListItem(
         pluginId: String,
         command: String,
-        itemId: String
+        itemId: String,
     ): SearchIndexCacheEntity?
 
     @Query("DELETE FROM list_item_cache_content WHERE list_item_cache_id = :searchIndexCacheId")
@@ -53,12 +61,18 @@ internal abstract class SearchIndexCacheDao {
             WHERE plugin_id = :pluginId
                 AND command = :command
         )
-        """
+        """,
     )
-    protected abstract suspend fun deleteContentByCommand(pluginId: String, command: String)
+    protected abstract suspend fun deleteContentByCommand(
+        pluginId: String,
+        command: String,
+    )
 
     @Query("DELETE FROM list_item_cache WHERE plugin_id = :pluginId AND command = :command")
-    protected abstract suspend fun deleteCommandListItems(pluginId: String, command: String)
+    protected abstract suspend fun deleteCommandListItems(
+        pluginId: String,
+        command: String,
+    )
 
     @Query(
         """
@@ -70,9 +84,12 @@ internal abstract class SearchIndexCacheDao {
                 AND command = :commandName
                 AND outdated = 1
         )
-        """
+        """,
     )
-    protected abstract suspend fun deleteOutdatedContentByCommand(pluginId: String, commandName: String)
+    protected abstract suspend fun deleteOutdatedContentByCommand(
+        pluginId: String,
+        commandName: String,
+    )
 
     @Query(
         """
@@ -80,9 +97,12 @@ internal abstract class SearchIndexCacheDao {
         WHERE plugin_id = :pluginId
             AND command = :commandName
             AND outdated = 1
-        """
+        """,
     )
-    protected abstract suspend fun deleteOutdatedCommandListItems(pluginId: String, commandName: String)
+    protected abstract suspend fun deleteOutdatedCommandListItems(
+        pluginId: String,
+        commandName: String,
+    )
 
     @Query(
         """
@@ -92,13 +112,13 @@ internal abstract class SearchIndexCacheDao {
         WHERE plugin_id = :pluginId
             AND command = :command
             AND item_id = :itemId
-        """
+        """,
     )
     abstract suspend fun updateUsage(
         pluginId: String,
         command: String,
         itemId: String,
-        nowEpochMs: Long
+        nowEpochMs: Long,
     )
 
     @Query(
@@ -108,12 +128,12 @@ internal abstract class SearchIndexCacheDao {
         WHERE plugin_id = :pluginId
             AND command = :commandName
             AND item_id = :itemId
-        """
+        """,
     )
     abstract suspend fun markAsOutdated(
         pluginId: String,
         commandName: String,
-        itemId: String
+        itemId: String,
     )
 
     @Query(
@@ -122,36 +142,50 @@ internal abstract class SearchIndexCacheDao {
         SET outdated = 1
         WHERE plugin_id = :pluginId
             AND command = :commandName
-        """
+        """,
     )
     abstract suspend fun markAllAsOutdated(
         pluginId: String,
-        commandName: String
+        commandName: String,
     )
 
     @Transaction
     open suspend fun applyUpdates(mutations: List<SearchIndexCacheMutation>) {
         mutations.forEach { mutation ->
             when (mutation) {
-                is SearchIndexCacheMutation.Upsert -> insert(mutation.entity)
-                is SearchIndexCacheMutation.Delete -> delete(
-                    pluginId = mutation.pluginId,
-                    command = mutation.commandName,
-                    itemId = mutation.itemId
-                )
-                is SearchIndexCacheMutation.MarkAsOutdated -> markAsOutdated(
-                    pluginId = mutation.pluginId,
-                    commandName = mutation.commandName,
-                    itemId = mutation.itemId
-                )
-                is SearchIndexCacheMutation.MarkAllAsOutdated -> markAllAsOutdated(
-                    pluginId = mutation.pluginId,
-                    commandName = mutation.commandName
-                )
-                is SearchIndexCacheMutation.ClearOutdated -> clearOutdated(
-                    pluginId = mutation.pluginId,
-                    commandName = mutation.commandName
-                )
+                is SearchIndexCacheMutation.Upsert -> {
+                    insert(mutation.entity)
+                }
+
+                is SearchIndexCacheMutation.Delete -> {
+                    delete(
+                        pluginId = mutation.pluginId,
+                        command = mutation.commandName,
+                        itemId = mutation.itemId,
+                    )
+                }
+
+                is SearchIndexCacheMutation.MarkAsOutdated -> {
+                    markAsOutdated(
+                        pluginId = mutation.pluginId,
+                        commandName = mutation.commandName,
+                        itemId = mutation.itemId,
+                    )
+                }
+
+                is SearchIndexCacheMutation.MarkAllAsOutdated -> {
+                    markAllAsOutdated(
+                        pluginId = mutation.pluginId,
+                        commandName = mutation.commandName,
+                    )
+                }
+
+                is SearchIndexCacheMutation.ClearOutdated -> {
+                    clearOutdated(
+                        pluginId = mutation.pluginId,
+                        commandName = mutation.commandName,
+                    )
+                }
             }
         }
     }
@@ -159,34 +193,42 @@ internal abstract class SearchIndexCacheDao {
     @Transaction
     open suspend fun insert(entity: SearchIndexCacheWithContent) {
         val searchIndexCache = entity.searchIndexCache.copy(outdated = false)
-        val existingEntity = getListItem(
-            pluginId = searchIndexCache.pluginId,
-            command = searchIndexCache.command,
-            itemId = searchIndexCache.itemId
-        )
-        val searchIndexCacheId = if (existingEntity == null) {
-            insertListItem(searchIndexCache)
-        } else {
-            updateListItem(
-                searchIndexCache.copy(
-                    id = existingEntity.id,
-                    lastUsedAtEpochMs = existingEntity.lastUsedAtEpochMs,
-                    usageCount = existingEntity.usageCount
-                )
+        val existingEntity =
+            getListItem(
+                pluginId = searchIndexCache.pluginId,
+                command = searchIndexCache.command,
+                itemId = searchIndexCache.itemId,
             )
-            existingEntity.id
-        }
+        val searchIndexCacheId =
+            if (existingEntity == null) {
+                insertListItem(searchIndexCache)
+            } else {
+                updateListItem(
+                    searchIndexCache.copy(
+                        id = existingEntity.id,
+                        lastUsedAtEpochMs = existingEntity.lastUsedAtEpochMs,
+                        usageCount = existingEntity.usageCount,
+                    ),
+                )
+                existingEntity.id
+            }
 
         deleteContentBySearchIndexCacheId(searchIndexCacheId)
         if (entity.content.isNotEmpty()) {
-            insertContent(entity.content.map { content ->
-                content.copy(id = 0, searchIndexCacheId = searchIndexCacheId)
-            })
+            insertContent(
+                entity.content.map { content ->
+                    content.copy(id = 0, searchIndexCacheId = searchIndexCacheId)
+                },
+            )
         }
     }
 
     @Transaction
-    open suspend fun delete(pluginId: String, command: String, itemId: String) {
+    open suspend fun delete(
+        pluginId: String,
+        command: String,
+        itemId: String,
+    ) {
         getSearchIndexId(pluginId = pluginId, command = command, itemId = itemId)
             ?.let { searchIndexCacheId ->
                 deleteContentBySearchIndexCacheId(searchIndexCacheId)
@@ -195,13 +237,19 @@ internal abstract class SearchIndexCacheDao {
     }
 
     @Transaction
-    open suspend fun clear(pluginId: String, command: String) {
+    open suspend fun clear(
+        pluginId: String,
+        command: String,
+    ) {
         deleteContentByCommand(pluginId = pluginId, command = command)
         deleteCommandListItems(pluginId = pluginId, command = command)
     }
 
     @Transaction
-    open suspend fun clearOutdated(pluginId: String, commandName: String) {
+    open suspend fun clearOutdated(
+        pluginId: String,
+        commandName: String,
+    ) {
         deleteOutdatedContentByCommand(pluginId = pluginId, commandName = commandName)
         deleteOutdatedCommandListItems(pluginId = pluginId, commandName = commandName)
     }
@@ -236,7 +284,7 @@ internal abstract class SearchIndexCacheDao {
             list_item_cache.last_used_at_epoch_ms DESC,
             preview_content.content_id ASC
         LIMIT :limit
-        """
+        """,
     )
     abstract fun recent(limit: Int): Flow<List<SearchIndexCacheSearchEntity>>
 
@@ -278,12 +326,12 @@ internal abstract class SearchIndexCacheDao {
             AND list_item_cache.command = :command
             AND list_item_cache.item_id = :itemId
         LIMIT 1
-        """
+        """,
     )
     abstract suspend fun preview(
         pluginId: String,
         command: String,
-        itemId: String
+        itemId: String,
     ): SearchIndexCacheSearchEntity?
 
     @Query(
@@ -310,11 +358,11 @@ internal abstract class SearchIndexCacheDao {
             list_item_cache.last_used_at_epoch_ms DESC,
             list_item_cache_content.id ASC
         LIMIT :limit
-        """
+        """,
     )
     abstract fun searchFtsCandidates(
         matchQuery: String,
-        limit: Int
+        limit: Int,
     ): Flow<List<SearchIndexCacheSearchEntity>>
 
     @Query(
@@ -339,7 +387,7 @@ internal abstract class SearchIndexCacheDao {
             list_item_cache.last_used_at_epoch_ms DESC,
             list_item_cache_content.id ASC
         LIMIT :limit
-        """
+        """,
     )
     abstract fun searchFallbackCandidates(limit: Int): Flow<List<SearchIndexCacheSearchEntity>>
 }

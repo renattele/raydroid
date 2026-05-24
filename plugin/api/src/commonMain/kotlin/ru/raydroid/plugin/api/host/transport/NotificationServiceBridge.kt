@@ -4,7 +4,7 @@ import app.cash.zipline.ZiplineService
 import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.model.UiText
 
-interface NotificationServiceBridge: ZiplineService {
+interface NotificationServiceBridge : ZiplineService {
     suspend fun alert(
         title: UiText,
         message: UiText,
@@ -13,46 +13,49 @@ interface NotificationServiceBridge: ZiplineService {
     ): AlertAction?
 
     suspend fun showToast(toast: Toast): ToastHandle
+
     suspend fun hideToast(toastId: String)
 
     @Serializable
     data class AlertAction(
         val title: UiText,
-        val style: Style
+        val style: Style,
     ) {
         enum class Style {
             Default,
             Destructive,
-            Cancel
+            Cancel,
         }
     }
-
 
     @Serializable
     data class Toast(
         val message: UiText,
         val style: Style,
-        val autoDismissMillis: Long? = defaultAutoDismissMillis(style)
+        val autoDismissMillis: Long? = defaultAutoDismissMillis(style),
     ) {
         enum class Style {
             Animated,
             Success,
-            Failure
+            Failure,
         }
 
         companion object {
             const val DEFAULT_AUTO_DISMISS_MILLIS = 5_000L
 
-            fun defaultAutoDismissMillis(style: Style): Long? = when (style) {
-                Style.Animated -> null
-                Style.Success,
-                Style.Failure -> DEFAULT_AUTO_DISMISS_MILLIS
-            }
+            fun defaultAutoDismissMillis(style: Style): Long? =
+                when (style) {
+                    Style.Animated -> null
+
+                    Style.Success,
+                    Style.Failure,
+                    -> DEFAULT_AUTO_DISMISS_MILLIS
+                }
         }
     }
 
     @Serializable
     data class ToastHandle(
-        val id: String
+        val id: String,
     )
 }

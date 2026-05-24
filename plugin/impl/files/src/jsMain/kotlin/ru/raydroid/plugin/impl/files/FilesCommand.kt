@@ -26,7 +26,7 @@ class FilesCommand : CommandService() {
 
     override suspend fun cachedItems(
         requestedItems: List<CommandItemId>?,
-        chunkSize: Int
+        chunkSize: Int,
     ) = flow {
         val requestedIds = requestedItems?.map { itemId -> itemId.value }?.toSet()
         if (!Host.filesystem.hasAllFilesAccess()) {
@@ -37,6 +37,7 @@ class FilesCommand : CommandService() {
         val scannedFiles = mutableListOf<IndexedFile>()
         val seenPaths = mutableSetOf<String>()
         val chunk = mutableListOf<CommandListItem>()
+
         suspend fun emitFile(file: IndexedFile) {
             if (!seenPaths.add(file.path)) return
             if (requestedIds != null && file.id !in requestedIds) return
@@ -51,18 +52,19 @@ class FilesCommand : CommandService() {
         scanFileRoots(::emitFile)
         if (chunk.isNotEmpty()) emit(chunk.toList())
 
-        indexedFiles = if (requestedIds == null) {
-            scannedFiles
-        } else {
-            (indexedFiles.filterNot { it.id in requestedIds } + scannedFiles).distinctBy { it.id }
-        }
+        indexedFiles =
+            if (requestedIds == null) {
+                scannedFiles
+            } else {
+                (indexedFiles.filterNot { it.id in requestedIds } + scannedFiles).distinctBy { it.id }
+            }
     }
 
     override fun RayScope.fullscreen() {
         val file = selectedFile ?: return
         Detail(
             markdown = file.markdown(),
-            navigationTitle = UiText.Plain(file.name)
+            navigationTitle = UiText.Plain(file.name),
         )
     }
 
@@ -73,8 +75,10 @@ class FilesCommand : CommandService() {
                     Host.filesystem.requestAllFilesAccess()
                     return
                 }
-                val files = (liveFiles + indexedFiles).distinctBy { file -> file.id }
-                    .ifEmpty { scanFiles().also { indexedFiles = it } }
+                val files =
+                    (liveFiles + indexedFiles)
+                        .distinctBy { file -> file.id }
+                        .ifEmpty { scanFiles().also { indexedFiles = it } }
                 val file = files.firstOrNull { file -> file.id == action.hoveredId.value } ?: return
                 showFileActions(file)
             }
@@ -92,25 +96,30 @@ class FilesCommand : CommandService() {
                 render()
             }
 
-            is CommandAction.Focus -> Unit
+            is CommandAction.Focus -> {
+                Unit
+            }
         }
     }
 
     private suspend fun showFileActions(file: IndexedFile) {
-        val openAction = NotificationService.AlertAction(
-            title = UiText.Resource("files.action.open"),
-            style = NotificationService.AlertAction.Style.Default
-        )
-        val infoAction = NotificationService.AlertAction(
-            title = UiText.Resource("files.action.info"),
-            style = NotificationService.AlertAction.Style.Cancel
-        )
-        val selectedAction = Host.notification.alert(
-            title = UiText.Plain(file.name),
-            message = UiText.Plain(file.path),
-            confirmAction = openAction,
-            dismissAction = infoAction
-        )
+        val openAction =
+            NotificationService.AlertAction(
+                title = UiText.Resource("files.action.open"),
+                style = NotificationService.AlertAction.Style.Default,
+            )
+        val infoAction =
+            NotificationService.AlertAction(
+                title = UiText.Resource("files.action.info"),
+                style = NotificationService.AlertAction.Style.Cancel,
+            )
+        val selectedAction =
+            Host.notification.alert(
+                title = UiText.Plain(file.name),
+                message = UiText.Plain(file.path),
+                confirmAction = openAction,
+                dismissAction = infoAction,
+            )
         if (selectedAction == openAction) {
             Host.system.open(file.path.asFileUri())
         } else if (selectedAction == infoAction) {
@@ -168,6 +177,7 @@ class FilesCommand : CommandService() {
 
     private suspend fun scanFileRoots(onFile: suspend (IndexedFile) -> Unit) {
         var indexedCount = 0
+
         suspend fun emit(file: IndexedFile) {
             if (indexedCount >= MAX_INDEXED_FILES) return
             indexedCount++
@@ -185,7 +195,7 @@ class FilesCommand : CommandService() {
     private suspend fun scanDirectory(
         path: String,
         depth: Int,
-        onFile: suspend (IndexedFile) -> Unit
+        onFile: suspend (IndexedFile) -> Unit,
     ) {
         if (depth > MAX_DEPTH) return
         val entries = runCatching { Host.filesystem.list(path) }.getOrElse { return }
@@ -193,9 +203,12 @@ class FilesCommand : CommandService() {
             if (entry.name.isHiddenFileName()) return@forEach
             when (entry.metadata.kind) {
                 FileKind.File -> onFile(entry.toIndexedFile())
+
                 FileKind.Directory -> scanDirectory(entry.path, depth + 1, onFile)
+
                 FileKind.Symlink,
-                FileKind.Other -> Unit
+                FileKind.Other,
+                -> Unit
             }
         }
     }
@@ -206,7 +219,7 @@ class FilesCommand : CommandService() {
             path = path,
             name = name,
             size = metadata.size,
-            lastModifiedAtEpochMillis = metadata.lastModifiedAtEpochMillis
+            lastModifiedAtEpochMillis = metadata.lastModifiedAtEpochMillis,
         )
 
     private fun IndexedFile.toCommandListItem(): CommandListItem =
@@ -215,7 +228,7 @@ class FilesCommand : CommandService() {
             title = UiText.Plain(name),
             description = UiText.Plain(parentPath()),
             icon = icon(),
-            iconColor = Color.OnSurfaceVariant
+            iconColor = Color.OnSurfaceVariant,
         )
 
     private fun IndexedFile.markdown(): String =
@@ -232,7 +245,7 @@ class FilesCommand : CommandService() {
         val path: String,
         val name: String,
         val size: Long?,
-        val lastModifiedAtEpochMillis: Long?
+        val lastModifiedAtEpochMillis: Long?,
     )
 
     private companion object {
@@ -244,39 +257,40 @@ class FilesCommand : CommandService() {
 
         val WhitespaceRegex = Regex("\\s+")
 
-        val FileRoots = listOf(
-            "/storage/emulated/0/Download",
-            "/storage/emulated/0/Downloads",
-            "/storage/emulated/0/Documents",
-            "/storage/emulated/0/DCIM",
-            "/storage/emulated/0/Pictures",
-            "/storage/emulated/0/Movies",
-            "/storage/emulated/0/Music",
-            "/storage/emulated/0/Recordings"
-        )
+        val FileRoots =
+            listOf(
+                "/storage/emulated/0/Download",
+                "/storage/emulated/0/Downloads",
+                "/storage/emulated/0/Documents",
+                "/storage/emulated/0/DCIM",
+                "/storage/emulated/0/Pictures",
+                "/storage/emulated/0/Movies",
+                "/storage/emulated/0/Music",
+                "/storage/emulated/0/Recordings",
+            )
 
         fun String.toItemId(): String =
             "file:" + encodeToByteArray().joinToString("") { byte -> byte.toUByte().toString(16).padStart(2, '0') }
 
-        fun String.asFileUri(): String =
-            "file://$this"
+        fun String.asFileUri(): String = "file://$this"
 
         fun nowEpochMillis(): Long =
-            kotlin.js.Date().getTime().toLong()
+            kotlin.js
+                .Date()
+                .getTime()
+                .toLong()
 
-        fun IndexedFile.parentPath(): String =
-            path.substringBeforeLast("/", missingDelimiterValue = path)
+        fun IndexedFile.parentPath(): String = path.substringBeforeLast("/", missingDelimiterValue = path)
 
-        fun IndexedFile.extension(): String =
-            name.substringAfterLast(".", missingDelimiterValue = "").lowercase()
+        fun IndexedFile.extension(): String = name.substringAfterLast(".", missingDelimiterValue = "").lowercase()
 
-        fun String.isHiddenFileName(): Boolean =
-            startsWith(".")
+        fun String.isHiddenFileName(): Boolean = startsWith(".")
 
         fun IndexedFile.matches(terms: List<String>): Boolean {
-            val searchableText = listOf(name, extension(), path)
-                .joinToString(separator = " ")
-                .lowercase()
+            val searchableText =
+                listOf(name, extension(), path)
+                    .joinToString(separator = " ")
+                    .lowercase()
             return terms.all { term -> searchableText.contains(term) }
         }
 
@@ -300,13 +314,17 @@ class FilesCommand : CommandService() {
                 value /= 1024.0
                 index++
             }
-            val text = if (value >= 10) value.toInt().toString() else (value * 10).toInt().let {
-                "${it / 10}.${it % 10}"
-            }
+            val text =
+                if (value >= 10) {
+                    value.toInt().toString()
+                } else {
+                    (value * 10).toInt().let {
+                        "${it / 10}.${it % 10}"
+                    }
+                }
             return "$text ${units[index]}"
         }
 
-        fun String.escapeMarkdown(): String =
-            replace("`", "\\`")
+        fun String.escapeMarkdown(): String = replace("`", "\\`")
     }
 }

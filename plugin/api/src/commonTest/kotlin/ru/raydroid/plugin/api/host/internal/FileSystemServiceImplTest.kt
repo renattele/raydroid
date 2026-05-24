@@ -12,51 +12,62 @@ import kotlin.test.assertEquals
 
 class FileSystemServiceImplTest {
     @Test
-    fun `filesystem service maps bridge models`() = runTest {
-        val bridge = FakeFileSystemServiceBridge()
-        val service = FileSystemServiceImpl(bridge)
+    fun `filesystem service maps bridge models`() =
+        runTest {
+            val bridge = FakeFileSystemServiceBridge()
+            val service = FileSystemServiceImpl(bridge)
 
-        assertEquals(true, service.exists("/tmp/file.txt"))
-        assertEquals(FileKind.File, service.metadata("/tmp/file.txt")?.kind)
-        assertEquals("file.txt", service.list("/tmp").single().name)
-        assertContentEquals("hello".encodeToByteArray(), service.read("/tmp/file.txt"))
+            assertEquals(true, service.exists("/tmp/file.txt"))
+            assertEquals(FileKind.File, service.metadata("/tmp/file.txt")?.kind)
+            assertEquals("file.txt", service.list("/tmp").single().name)
+            assertContentEquals("hello".encodeToByteArray(), service.read("/tmp/file.txt"))
 
-        service.write("/tmp/file.txt", "next".encodeToByteArray())
-        service.createFile("/tmp/created.txt")
-        service.createDirectories("/tmp/dir")
-        service.delete("/tmp/old.txt")
-        val event = service.watch("/tmp/file.txt").single()
+            service.write("/tmp/file.txt", "next".encodeToByteArray())
+            service.createFile("/tmp/created.txt")
+            service.createDirectories("/tmp/dir")
+            service.delete("/tmp/old.txt")
+            val event = service.watch("/tmp/file.txt").single()
 
-        assertEquals("/tmp/file.txt", event.path)
-        assertEquals(FileKind.File, event.metadata?.kind)
-        assertEquals(
-            listOf(
-                "exists:/tmp/file.txt",
-                "metadata:/tmp/file.txt",
-                "list:/tmp",
-                "read:/tmp/file.txt",
-                "write:/tmp/file.txt:next",
-                "createFile:/tmp/created.txt",
-                "createDirectories:/tmp/dir",
-                "delete:/tmp/old.txt",
-                "watch:/tmp/file.txt"
-            ),
-            bridge.calls
-        )
-    }
+            assertEquals("/tmp/file.txt", event.path)
+            assertEquals(FileKind.File, event.metadata?.kind)
+            assertEquals(
+                listOf(
+                    "exists:/tmp/file.txt",
+                    "metadata:/tmp/file.txt",
+                    "list:/tmp",
+                    "read:/tmp/file.txt",
+                    "write:/tmp/file.txt:next",
+                    "createFile:/tmp/created.txt",
+                    "createDirectories:/tmp/dir",
+                    "delete:/tmp/old.txt",
+                    "watch:/tmp/file.txt",
+                ),
+                bridge.calls,
+            )
+        }
 
     private class FakeFileSystemServiceBridge : FileSystemServiceBridge {
         val calls = mutableListOf<String>()
-        private val metadata = FileSystemServiceBridge.RawFileMetadata(
-            kind = FileSystemServiceBridge.RawFileKind.File,
-            size = 5,
-            createdAtEpochMillis = 1,
-            lastModifiedAtEpochMillis = 2
-        )
+        private val metadata =
+            FileSystemServiceBridge.RawFileMetadata(
+                kind = FileSystemServiceBridge.RawFileKind.File,
+                size = 5,
+                createdAtEpochMillis = 1,
+                lastModifiedAtEpochMillis = 2,
+            )
 
         override suspend fun exists(path: String): Boolean {
             calls += "exists:$path"
             return true
+        }
+
+        override suspend fun hasAllFilesAccess(): Boolean {
+            calls += "hasAllFilesAccess"
+            return true
+        }
+
+        override suspend fun requestAllFilesAccess() {
+            calls += "requestAllFilesAccess"
         }
 
         override suspend fun metadata(path: String): FileSystemServiceBridge.RawFileMetadata {
@@ -70,8 +81,8 @@ class FileSystemServiceImplTest {
                 FileSystemServiceBridge.RawFileEntry(
                     path = "$path/file.txt",
                     name = "file.txt",
-                    metadata = metadata
-                )
+                    metadata = metadata,
+                ),
             )
         }
 
@@ -80,7 +91,10 @@ class FileSystemServiceImplTest {
             return "hello".encodeToByteArray()
         }
 
-        override suspend fun write(path: String, content: ByteArray) {
+        override suspend fun write(
+            path: String,
+            content: ByteArray,
+        ) {
             calls += "write:$path:${content.decodeToString()}"
         }
 
@@ -101,8 +115,8 @@ class FileSystemServiceImplTest {
             return flowOf(
                 FileSystemServiceBridge.RawFileChangeEvent(
                     path = path,
-                    metadata = metadata
-                )
+                    metadata = metadata,
+                ),
             )
         }
     }

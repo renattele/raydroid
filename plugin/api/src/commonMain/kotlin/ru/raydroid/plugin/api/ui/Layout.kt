@@ -11,14 +11,14 @@ enum class Spacing {
     Small,
     Medium,
     Large,
-    ExtraLarge
+    ExtraLarge,
 }
 
 @Serializable
 enum class Alignment {
     Start,
     Center,
-    End
+    End,
 }
 
 @Serializable
@@ -31,16 +31,14 @@ enum class BoxAlignment {
     CenterEnd,
     BottomStart,
     BottomCenter,
-    BottomEnd
+    BottomEnd,
 }
-
 
 @Serializable
 enum class Orientation {
     Vertical,
-    Horizontal
+    Horizontal,
 }
-
 
 @Serializable
 enum class Arrangement {
@@ -49,22 +47,22 @@ enum class Arrangement {
     End,
     SpaceBetween,
     SpaceAround,
-    SpaceEvenly
+    SpaceEvenly,
 }
 
 @Serializable
 data class BoxData(
     val alignment: BoxAlignment,
     val shape: ShapeToken = ShapeToken.None,
-    val children: List<RayNodeData>
-): RayNodeData()
+    val children: List<RayNodeData>,
+) : RayNodeData()
 
 @Ray
 fun RayScope.Box(
     modifier: Modifier = Modifier,
     alignment: BoxAlignment = BoxAlignment.TopStart,
     shape: ShapeToken = ShapeToken.None,
-    content: RayScope.() -> Unit
+    content: RayScope.() -> Unit,
 ) {
     val children = fork(content)
     add(BoxData(alignment, shape, children).withModifier(modifier(modifier)))
@@ -77,8 +75,8 @@ data class OrientedBoxData(
     val arrangement: Arrangement,
     val spacing: Spacing,
     val shape: ShapeToken = ShapeToken.None,
-    val children: List<RayNodeData>
-): RayNodeData()
+    val children: List<RayNodeData>,
+) : RayNodeData()
 
 @Ray
 fun RayScope.Row(
@@ -87,7 +85,7 @@ fun RayScope.Row(
     alignment: Alignment = Alignment.Start,
     arrangement: Arrangement = Arrangement.Start,
     shape: ShapeToken = ShapeToken.None,
-    content: RayScope.() -> Unit
+    content: RayScope.() -> Unit,
 ) {
     val children = fork(content)
     add(OrientedBoxData(Orientation.Horizontal, alignment, arrangement, spacing, shape, children).withModifier(modifier(modifier)))
@@ -100,7 +98,7 @@ fun RayScope.Column(
     alignment: Alignment = Alignment.Start,
     arrangement: Arrangement = Arrangement.Start,
     shape: ShapeToken = ShapeToken.None,
-    content: RayScope.() -> Unit
+    content: RayScope.() -> Unit,
 ) {
     val children = fork(content)
     add(OrientedBoxData(Orientation.Vertical, alignment, arrangement, spacing, shape, children).withModifier(modifier(modifier)))

@@ -3,6 +3,7 @@ import ru.raydroid.plugin.impl.notes.NotesCommand
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-fun main() = plugin {
-    command(NotesCommand())
-}
+fun main() =
+    plugin {
+        command(NotesCommand())
+    }

@@ -12,9 +12,13 @@ import ru.raydroid.plugin.api.runtime.CommandAction
 import ru.raydroid.plugin.api.runtime.CommandService
 
 class AppsCommand : CommandService() {
-    override suspend fun cachedItems(requestedItems: List<CommandItemId>?, chunkSize: Int) = flow {
+    override suspend fun cachedItems(
+        requestedItems: List<CommandItemId>?,
+        chunkSize: Int,
+    ) = flow {
         val requestedIds = requestedItems?.map { itemId -> itemId.value }?.toSet()
-        Host.system.getApps()
+        Host.system
+            .getApps()
             .asSequence()
             .filter { app -> requestedIds == null || app.id in requestedIds }
             .map { app ->
@@ -22,10 +26,9 @@ class AppsCommand : CommandService() {
                     id = CommandItemId(app.id),
                     icon = app.icon,
                     title = UiText.Plain(app.name ?: app.id),
-                    description = UiText.Plain(app.id)
+                    description = UiText.Plain(app.id),
                 )
-            }
-            .chunked(chunkSize)
+            }.chunked(chunkSize)
             .forEach { chunk -> emit(chunk) }
     }
 

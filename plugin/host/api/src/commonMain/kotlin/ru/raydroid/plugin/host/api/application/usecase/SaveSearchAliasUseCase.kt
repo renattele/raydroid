@@ -5,10 +5,10 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.repository.SearchAliasRepository
 
 class SaveSearchAliasUseCase(
-    private val searchAliasRepository: SearchAliasRepository
+    private val searchAliasRepository: SearchAliasRepository,
 ) {
     suspend operator fun invoke(
         resultId: SearchResultId,
-        alias: String
+        alias: String,
     ): SearchAliasSaveResult = searchAliasRepository.saveAlias(resultId, alias)
 }

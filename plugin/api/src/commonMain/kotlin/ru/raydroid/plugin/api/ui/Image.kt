@@ -5,10 +5,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed class Image {
     @Serializable
-    data class Url(val url: String): Image()
+    data class Url(
+        val url: String,
+    ) : Image()
 
     @Serializable
-    data class Resource(val resource: String): Image()
+    data class Resource(
+        val resource: String,
+    ) : Image()
 }
 
 @Serializable
@@ -17,8 +21,8 @@ data class ImageData(
     val contentDescription: String? = null,
     val width: Int? = null,
     val height: Int? = null,
-    val shape: ShapeToken = ShapeToken.None
-): RayNodeData()
+    val shape: ShapeToken = ShapeToken.None,
+) : RayNodeData()
 
 @Ray
 fun RayScope.Image(
@@ -29,11 +33,13 @@ fun RayScope.Image(
     height: Int? = null,
     shape: ShapeToken = ShapeToken.None,
 ) {
-    add(ImageData(
-        image = image,
-        contentDescription = contentDescription,
-        width = width,
-        height = height,
-        shape = shape
-    ).withModifier(modifier(modifier)))
+    add(
+        ImageData(
+            image = image,
+            contentDescription = contentDescription,
+            width = width,
+            height = height,
+            shape = shape,
+        ).withModifier(modifier(modifier)),
+    )
 }

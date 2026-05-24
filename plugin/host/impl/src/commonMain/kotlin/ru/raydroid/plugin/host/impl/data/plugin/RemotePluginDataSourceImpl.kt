@@ -9,14 +9,15 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 class RemotePluginDataSourceImpl(
-    private val httpClient: HttpClient
-): RemotePluginDataSource {
-    override suspend fun load(url: String): RemotePlugin? = withContext(Dispatchers.IO) {
-        val response = httpClient.get(url)
-        if (!response.status.isSuccess()) {
-            return@withContext null
+    private val httpClient: HttpClient,
+) : RemotePluginDataSource {
+    override suspend fun load(url: String): RemotePlugin? =
+        withContext(Dispatchers.IO) {
+            val response = httpClient.get(url)
+            if (!response.status.isSuccess()) {
+                return@withContext null
+            }
+            val body = response.bodyAsBytes()
+            RemotePlugin(body)
         }
-        val body = response.bodyAsBytes()
-        RemotePlugin(body)
-    }
 }

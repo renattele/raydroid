@@ -18,6 +18,6 @@ fun RIcon(
         imageVector = imageVector,
         contentDescription = contentDescription,
         modifier = modifier,
-        tint = tint
+        tint = tint,
     )
 }

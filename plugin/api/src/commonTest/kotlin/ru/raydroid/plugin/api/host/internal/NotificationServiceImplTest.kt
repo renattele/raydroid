@@ -9,43 +9,47 @@ import kotlin.test.assertFailsWith
 
 class NotificationServiceImplTest {
     @Test
-    fun `scoped toast hides after block completes`() = runTest {
-        val bridge = FakeNotificationServiceBridge()
-        val service = NotificationServiceImpl(bridge)
+    fun `scoped toast hides after block completes`() =
+        runTest {
+            val bridge = FakeNotificationServiceBridge()
+            val service = NotificationServiceImpl(bridge)
 
-        val result = service.showLoadingToast("Loading") {
-            "done"
+            val result =
+                service.showLoadingToast("Loading") {
+                    "done"
+                }
+
+            assertEquals("done", result)
+            assertEquals(listOf("show:toast-1", "hide:toast-1"), bridge.calls)
         }
 
-        assertEquals("done", result)
-        assertEquals(listOf("show:toast-1", "hide:toast-1"), bridge.calls)
-    }
-
     @Test
-    fun `scoped toast hides after block fails`() = runTest {
-        val bridge = FakeNotificationServiceBridge()
-        val service = NotificationServiceImpl(bridge)
+    fun `scoped toast hides after block fails`() =
+        runTest {
+            val bridge = FakeNotificationServiceBridge()
+            val service = NotificationServiceImpl(bridge)
 
-        assertFailsWith<IllegalStateException> {
-            service.showLoadingToast("Loading") {
-                error("failed")
+            assertFailsWith<IllegalStateException> {
+                service.showLoadingToast("Loading") {
+                    error("failed")
+                }
             }
-        }
 
-        assertEquals(listOf("show:toast-1", "hide:toast-1"), bridge.calls)
-    }
+            assertEquals(listOf("show:toast-1", "hide:toast-1"), bridge.calls)
+        }
 
     @Test
-    fun `scoped success toast is not auto dismissed by default`() = runTest {
-        val bridge = FakeNotificationServiceBridge()
-        val service = NotificationServiceImpl(bridge)
+    fun `scoped success toast is not auto dismissed by default`() =
+        runTest {
+            val bridge = FakeNotificationServiceBridge()
+            val service = NotificationServiceImpl(bridge)
 
-        service.showSuccessToast("Saved") {
-            Unit
+            service.showSuccessToast("Saved") {
+                Unit
+            }
+
+            assertEquals(null, bridge.shownToasts.single().autoDismissMillis)
         }
-
-        assertEquals(null, bridge.shownToasts.single().autoDismissMillis)
-    }
 
     private class FakeNotificationServiceBridge : NotificationServiceBridge {
         val calls = mutableListOf<String>()
@@ -55,7 +59,7 @@ class NotificationServiceImplTest {
             title: UiText,
             message: UiText,
             confirmAction: NotificationServiceBridge.AlertAction,
-            dismissAction: NotificationServiceBridge.AlertAction?
+            dismissAction: NotificationServiceBridge.AlertAction?,
         ): NotificationServiceBridge.AlertAction? = confirmAction
 
         override suspend fun showToast(toast: NotificationServiceBridge.Toast): NotificationServiceBridge.ToastHandle {

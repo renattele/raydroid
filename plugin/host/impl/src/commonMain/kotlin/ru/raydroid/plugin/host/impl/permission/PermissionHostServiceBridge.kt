@@ -1,6 +1,5 @@
 package ru.raydroid.plugin.host.impl.permission
 
-import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
 import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
 import ru.raydroid.plugin.api.host.transport.ContactsServiceBridge
@@ -13,10 +12,11 @@ import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
 import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
+import ru.raydroid.plugin.api.manifest.Manifest
 
 internal class PermissionHostServiceBridge(
     private val bridge: HostServiceBridge,
-    private val manifest: Manifest
+    private val manifest: Manifest,
 ) : HostServiceBridge {
     override val cacheBridge: CacheServiceBridge =
         PermissionCacheServiceBridge(bridge.cacheBridge, manifest)
@@ -38,8 +38,9 @@ internal class PermissionHostServiceBridge(
         PermissionSearchFieldServiceBridge(bridge.searchFieldBridge, manifest)
     override val storageBridge: StorageServiceBridge =
         PermissionStorageServiceBridge(bridge.storageBridge, manifest)
-    override val systemBridge: SystemServiceBridge = PermissionSystemServiceBridge(
-        bridge.systemBridge, manifest
-    )
-
+    override val systemBridge: SystemServiceBridge =
+        PermissionSystemServiceBridge(
+            bridge.systemBridge,
+            manifest,
+        )
 }
