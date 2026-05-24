@@ -251,8 +251,8 @@ enum PreviewData {
         fields: [
             .text(
                 TextFormFieldViewData(
-                    id: "server",
-                    title: "Server",
+                    id: "endpoint",
+                    title: "Endpoint",
                     placeholder: "https://api.example.com",
                     defaultValue: "",
                     isRequired: true,

@@ -1,4 +1,4 @@
-package ru.raydroid.composeapp
+package ru.raydroid.sharedui
 
 import org.koin.dsl.KoinAppDeclaration
 import ru.raydroid.feature.search.initKoin as initFeatureKoin

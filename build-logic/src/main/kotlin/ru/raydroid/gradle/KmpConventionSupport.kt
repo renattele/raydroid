@@ -31,8 +31,10 @@ internal fun Project.applyKmpBaseConvention() {
 internal fun Project.configureMultiplatformTargetsWhenKmpIsPresent() {
     pluginManager.configureWhenKmpPresent(this) {
         jvm()
-        iosArm64()
-        iosSimulatorArm64()
+        if (appleTargetsEnabled()) {
+            iosArm64()
+            iosSimulatorArm64()
+        }
     }
 }
 
@@ -59,4 +61,13 @@ private fun PluginManager.configureWhenKmpPresent(
     withPlugin("org.jetbrains.kotlin.multiplatform") {
         project.extensions.configure<KotlinMultiplatformExtension>(block)
     }
+}
+
+private fun Project.appleTargetsEnabled(): Boolean {
+    val projectPath = path.removePrefix(":").replace(':', '.')
+    val propertyName = "raydroid.$projectPath.appleTargets"
+    return providers.gradleProperty(propertyName)
+        .orNull
+        ?.toBooleanStrictOrNull()
+        ?: true
 }

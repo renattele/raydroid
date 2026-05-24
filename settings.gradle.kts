@@ -32,10 +32,9 @@ dependencyResolutionManagement {
     }
 }
 
-include(":composeApp")
+include(":sharedUi")
 include(":feature:search")
-include(":server")
-include(":shared")
+include(":sharedLogic")
 include(":androidApp")
 include(":desktopApp")
 include(":core:data")

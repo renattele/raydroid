@@ -3,7 +3,7 @@ package ru.raydroid
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ComposeAppCommonTest {
+class SharedUiCommonTest {
 
     @Test
     fun example() {

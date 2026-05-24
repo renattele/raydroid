@@ -9,7 +9,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import org.koin.core.context.startKoin
 import ru.raydroid.App
-import ru.raydroid.composeapp.appModule
+import ru.raydroid.sharedui.appModule
 import java.util.concurrent.Executors
 
 fun main() {

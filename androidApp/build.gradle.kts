@@ -20,7 +20,7 @@ dependencies {
     implementation(libs.zipline.loader)
     implementation(libs.okHttp.core)
     implementation(libs.koin.android)
-    implementation(projects.composeApp)
+    implementation(projects.sharedUi)
     implementation(projects.plugin.api)
     implementation(projects.plugin.host.api)
     implementation(projects.plugin.host.impl)
