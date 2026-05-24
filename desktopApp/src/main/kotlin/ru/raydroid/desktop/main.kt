@@ -17,10 +17,11 @@ fun main() {
     }
     val hotReloadEnabled = System.getProperty("compose.reload.isActive") == "true"
     application {
-        val windowState = rememberWindowState(
-            position = WindowPosition.Aligned(Alignment.Center),
-            size = DpSize(600.dp, 400.dp)
-        )
+        val windowState =
+            rememberWindowState(
+                position = WindowPosition.Aligned(Alignment.Center),
+                size = DpSize(600.dp, 400.dp),
+            )
         Window(
             onCloseRequest = ::exitApplication,
             state = windowState,
