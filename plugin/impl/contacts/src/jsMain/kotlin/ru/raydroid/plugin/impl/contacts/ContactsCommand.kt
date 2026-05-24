@@ -46,7 +46,7 @@ class ContactsCommand : CommandService() {
         contacts
             .asSequence()
             .filter { contact -> contact.matches(filter) }
-            .take(LiveResultLimit)
+            .take(LIVE_RESULT_LIMIT)
             .forEach { contact ->
                 entry(
                     id = CommandItemId(contact.id),
@@ -159,7 +159,7 @@ class ContactsCommand : CommandService() {
     }
 
     private companion object {
-        const val LiveResultLimit = 8
+        const val LIVE_RESULT_LIMIT = 8
         val ContactIcon = Icon.Resource("icons/contact.png")
         val CallQuickAction = CommandListQuickAction(
             title = UiText.Resource("contacts.action.call"),

@@ -446,6 +446,10 @@ class SearchViewModel(
                     }
 
                     is SearchResultSet.LiveSearchResult -> {
+                        if (openResult.listEntry.quickAction != null) {
+                            enterItemUseCase(openResultId)
+                            return
+                        }
                         val primaryCallback = openResult.presentation.primaryCallback
                         if (primaryCallback != null) {
                             if (shouldCollectDeferredFullscreenOnSubmit(openResultId.commandMode(), openResult)) {

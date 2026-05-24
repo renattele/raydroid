@@ -145,7 +145,7 @@ class FilesCommand : CommandService() {
         val files = mutableListOf<IndexedFile>()
         val seenPaths = mutableSetOf<String>()
         scanFileRoots { file ->
-            if (files.size >= MaxLiveSearchFiles) return@scanFileRoots
+            if (files.size >= MAX_LIVE_SEARCH_FILES) return@scanFileRoots
             if (!seenPaths.add(file.path)) return@scanFileRoots
             if (file.matches(terms)) files += file
         }
@@ -153,7 +153,7 @@ class FilesCommand : CommandService() {
     }
 
     private suspend fun recentFiles(): List<IndexedFile> {
-        val minModifiedAt = nowEpochMillis() - RecentFileWindowMillis
+        val minModifiedAt = nowEpochMillis() - RECENT_FILES_WINDOW_MILLIS
         val files = mutableListOf<IndexedFile>()
         val seenPaths = mutableSetOf<String>()
         scanFileRoots { file ->
@@ -163,13 +163,13 @@ class FilesCommand : CommandService() {
         }
         return files
             .sortedByDescending { file -> file.lastModifiedAtEpochMillis ?: 0L }
-            .take(MaxRecentFiles)
+            .take(MAX_RECENT_FILES)
     }
 
     private suspend fun scanFileRoots(onFile: suspend (IndexedFile) -> Unit) {
         var indexedCount = 0
         suspend fun emit(file: IndexedFile) {
-            if (indexedCount >= MaxIndexedFiles) return
+            if (indexedCount >= MAX_INDEXED_FILES) return
             indexedCount++
             onFile(file)
         }
@@ -187,7 +187,7 @@ class FilesCommand : CommandService() {
         depth: Int,
         onFile: suspend (IndexedFile) -> Unit
     ) {
-        if (depth > MaxDepth) return
+        if (depth > MAX_DEPTH) return
         val entries = runCatching { Host.filesystem.list(path) }.getOrElse { return }
         entries.forEach { entry ->
             if (entry.name.isHiddenFileName()) return@forEach
@@ -236,11 +236,11 @@ class FilesCommand : CommandService() {
     )
 
     private companion object {
-        const val MaxDepth = 6
-        const val MaxIndexedFiles = 5_000
-        const val MaxLiveSearchFiles = 50
-        const val MaxRecentFiles = 25
-        const val RecentFileWindowMillis = 7L * 24L * 60L * 60L * 1_000L
+        const val MAX_DEPTH = 6
+        const val MAX_INDEXED_FILES = 5_000
+        const val MAX_LIVE_SEARCH_FILES = 50
+        const val MAX_RECENT_FILES = 25
+        const val RECENT_FILES_WINDOW_MILLIS = 7L * 24L * 60L * 60L * 1_000L
 
         val WhitespaceRegex = Regex("\\s+")
 
