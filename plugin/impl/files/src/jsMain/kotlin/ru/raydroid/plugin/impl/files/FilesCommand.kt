@@ -58,29 +58,6 @@ class FilesCommand : CommandService() {
         }
     }
 
-    override fun CommandListScope.content() {
-        emptyList<IndexedFile>().forEach { file ->
-            val item = file.toCommandListItem()
-            entry(
-                id = item.id,
-                title = item.title,
-                description = item.description,
-                icon = item.icon,
-                iconColor = item.iconColor,
-                trailingText = item.trailingText,
-                modifier = Modifier.actions {
-                    action(
-                        title = UiText.Resource("files.action.open"),
-                        icon = Icon.Builtin("OpenInNew"),
-                        primary = true
-                    ) {
-                        showFileActions(file)
-                    }
-                }
-            )
-        }
-    }
-
     override fun RayScope.fullscreen() {
         val file = selectedFile ?: return
         Detail(

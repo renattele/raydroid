@@ -103,7 +103,8 @@ abstract class CommandService {
         emptyFlow()
 
     @Ray
-    abstract fun CommandListScope.content()
+    open fun CommandListScope.content() {
+    }
 
     @Ray
     open fun RayScope.fullscreen() = Unit
@@ -150,14 +151,19 @@ abstract class CommandService {
                 }
                 execute(action.action)
             }
+
             is CommandActionBridge.Internal -> when (val internalAction = action.action) {
                 is InternalCommandActionBridge.Click -> {
                     contentCallbacks.invoke(internalAction.callback) ||
-                        fullscreenCallbacks.invoke(internalAction.callback)
+                            fullscreenCallbacks.invoke(internalAction.callback)
                 }
+
                 is InternalCommandActionBridge.SubmitForm -> {
                     contentCallbacks.invoke(internalAction.callback, internalAction.values) ||
-                        fullscreenCallbacks.invoke(internalAction.callback, internalAction.values)
+                            fullscreenCallbacks.invoke(
+                                internalAction.callback,
+                                internalAction.values
+                            )
                 }
             }
         }

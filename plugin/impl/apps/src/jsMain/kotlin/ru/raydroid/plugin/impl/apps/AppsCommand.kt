@@ -29,8 +29,6 @@ class AppsCommand : CommandService() {
             .forEach { chunk -> emit(chunk) }
     }
 
-    override fun CommandListScope.content() = Unit
-
     override fun CommandActionScope.actions(target: CommandActionTarget) = Unit
 
     override suspend fun execute(action: CommandAction) {
