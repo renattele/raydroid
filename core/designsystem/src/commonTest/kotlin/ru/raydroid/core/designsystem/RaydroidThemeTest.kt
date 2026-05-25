@@ -72,4 +72,46 @@ class RaydroidThemeTest {
             ),
         )
     }
+
+    @Test
+    fun `interactive overflow padding covers focused and context menu states`() {
+        assertEquals(
+            8.dp,
+            RInteractiveDefaults.targetOverflowPadding(
+                focused = true,
+                pressed = false,
+                contextMenuActive = false,
+            ),
+        )
+        assertEquals(
+            12.dp,
+            RInteractiveDefaults.targetOverflowPadding(
+                focused = false,
+                pressed = false,
+                contextMenuActive = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `interactive scale is capped to available overflow room`() {
+        assertEquals(
+            1.06f,
+            RInteractiveDefaults.cappedScale(
+                targetScale = 1.06f,
+                widthPx = 200,
+                heightPx = 80,
+                overflowPaddingPx = 12,
+            ),
+        )
+        assertEquals(
+            1.02f,
+            RInteractiveDefaults.cappedScale(
+                targetScale = 1.06f,
+                widthPx = 1200,
+                heightPx = 80,
+                overflowPaddingPx = 12,
+            ),
+        )
+    }
 }

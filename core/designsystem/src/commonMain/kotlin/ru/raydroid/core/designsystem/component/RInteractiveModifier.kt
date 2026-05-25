@@ -8,7 +8,9 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
@@ -17,10 +19,12 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import ru.raydroid.core.designsystem.RaydroidTheme
+import kotlin.math.min
 
 internal object RInteractiveDefaults {
     const val PRESSED_SCALE = 1.02f
@@ -39,6 +43,30 @@ internal object RInteractiveDefaults {
             focused -> FOCUSED_SCALE
             else -> DEFAULT_SCALE
         }
+
+    fun targetOverflowPadding(
+        focused: Boolean,
+        pressed: Boolean,
+        contextMenuActive: Boolean,
+    ) = when {
+        contextMenuActive -> 12.dp
+        focused || pressed -> 8.dp
+        else -> 0.dp
+    }
+
+    fun cappedScale(
+        targetScale: Float,
+        widthPx: Int,
+        heightPx: Int,
+        overflowPaddingPx: Int,
+    ): Float {
+        if (targetScale <= DEFAULT_SCALE || widthPx <= 0 || heightPx <= 0 || overflowPaddingPx <= 0) {
+            return targetScale.coerceAtLeast(DEFAULT_SCALE)
+        }
+        val maxScaleX = DEFAULT_SCALE + (overflowPaddingPx * 2f / widthPx)
+        val maxScaleY = DEFAULT_SCALE + (overflowPaddingPx * 2f / heightPx)
+        return min(targetScale, min(maxScaleX, maxScaleY))
+    }
 }
 
 fun Modifier.rInteractable(
@@ -56,6 +84,8 @@ fun Modifier.rInteractable(
         val isFocused = focused || interactionFocused
         val isPressed = interactionPressed
         val contextMenuActive = overlayState.visible && overlayState.activeSourceId == contextMenuSourceId
+        var measuredWidthPx by remember { mutableIntStateOf(0) }
+        var measuredHeightPx by remember { mutableIntStateOf(0) }
         val motion = RaydroidTheme.motionScheme.fast
         val density = LocalDensity.current
         val scale by animateFloatAsState(
@@ -67,10 +97,22 @@ fun Modifier.rInteractable(
             animationSpec = motion.floatSpec(),
         )
         val overflowPadding by animateDpAsState(
-            targetValue = if (isPressed || contextMenuActive) 8.dp else 0.dp,
+            targetValue =
+                RInteractiveDefaults.targetOverflowPadding(
+                    focused = isFocused,
+                    pressed = isPressed,
+                    contextMenuActive = contextMenuActive,
+                ),
             animationSpec = motion.dpSpec(),
         )
         val overflowPaddingPx = with(density) { overflowPadding.roundToPx() }
+        val cappedScale =
+            RInteractiveDefaults.cappedScale(
+                targetScale = scale,
+                widthPx = measuredWidthPx,
+                heightPx = measuredHeightPx,
+                overflowPaddingPx = overflowPaddingPx,
+            )
         val color =
             if (isFocused || isPressed || contextMenuActive) {
                 RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
@@ -94,11 +136,14 @@ fun Modifier.rInteractable(
                 layout(width, height) {
                     placeable.placeRelative(paddingPx, paddingPx)
                 }
+            }.onSizeChanged { size ->
+                measuredWidthPx = size.width
+                measuredHeightPx = size.height
             }.offset {
                 IntOffset(0, -overflowPaddingPx)
             }.graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                scaleX = cappedScale
+                scaleY = cappedScale
             }.drawWithContent {
                 if (color.alpha > 0f) {
                     drawRoundRect(color, cornerRadius = CornerRadius(shape.topStart.toPx(size, this)))
