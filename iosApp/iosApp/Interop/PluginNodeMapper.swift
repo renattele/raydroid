@@ -166,6 +166,7 @@ struct ListNodeViewData {
     let id: String
     let isLoading: Bool
     let emptyState: EmptyStateViewData?
+    let filtering: Bool
     let sections: [PluginListSectionViewData]
 }
 
@@ -194,6 +195,7 @@ struct GridNodeViewData {
     let id: String
     let isLoading: Bool
     let emptyState: EmptyStateViewData?
+    let filtering: Bool
     let columnCount: Int
     let aspectRatioName: String
     let sections: [PluginGridSectionViewData]
@@ -489,11 +491,12 @@ struct PluginNodeMapper {
                     description: client.resolveText(emptyViewDescription(emptyView))
                 )
             },
+            filtering: listFiltering(node),
             sections: sections.enumerated().map { index, section in
                 PluginListSectionViewData(
                     id: "\(path).section.\(index)",
                     title: client.resolveText(sectionTitle(section)),
-                    items: filteredItems(in: section).enumerated().map { itemIndex, item in
+                    items: filteredItems(in: section, filtering: listFiltering(node)).enumerated().map { itemIndex, item in
                         mapListItem(
                             item,
                             path: "\(path).section.\(index).item.\(itemIndex)"
@@ -517,13 +520,14 @@ struct PluginNodeMapper {
                     description: client.resolveText(emptyViewDescription(emptyView))
                 )
             },
+            filtering: gridFiltering(node),
             columnCount: max(gridColumns(node) ?? 2, 1),
             aspectRatioName: gridAspectRatio(node),
             sections: sections.enumerated().map { index, section in
                 PluginGridSectionViewData(
                     id: "\(path).section.\(index)",
                     title: client.resolveText(sectionTitle(section)),
-                    items: filteredItems(in: section).enumerated().map { itemIndex, item in
+                    items: filteredItems(in: section, filtering: gridFiltering(node)).enumerated().map { itemIndex, item in
                         mapGridItem(
                             item,
                             path: "\(path).section.\(index).item.\(itemIndex)"
@@ -536,6 +540,7 @@ struct PluginNodeMapper {
 
     private func mapListItem(_ item: AnyObject, path: String) -> PluginListItemViewData {
         let modifier = listItemModifier(item)
+        let click = modifier?.click
         let actions = modifier?.actions ?? []
         let itemId = listItemId(item)
         let currentResultId = resultId
@@ -556,6 +561,13 @@ struct PluginNodeMapper {
                     client.focusPluginItem(itemId)
                 }
                 if let currentResultId,
+                   let click {
+                    client.enterCallback(
+                        resultId: currentResultId,
+                        callback: click,
+                        updateUsage: false
+                    )
+                } else if let currentResultId,
                    let primaryAction = actions.first(where: \.primary) ?? actions.first {
                     client.enterCallback(
                         resultId: currentResultId,
@@ -579,7 +591,9 @@ struct PluginNodeMapper {
     }
 
     private func mapGridItem(_ item: AnyObject, path: String) -> PluginGridItemViewData {
-        let actions = listItemModifier(item)?.actions ?? []
+        let modifier = listItemModifier(item)
+        let click = modifier?.click
+        let actions = modifier?.actions ?? []
         let itemId = listItemId(item)
         let currentResultId = resultId
         let contextSourceId = itemId.map { "plugin-item:\(commandItemIdValue($0))" } ?? path
@@ -597,6 +611,13 @@ struct PluginNodeMapper {
                     client.focusPluginItem(itemId)
                 }
                 if let currentResultId,
+                   let click {
+                    client.enterCallback(
+                        resultId: currentResultId,
+                        callback: click,
+                        updateUsage: false
+                    )
+                } else if let currentResultId,
                    let primaryAction = actions.first(where: \.primary) ?? actions.first {
                     client.enterCallback(
                         resultId: currentResultId,
@@ -717,9 +738,9 @@ struct PluginNodeMapper {
         }
     }
 
-    private func filteredItems(in section: AnyObject) -> [AnyObject] {
+    private func filteredItems(in section: AnyObject, filtering: Bool) -> [AnyObject] {
         let items = sectionItems(section)
-        guard !query.isEmpty else { return items }
+        guard filtering, !query.isEmpty else { return items }
         let needle = query.lowercased()
         return items.filter { item in
             let title = client.resolveText(listItemTitle(item))
@@ -914,9 +935,19 @@ private func listIsLoading(_ object: AnyObject) -> Bool {
     return SearchInteropBridge.shared.listIsLoading(node: node)
 }
 
+private func listFiltering(_ object: AnyObject) -> Bool {
+    guard let node = object as? ApiPluginRayNodeData else { return true }
+    return SearchInteropBridge.shared.listFiltering(node: node)
+}
+
 private func gridColumns(_ object: AnyObject) -> Int? {
     guard let node = object as? ApiPluginRayNodeData else { return nil }
     return SearchInteropBridge.shared.gridColumns(node: node)?.intValue
+}
+
+private func gridFiltering(_ object: AnyObject) -> Bool {
+    guard let node = object as? ApiPluginRayNodeData else { return true }
+    return SearchInteropBridge.shared.gridFiltering(node: node)
 }
 
 private func gridAspectRatio(_ object: AnyObject) -> String {

@@ -119,14 +119,22 @@ private struct EditableTextNodeView: View {
     let data: EditableTextNodeViewData
 
     var body: some View {
-        EditablePluginTextInput(data: data)
-            .frame(minHeight: minHeight)
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                Color(uiColor: .secondarySystemBackground),
-                in: RoundedRectangle(cornerRadius: 16)
-            )
+        ZStack(alignment: .topLeading) {
+            if data.value.isEmpty, !data.placeholder.isEmpty {
+                Text(data.placeholder)
+                    .foregroundStyle(.secondary)
+                    .padding(12)
+                    .allowsHitTesting(false)
+            }
+            EditablePluginTextInput(data: data)
+                .frame(minHeight: minHeight)
+                .padding(12)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(uiColor: .secondarySystemBackground),
+            in: RoundedRectangle(cornerRadius: 16)
+        )
     }
 
     private var minHeight: CGFloat {
@@ -413,37 +421,57 @@ private struct PluginListItemView: View {
 private struct GridItemView: View {
     let data: PluginGridItemViewData
     let aspectRatioName: String
+    @State private var isPressing = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            PluginImageView(asset: data.imageAsset)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(pluginGridAspectRatio(aspectRatioName), contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-            Text(data.title)
-                .font(.headline)
-            if !data.subtitle.isEmpty {
-                Text(data.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        Button(action: data.onTap) {
+            VStack(alignment: .leading, spacing: 10) {
+                if data.imageAsset != nil {
+                    PluginImageView(asset: data.imageAsset)
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(pluginGridAspectRatio(aspectRatioName), contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                Text(data.title)
+                    .font(.headline)
+                if !data.subtitle.isEmpty {
+                    Text(data.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .frame(
+                maxWidth: .infinity,
+                minHeight: data.imageAsset == nil ? 72 : nil,
+                alignment: .topLeading
+            )
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(data.isFocused ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(data.isFocused ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+            }
+            .contentShape(Rectangle())
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(data.isFocused ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08))
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(data.isFocused ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
-        }
-        .contentShape(Rectangle())
+        .buttonStyle(.plain)
         .contextMenuAnchor(sourceId: data.contextSourceId)
-        .contextMenuPressable(
-            isContextMenuPresented: data.isContextMenuPresented,
-            isContextMenuActive: data.isContextMenuActive,
-            onTap: data.onTap,
-            onLongPress: {
+        .contextMenuLayer(
+            showsContextMenu: data.isContextMenuPresented,
+            isActive: data.isContextMenuActive
+        )
+        .scaleEffect(data.isContextMenuActive ? 1.06 : (isPressing ? 1.02 : 1))
+        .animation(.spring(response: 0.24, dampingFraction: 0.72), value: isPressing)
+        .animation(.spring(response: 0.28, dampingFraction: 0.74), value: data.isContextMenuActive)
+        .onLongPressGesture(
+            minimumDuration: 0.45,
+            maximumDistance: 18,
+            pressing: { pressing in
+                isPressing = pressing
+            },
+            perform: {
                 data.onShowContextActions?()
             }
         )

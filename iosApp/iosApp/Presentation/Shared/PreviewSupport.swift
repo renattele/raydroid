@@ -157,6 +157,7 @@ enum PreviewData {
         id: "list",
         isLoading: false,
         emptyState: nil,
+        filtering: true,
         sections: [
             PluginListSectionViewData(
                 id: "list.section",
@@ -208,6 +209,7 @@ enum PreviewData {
         id: "grid",
         isLoading: false,
         emptyState: nil,
+        filtering: true,
         columnCount: 2,
         aspectRatioName: "sixteentonine",
         sections: [

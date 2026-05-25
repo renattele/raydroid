@@ -237,10 +237,22 @@ object SearchInteropBridge {
             else -> false
         }
 
+    fun listFiltering(node: PluginRayNodeData): Boolean =
+        when (node) {
+            is PluginListData -> node.filtering
+            else -> true
+        }
+
     fun gridColumns(node: PluginRayNodeData): Int? =
         when (node) {
             is PluginGridData -> node.columns
             else -> null
+        }
+
+    fun gridFiltering(node: PluginRayNodeData): Boolean =
+        when (node) {
+            is PluginGridData -> node.filtering
+            else -> true
         }
 
     fun gridAspectRatio(node: PluginRayNodeData): String =
