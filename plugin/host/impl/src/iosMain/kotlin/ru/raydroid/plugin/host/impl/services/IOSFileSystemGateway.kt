@@ -56,23 +56,27 @@ internal class IOSFileSystemGateway(
         pickedUrls.forEach { url ->
             val accessGranted = url.startAccessingSecurityScopedResource()
             if (!accessGranted) return@forEach
-            val bookmarkData = url.bookmarkData() ?: return@forEach
-            val path = url.path.orEmpty()
-            val existingRoot = rootsByPath[path]
-            val rootId = existingRoot?.id ?: NSUUID().UUIDString()
-            FileSystem.SYSTEM.write(bookmarkDir / "$rootId.bookmark") {
-                write(bookmarkData.toByteArray())
+            try {
+                val bookmarkData = url.bookmarkData() ?: return@forEach
+                val path = url.path.orEmpty()
+                val existingRoot = rootsByPath[path]
+                val rootId = existingRoot?.id ?: NSUUID().UUIDString()
+                FileSystem.SYSTEM.write(bookmarkDir / "$rootId.bookmark") {
+                    write(bookmarkData.toByteArray())
+                }
+                documentsById[rootId] =
+                    IOSStoredRoot(
+                        id = rootId,
+                        name = url.lastPathComponent.orEmpty().ifBlank { path.substringAfterLast('/') },
+                        bookmarkFileName = "$rootId.bookmark",
+                    )
+            } finally {
+                url.stopAccessingSecurityScopedResource()
             }
-            documentsById[rootId] =
-                IOSStoredRoot(
-                    id = rootId,
-                    name = url.lastPathComponent.orEmpty().ifBlank { path.substringAfterLast('/') },
-                    bookmarkFileName = "$rootId.bookmark",
-                )
         }
 
         saveStoredRoots(documentsById.values.sortedBy { it.name })
-        cachedRoots = null
+        clearResolvedRoots()
         resolveRoots()
     }
 
@@ -168,6 +172,13 @@ internal class IOSFileSystemGateway(
         }
         cachedRoots = resolvedRoots
         return resolvedRoots
+    }
+
+    private fun clearResolvedRoots() {
+        cachedRoots?.forEach { root ->
+            root.url.stopAccessingSecurityScopedResource()
+        }
+        cachedRoots = null
     }
 
     private fun loadStoredRoots(): List<IOSStoredRoot> {
