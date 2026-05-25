@@ -155,6 +155,7 @@ final class SearchSceneViewModel {
 
     private let viewModelClient: SearchViewModelClient
     private let router: AppRouter
+    private let mapper: SearchSceneStateMapper
     private var rawState: SearchScreenState
     private var observation: SearchViewModelObservation?
     private var hasStarted = false
@@ -162,9 +163,10 @@ final class SearchSceneViewModel {
     init(viewModelClient: SearchViewModelClient, router: AppRouter) {
         self.viewModelClient = viewModelClient
         self.router = router
+        self.mapper = SearchSceneStateMapper(client: viewModelClient)
         self.rawState = viewModelClient.currentState
         self.state = SearchSceneState.empty
-        self.state = makeMapper().map(state: rawState)
+        self.state = mapper.map(state: rawState)
     }
 
     func send(_ event: SearchSceneEvent) {
@@ -240,19 +242,20 @@ final class SearchSceneViewModel {
 
     private func handleStateUpdate(_ updated: SearchScreenState) {
         rawState = updated
-        state = makeMapper().map(state: updated)
-    }
-
-    private func makeMapper() -> SearchSceneStateMapper {
-        SearchSceneStateMapper(client: viewModelClient)
+        state = mapper.map(state: updated)
     }
 }
 
 typealias SearchSceneModel = SearchSceneViewModel
 
 @MainActor
-private struct SearchSceneStateMapper {
+private final class SearchSceneStateMapper {
     let client: SearchViewModelClient
+    private var cachedResultsBody: (key: ResultsBodyCacheKey, value: SearchResultsBodyState)?
+
+    init(client: SearchViewModelClient) {
+        self.client = client
+    }
 
     func map(state: SearchScreenState) -> SearchSceneState {
         let loadingToast = state.toasts.last(where: isAnimatedLoadingToast)
@@ -284,7 +287,7 @@ private struct SearchSceneStateMapper {
                     title: client.resolveText(dismissAction.title),
                     role: alertRole(dismissAction.style),
                     action: {
-                        client.dismissAlert(alert)
+                        self.client.dismissAlert(alert)
                     }
                 )
             }
@@ -294,7 +297,7 @@ private struct SearchSceneStateMapper {
                 message: client.resolveText(alert.message),
                 confirmTitle: client.resolveText(alert.confirmAction.title),
                 onConfirm: {
-                    client.confirmAlert(alert)
+                    self.client.confirmAlert(alert)
                 },
                 dismissButton: dismissButton
             )
@@ -342,7 +345,7 @@ private struct SearchSceneStateMapper {
                     message: client.resolveText(toast.toast.message),
                     style: toastStyle(toast),
                     onDismiss: {
-                        client.hideToast(toast.toastId)
+                        self.client.hideToast(toast.toastId)
                     }
                 )
             },
@@ -365,7 +368,7 @@ private struct SearchSceneStateMapper {
                     id: "fullscreen.action.\(index).\(fullscreen.resultId.commandName)",
                     action: action
                 ) {
-                    client.enterCallback(
+                    self.client.enterCallback(
                         resultId: fullscreen.resultId,
                         callback: action.callback,
                         updateUsage: false
@@ -378,7 +381,7 @@ private struct SearchSceneStateMapper {
                 id: "action.\(index).\(action.resultId.commandName)",
                 action: action.action
             ) {
-                client.enterAction(action)
+                self.client.enterAction(action)
             }
         }
     }
@@ -394,7 +397,7 @@ private struct SearchSceneStateMapper {
                     id: "context.action.\(index).\(action.resultId.commandName)",
                     action: action.action
                 ) {
-                    client.enterAction(action)
+                    self.client.enterAction(action)
                 }
             }
         }
@@ -415,16 +418,16 @@ private struct SearchSceneStateMapper {
             error: error,
             showsRemove: showsRemove,
             onInputChanged: { value in
-                client.updateAliasEditorInput(value)
+                self.client.updateAliasEditorInput(value)
             },
             onSave: {
-                client.saveAliasEditor()
+                self.client.saveAliasEditor()
             },
             onRemove: showsRemove ? {
-                client.removeAlias()
+                self.client.removeAlias()
             } : nil,
             onDismiss: {
-                client.dismissAliasEditor()
+                self.client.dismissAliasEditor()
             }
         )
     }
@@ -435,8 +438,14 @@ private struct SearchSceneStateMapper {
 
     private func mapResultsBody(state: SearchScreenState) -> SearchResultsBodyState {
         guard state.fullscreenContent == nil else { return .empty }
+        let cacheKey = ResultsBodyCacheKey(state: state)
+        if let cachedResultsBody, cachedResultsBody.key == cacheKey {
+            return cachedResultsBody.value
+        }
+
+        let mappedResultsBody: SearchResultsBodyState
         if let results = state.resultsContent?.searchResults?.results {
-            return .results(
+            mappedResultsBody = .results(
                 results.enumerated().map { index, result in
                     mapResult(
                         result,
@@ -448,11 +457,13 @@ private struct SearchSceneStateMapper {
                     )
                 }
             )
+        } else if state.resultsContent?.isSearching == true && state.resultsContent?.searchResults == nil {
+            mappedResultsBody = .loading
+        } else {
+            mappedResultsBody = .empty
         }
-        if state.resultsContent?.isSearching == true && state.resultsContent?.searchResults == nil {
-            return .loading
-        }
-        return .empty
+        cachedResultsBody = (cacheKey, mappedResultsBody)
+        return mappedResultsBody
     }
 
     private func mapResult(
@@ -526,10 +537,10 @@ private struct SearchSceneStateMapper {
             isContextMenuPresented: isContextMenuPresented,
             isContextMenuActive: isContextMenuActive,
             onSelect: {
-                client.enter(result.resultId)
+                self.client.enter(result.resultId)
             },
             onLongPress: {
-                client.showResultContextActions(
+                self.client.showResultContextActions(
                     resultId: result.resultId,
                     sourceId: contextSourceId
                 )
@@ -653,6 +664,27 @@ private struct SearchSceneStateMapper {
             return "cursorAtEnd"
         }
     }
+}
+
+private struct ResultsBodyCacheKey: Equatable {
+    let resultsIdentity: ObjectIdentifier?
+    let focusedIndex: Int?
+    let isSearching: Bool
+    let isContextMenuPresented: Bool
+    let activeContextSourceId: String?
+
+    init(state: SearchScreenState) {
+        let resultsContent = state.resultsContent
+        resultsIdentity = objectIdentifier(resultsContent?.searchResults)
+        focusedIndex = resultsContent?.focusedItemIndex?.intValue
+        isSearching = resultsContent?.isSearching == true
+        isContextMenuPresented = state.overlayState.showContextActions
+        activeContextSourceId = state.overlayState.activeContextSourceId
+    }
+}
+
+private func objectIdentifier(_ value: AnyObject?) -> ObjectIdentifier? {
+    value.map(ObjectIdentifier.init)
 }
 
 private func enumName(_ object: AnyObject?) -> String {
