@@ -337,7 +337,7 @@ private struct SearchResultsView: View {
         case .results(let results):
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(results) { result in
+                    ForEach(results.reversed()) { result in
                         SearchResultRow(result: result)
                     }
                 }
@@ -345,6 +345,7 @@ private struct SearchResultsView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 112)
             }
+            .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.never)
             .simultaneousGesture(
                 DragGesture(minimumDistance: 1)
