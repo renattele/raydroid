@@ -13,8 +13,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.Path
-import okio.SYSTEM
 import okio.Path.Companion.toPath
+import okio.SYSTEM
 import platform.Foundation.NSData
 import platform.Foundation.NSError
 import platform.Foundation.NSURL
@@ -24,9 +24,9 @@ import platform.QuickLook.QLPreviewController
 import platform.QuickLook.QLPreviewControllerDataSourceProtocol
 import platform.QuickLook.QLPreviewControllerDelegateProtocol
 import platform.QuickLook.QLPreviewItemProtocol
+import platform.UIKit.UIApplication
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerViewController
-import platform.UIKit.UIApplication
 import platform.UIKit.UINavigationController
 import platform.UniformTypeIdentifiers.UTTypeFolder
 import platform.darwin.NSObject
@@ -231,7 +231,8 @@ private data class IOSResolvedRoot(
 
 private class DirectoryPickerDelegate(
     private val onComplete: (List<NSURL>) -> Unit,
-) : NSObject(), UIDocumentPickerDelegateProtocol {
+) : NSObject(),
+    UIDocumentPickerDelegateProtocol {
     override fun documentPicker(
         controller: UIDocumentPickerViewController,
         didPickDocumentsAtURLs: List<*>,
@@ -246,7 +247,9 @@ private class DirectoryPickerDelegate(
 
 private class FilePreviewCoordinator(
     private val url: NSURL,
-) : NSObject(), QLPreviewControllerDataSourceProtocol, QLPreviewControllerDelegateProtocol {
+) : NSObject(),
+    QLPreviewControllerDataSourceProtocol,
+    QLPreviewControllerDelegateProtocol {
     private val previewItem = FilePreviewItem(url)
 
     override fun numberOfPreviewItemsInPreviewController(controller: QLPreviewController): Long = 1
@@ -269,7 +272,8 @@ private object FilePreviewPresentationState {
 
 private class FilePreviewItem(
     private val url: NSURL,
-) : NSObject(), QLPreviewItemProtocol {
+) : NSObject(),
+    QLPreviewItemProtocol {
     override fun previewItemURL(): NSURL = url
 }
 
@@ -356,9 +360,18 @@ private fun String.unescapeStoredRootField(): String {
             val char = source[index]
             if (char == '\\' && index + 1 < source.length) {
                 when (val escaped = source[index + 1]) {
-                    '\\' -> append('\\')
-                    't' -> append('\t')
-                    'n' -> append('\n')
+                    '\\' -> {
+                        append('\\')
+                    }
+
+                    't' -> {
+                        append('\t')
+                    }
+
+                    'n' -> {
+                        append('\n')
+                    }
+
                     else -> {
                         append('\\')
                         append(escaped)

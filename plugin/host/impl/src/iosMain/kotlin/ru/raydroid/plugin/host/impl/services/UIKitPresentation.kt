@@ -1,8 +1,8 @@
 package ru.raydroid.plugin.host.impl.services
 
+import platform.UIKit.UIApplication
 import platform.UIKit.UINavigationController
 import platform.UIKit.UITabBarController
-import platform.UIKit.UIApplication
 import platform.UIKit.UIViewController
 import platform.UIKit.UIWindow
 

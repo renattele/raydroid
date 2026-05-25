@@ -2,17 +2,17 @@ package ru.raydroid.plugin.host.impl.services
 
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import platform.Contacts.CNAuthorizationStatusAuthorized
 import platform.Contacts.CNContact
 import platform.Contacts.CNContactFamilyNameKey
-import platform.Contacts.CNEntityType
+import platform.Contacts.CNContactFetchRequest
 import platform.Contacts.CNContactGivenNameKey
 import platform.Contacts.CNContactIdentifierKey
 import platform.Contacts.CNContactPhoneNumbersKey
 import platform.Contacts.CNContactStore
-import platform.Contacts.CNContactFetchRequest
+import platform.Contacts.CNEntityType
 import platform.Contacts.CNLabeledValue
 import platform.Contacts.CNPhoneNumber
 import platform.ContactsUI.CNContactViewController

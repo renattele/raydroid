@@ -172,8 +172,7 @@ private class FakeLoadedPluginRuntime(
         chunkSize: Int,
     ): List<SearchIndexMutation> = emptyList()
 
-    override fun content(): StateFlow<List<PluginRuntime.ContentItem>> =
-        MutableStateFlow<List<PluginRuntime.ContentItem>>(emptyList())
+    override fun content(): StateFlow<List<PluginRuntime.ContentItem>> = MutableStateFlow(emptyList())
 
     override fun fullscreen(commandName: String): StateFlow<PluginRuntime.FullscreenContent?> = MutableStateFlow(null)
 
