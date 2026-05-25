@@ -230,7 +230,7 @@ fun ActionsPanelOverlay(
                         }
                     }
                     if (index != groupedActions.lastIndex) {
-                        RDivider()
+                        ActionGroupDivider()
                     }
                 }
             }
@@ -381,12 +381,20 @@ fun AnchoredActionsOverlay(
                         }
                     }
                     if (index != groupedActions.lastIndex) {
-                        RDivider()
+                        ActionGroupDivider()
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun ActionGroupDivider() {
+    RDivider(
+        modifier = Modifier.padding(horizontal = RaydroidTheme.spacing.medium),
+        color = RaydroidTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
+    )
 }
 
 @Composable

@@ -80,8 +80,25 @@ struct OverlayActionModel: Identifiable {
     let id: String
     let title: String
     let iconAsset: PluginAsset?
+    let groupTitle: String?
     let style: PluginActionStyle
     let onSelect: () -> Void
+
+    init(
+        id: String,
+        title: String,
+        iconAsset: PluginAsset?,
+        groupTitle: String? = nil,
+        style: PluginActionStyle,
+        onSelect: @escaping () -> Void
+    ) {
+        self.id = id
+        self.title = title
+        self.iconAsset = iconAsset
+        self.groupTitle = groupTitle
+        self.style = style
+        self.onSelect = onSelect
+    }
 }
 
 struct AliasEditorSheetModel: Identifiable {
@@ -584,6 +601,7 @@ private final class SearchSceneStateMapper {
             id: id,
             title: client.resolveText(action.title),
             iconAsset: client.resolveIcon(action.icon),
+            groupTitle: resolvedGroupTitle(action.group),
             style: action.style == .destructive ? .destructive : .normal,
             onSelect: onSelect
         )
@@ -598,9 +616,16 @@ private final class SearchSceneStateMapper {
             id: id,
             title: client.resolveText(action.title),
             iconAsset: client.resolveIcon(action.icon),
+            groupTitle: resolvedGroupTitle(action.group),
             style: action.destructive ? .destructive : .normal,
             onSelect: onSelect
         )
+    }
+
+    private func resolvedGroupTitle(_ group: ApiPluginUiText?) -> String? {
+        guard let group else { return nil }
+        let title = client.resolveText(group)
+        return title.isEmpty ? nil : title
     }
 
     private func activeQuery(state: SearchScreenState) -> String {

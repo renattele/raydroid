@@ -556,7 +556,12 @@ private struct AnchoredContextActionsOverlay: View {
                     .onTapGesture(perform: onDismiss)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(actions) { action in
+                    ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
+                        if index > 0, actions[index - 1].groupTitle != action.groupTitle {
+                            Divider()
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 2)
+                        }
                         Button(action: action.onSelect) {
                             HStack(spacing: 10) {
                                 PluginIconView(
@@ -701,6 +706,11 @@ private struct ActionsOverlay: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
                 let isVisible = visibleActionIds.contains(action.id)
+                if index > 0, actions[index - 1].groupTitle != action.groupTitle {
+                    Divider()
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 2)
+                }
                 row(index, action, isVisible)
                 .transition(.asymmetric(
                     insertion: .opacity
