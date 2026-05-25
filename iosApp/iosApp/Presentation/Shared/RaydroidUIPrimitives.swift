@@ -1,3 +1,5 @@
+import Foundation
+import RaydroidShared
 import SwiftUI
 import UIKit
 
@@ -828,52 +830,7 @@ func pluginBoxAlignment(_ name: String) -> Alignment {
 }
 
 func sfSymbol(for builtinName: String) -> String {
-    switch builtinName {
-    case "Clear":
-        return "xmark.circle"
-    case "Calculate":
-        return "function"
-    case "Check":
-        return "checkmark"
-    case "Delete":
-        return "trash"
-    case "Edit":
-        return "pencil"
-    case "ArrowRight", "ArrowForward":
-        return "arrow.right"
-    case "ArrowDropUp":
-        return "chevron.up"
-    case "GridView":
-        return "square.grid.2x2"
-    case "LocationCity":
-        return "building.2"
-    case "Save":
-        return "square.and.arrow.down"
-    case "Search":
-        return "magnifyingglass"
-    case "StickyNote2":
-        return "note.text"
-    case "Tune":
-        return "slider.horizontal.3"
-    case "Article":
-        return "doc.text"
-    case "Thunderstorm":
-        return "cloud.bolt.rain"
-    case "WaterDrop":
-        return "drop"
-    case "AcUnit":
-        return "snowflake"
-    case "WbCloudy":
-        return "cloud"
-    case "DeviceThermostat":
-        return "thermometer"
-    case "WbSunny":
-        return "sun.max"
-    case "Help", "HelpOutline":
-        return "questionmark.circle"
-    default:
-        return "questionmark.circle"
-    }
+    BuiltinIconMappings.shared.sfSymbolName(name: builtinName) ?? "questionmark.circle"
 }
 
 func imageFromBase64(_ string: String) -> UIImage? {

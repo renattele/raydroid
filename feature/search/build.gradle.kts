@@ -27,6 +27,7 @@ kotlin {
             iosTarget.binaries.framework {
                 baseName = "RaydroidShared"
                 isStatic = true
+                export(projects.plugin.host.impl)
             }
         }
     }
@@ -42,7 +43,7 @@ kotlin {
             implementation(projects.core.data)
             implementation(projects.plugin.api)
             implementation(projects.plugin.host.api)
-            implementation(projects.plugin.host.impl)
+            api(projects.plugin.host.impl)
         }
         jvmTest.dependencies {
             implementation(libs.kotlin.testJunit)
