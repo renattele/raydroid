@@ -1,4 +1,6 @@
-name: CI
+name: Static Checks
+
+run-name: ${{ github.event_name }} on ${{ github.ref_name }}
 
 on:
   push:
@@ -12,12 +14,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: static-checks-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   ubuntu-checks:
-    name: Ubuntu Checks
+    name: Static Checks (Ubuntu)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,7 +39,7 @@ jobs:
         run: ./gradlew detekt ktlintCheck -Praydroid.appleTargets.default=false --no-daemon
 
   macos-checks:
-    name: macOS Checks
+    name: Static Checks (macOS)
     runs-on: macos-latest
     steps:
       - name: Checkout
