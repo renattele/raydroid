@@ -20,6 +20,11 @@ internal class PermissionFileSystemServiceBridge(
         fileSystemServiceBridge.requestAllFilesAccess()
     }
 
+    override suspend fun listRoots(): List<FileSystemServiceBridge.RawFileRoot> {
+        requireFileSystemReadAccess()
+        return fileSystemServiceBridge.listRoots()
+    }
+
     override suspend fun exists(path: String): Boolean {
         requireRead(path)
         return fileSystemServiceBridge.exists(path)
@@ -66,6 +71,11 @@ internal class PermissionFileSystemServiceBridge(
     override suspend fun watch(path: String): Flow<FileSystemServiceBridge.RawFileChangeEvent> {
         requireWatch(path)
         return fileSystemServiceBridge.watch(path)
+    }
+
+    override suspend fun open(path: String) {
+        requireRead(path)
+        fileSystemServiceBridge.open(path)
     }
 
     private fun requireRead(path: String) {

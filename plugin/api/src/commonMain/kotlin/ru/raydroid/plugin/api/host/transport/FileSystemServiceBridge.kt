@@ -9,6 +9,8 @@ interface FileSystemServiceBridge : ZiplineService {
 
     suspend fun requestAllFilesAccess()
 
+    suspend fun listRoots(): List<RawFileRoot>
+
     suspend fun exists(path: String): Boolean
 
     suspend fun metadata(path: String): RawFileMetadata?
@@ -29,6 +31,15 @@ interface FileSystemServiceBridge : ZiplineService {
     suspend fun delete(path: String)
 
     suspend fun watch(path: String): Flow<RawFileChangeEvent>
+
+    suspend fun open(path: String)
+
+    @Serializable
+    data class RawFileRoot(
+        val id: String,
+        val name: String,
+        val path: String,
+    )
 
     @Serializable
     data class RawFileMetadata(

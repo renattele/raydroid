@@ -8,6 +8,8 @@ interface FileSystemService {
 
     suspend fun requestAllFilesAccess()
 
+    suspend fun listRoots(): List<FileRoot>
+
     suspend fun exists(path: String): Boolean
 
     suspend fun metadata(path: String): FileMetadata?
@@ -28,7 +30,16 @@ interface FileSystemService {
     suspend fun delete(path: String)
 
     suspend fun watch(path: String): Flow<FileChangeEvent>
+
+    suspend fun open(path: String)
 }
+
+@Serializable
+data class FileRoot(
+    val id: String,
+    val name: String,
+    val path: String,
+)
 
 @Serializable
 data class FileMetadata(

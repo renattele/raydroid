@@ -17,6 +17,8 @@ import ru.raydroid.plugin.api.ui.Icon
 class ContactsCommand : CommandService() {
     private var contacts = emptyList<ContactsService.Contact>()
     private var contactsLoaded = false
+    private var lastOpenedContactId: String? = null
+    private var lastOpenedAtEpochMillis: Double = 0.0
 
     override suspend fun cachedItems(
         requestedItems: List<CommandItemId>?,
@@ -81,7 +83,7 @@ class ContactsCommand : CommandService() {
             title = UiText.Resource("contacts.action.open"),
             icon = Icon.Builtin("Contacts"),
         ) {
-            Host.contacts.openContact(contact.id)
+            openContact(contact.id)
         }
     }
 
@@ -102,7 +104,7 @@ class ContactsCommand : CommandService() {
                     return
                 }
                 val contact = contact(action.hoveredId.value) ?: return
-                Host.contacts.openContact(contact.id)
+                openContact(contact.id)
             }
 
             is CommandAction.OpenCommand -> {
@@ -144,6 +146,16 @@ class ContactsCommand : CommandService() {
         contactsLoaded = true
     }
 
+    private suspend fun openContact(contactId: String) {
+        val now = nowEpochMillis().toDouble()
+        if (lastOpenedContactId == contactId && now - lastOpenedAtEpochMillis < OPEN_DEBOUNCE_MILLIS) {
+            return
+        }
+        lastOpenedContactId = contactId
+        lastOpenedAtEpochMillis = now
+        Host.contacts.openContact(contactId)
+    }
+
     private fun ContactsService.Contact.toCommandListItem(): CommandListItem =
         CommandListItem(
             id = CommandItemId(id),
@@ -164,11 +176,18 @@ class ContactsCommand : CommandService() {
 
     private companion object {
         const val LIVE_RESULT_LIMIT = 8
+        const val OPEN_DEBOUNCE_MILLIS = 750.0
         val ContactIcon = Icon.Resource("icons/contact.png")
         val CallQuickAction =
             CommandListQuickAction(
                 title = UiText.Resource("contacts.action.call"),
                 icon = Icon.Builtin("Call"),
             )
+
+        fun nowEpochMillis(): Long =
+            kotlin.js
+                .Date()
+                .getTime()
+                .toLong()
     }
 }

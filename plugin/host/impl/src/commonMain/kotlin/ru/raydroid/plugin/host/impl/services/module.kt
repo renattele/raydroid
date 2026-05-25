@@ -33,7 +33,7 @@ internal val hostServiceModule =
         factory<FileSystemServiceBridge> {
             FileSystemServiceBridgeImpl(
                 fileSystem = get(named("localFileSystem")),
-                allFilesAccessGateway = get(),
+                platformFileSystemGateway = get(),
             )
         }
         factory<StorageServiceBridge> {

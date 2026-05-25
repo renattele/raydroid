@@ -17,6 +17,9 @@ class FileSystemServiceImplTest {
             val bridge = FakeFileSystemServiceBridge()
             val service = FileSystemServiceImpl(bridge)
 
+            assertEquals(true, service.hasAllFilesAccess())
+            service.requestAllFilesAccess()
+            assertEquals(listOf("fs://documents"), service.listRoots().map { it.path })
             assertEquals(true, service.exists("/tmp/file.txt"))
             assertEquals(FileKind.File, service.metadata("/tmp/file.txt")?.kind)
             assertEquals("file.txt", service.list("/tmp").single().name)
@@ -27,11 +30,15 @@ class FileSystemServiceImplTest {
             service.createDirectories("/tmp/dir")
             service.delete("/tmp/old.txt")
             val event = service.watch("/tmp/file.txt").single()
+            service.open("/tmp/file.txt")
 
             assertEquals("/tmp/file.txt", event.path)
             assertEquals(FileKind.File, event.metadata?.kind)
             assertEquals(
                 listOf(
+                    "hasAllFilesAccess",
+                    "requestAllFilesAccess",
+                    "listRoots",
                     "exists:/tmp/file.txt",
                     "metadata:/tmp/file.txt",
                     "list:/tmp",
@@ -41,6 +48,7 @@ class FileSystemServiceImplTest {
                     "createDirectories:/tmp/dir",
                     "delete:/tmp/old.txt",
                     "watch:/tmp/file.txt",
+                    "open:/tmp/file.txt",
                 ),
                 bridge.calls,
             )
@@ -68,6 +76,17 @@ class FileSystemServiceImplTest {
 
         override suspend fun requestAllFilesAccess() {
             calls += "requestAllFilesAccess"
+        }
+
+        override suspend fun listRoots(): List<FileSystemServiceBridge.RawFileRoot> {
+            calls += "listRoots"
+            return listOf(
+                FileSystemServiceBridge.RawFileRoot(
+                    id = "documents",
+                    name = "Documents",
+                    path = "fs://documents",
+                ),
+            )
         }
 
         override suspend fun metadata(path: String): FileSystemServiceBridge.RawFileMetadata {
@@ -118,6 +137,10 @@ class FileSystemServiceImplTest {
                     metadata = metadata,
                 ),
             )
+        }
+
+        override suspend fun open(path: String) {
+            calls += "open:$path"
         }
     }
 }

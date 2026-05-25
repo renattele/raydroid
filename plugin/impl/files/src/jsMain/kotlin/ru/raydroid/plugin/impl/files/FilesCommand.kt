@@ -4,8 +4,9 @@ import kotlinx.coroutines.flow.flow
 import ru.raydroid.plugin.api.host.Host
 import ru.raydroid.plugin.api.host.service.FileEntry
 import ru.raydroid.plugin.api.host.service.FileKind
-import ru.raydroid.plugin.api.host.service.NotificationService
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.presentation.CommandActionScope
+import ru.raydroid.plugin.api.presentation.CommandActionTarget
 import ru.raydroid.plugin.api.presentation.CommandItemId
 import ru.raydroid.plugin.api.presentation.CommandListItem
 import ru.raydroid.plugin.api.presentation.CommandListScope
@@ -22,7 +23,8 @@ class FilesCommand : CommandService() {
     private var indexedFiles = emptyList<IndexedFile>()
     private var liveFiles = emptyList<IndexedFile>()
     private var selectedFile: IndexedFile? = null
-    private var hasAllFilesAccess = false
+    private var lastOpenedPath: String? = null
+    private var lastOpenedAtEpochMillis: Double = 0.0
 
     override suspend fun cachedItems(
         requestedItems: List<CommandItemId>?,
@@ -68,11 +70,30 @@ class FilesCommand : CommandService() {
         )
     }
 
+    override fun CommandActionScope.actions(target: CommandActionTarget) {
+        if (target.itemId == CommandItemId.CommandRoot) return
+        val file = file(target.itemId.value) ?: return
+        action(
+            title = UiText.Resource("files.action.open"),
+            icon = Icon.Builtin("OpenInNew"),
+            primary = true,
+        ) {
+            openFile(file.path)
+        }
+        action(
+            title = UiText.Resource("files.action.info"),
+            icon = Icon.Builtin("Info"),
+        ) {
+            selectedFile = file
+            renderFullscreen()
+        }
+    }
+
     override suspend fun execute(action: CommandAction) {
         when (action) {
             is CommandAction.Enter -> {
                 if (action.hoveredId == CommandItemId.CommandRoot) {
-                    Host.filesystem.requestAllFilesAccess()
+                    requestFilesAccessAndRefresh()
                     return
                 }
                 val files =
@@ -80,11 +101,11 @@ class FilesCommand : CommandService() {
                         .distinctBy { file -> file.id }
                         .ifEmpty { scanFiles().also { indexedFiles = it } }
                 val file = files.firstOrNull { file -> file.id == action.hoveredId.value } ?: return
-                showFileActions(file)
+                openFile(file.path)
             }
 
             is CommandAction.OpenCommand -> {
-                Host.filesystem.requestAllFilesAccess()
+                requestFilesAccessAndRefresh()
             }
 
             is CommandAction.CloseCommand -> {
@@ -102,30 +123,22 @@ class FilesCommand : CommandService() {
         }
     }
 
-    private suspend fun showFileActions(file: IndexedFile) {
-        val openAction =
-            NotificationService.AlertAction(
-                title = UiText.Resource("files.action.open"),
-                style = NotificationService.AlertAction.Style.Default,
-            )
-        val infoAction =
-            NotificationService.AlertAction(
-                title = UiText.Resource("files.action.info"),
-                style = NotificationService.AlertAction.Style.Cancel,
-            )
-        val selectedAction =
-            Host.notification.alert(
-                title = UiText.Plain(file.name),
-                message = UiText.Plain(file.path),
-                confirmAction = openAction,
-                dismissAction = infoAction,
-            )
-        if (selectedAction == openAction) {
-            Host.system.open(file.path.asFileUri())
-        } else if (selectedAction == infoAction) {
-            selectedFile = file
-            renderFullscreen()
+    private suspend fun requestFilesAccessAndRefresh() {
+        Host.filesystem.requestAllFilesAccess()
+        indexedFiles = emptyList()
+        liveFiles = emptyList()
+        invalidateCache(null)
+        render()
+    }
+
+    private suspend fun openFile(path: String) {
+        val now = nowEpochMillis().toDouble()
+        if (lastOpenedPath == path && now - lastOpenedAtEpochMillis < OPEN_DEBOUNCE_MILLIS) {
+            return
         }
+        lastOpenedPath = path
+        lastOpenedAtEpochMillis = now
+        Host.filesystem.open(path)
     }
 
     private suspend fun scanFiles(): List<IndexedFile> {
@@ -183,13 +196,9 @@ class FilesCommand : CommandService() {
             indexedCount++
             onFile(file)
         }
-        FileRoots.forEach { root ->
-            scanDirectory(root, depth = 0, onFile = ::emit)
+        Host.filesystem.listRoots().forEach { root ->
+            scanDirectory(root.path, depth = 0, onFile = ::emit)
         }
-    }
-
-    private suspend fun refreshAllFilesAccess() {
-        hasAllFilesAccess = Host.filesystem.hasAllFilesAccess()
     }
 
     private suspend fun scanDirectory(
@@ -240,6 +249,11 @@ class FilesCommand : CommandService() {
         Size: ${size?.formatBytes() ?: "Unknown"}
         """.trimIndent()
 
+    private fun file(id: String): IndexedFile? =
+        (liveFiles + indexedFiles)
+            .distinctBy { file -> file.id }
+            .firstOrNull { file -> file.id == id }
+
     private data class IndexedFile(
         val id: String,
         val path: String,
@@ -254,25 +268,12 @@ class FilesCommand : CommandService() {
         const val MAX_LIVE_SEARCH_FILES = 50
         const val MAX_RECENT_FILES = 25
         const val RECENT_FILES_WINDOW_MILLIS = 7L * 24L * 60L * 60L * 1_000L
+        const val OPEN_DEBOUNCE_MILLIS = 750.0
 
         val WhitespaceRegex = Regex("\\s+")
 
-        val FileRoots =
-            listOf(
-                "/storage/emulated/0/Download",
-                "/storage/emulated/0/Downloads",
-                "/storage/emulated/0/Documents",
-                "/storage/emulated/0/DCIM",
-                "/storage/emulated/0/Pictures",
-                "/storage/emulated/0/Movies",
-                "/storage/emulated/0/Music",
-                "/storage/emulated/0/Recordings",
-            )
-
         fun String.toItemId(): String =
             "file:" + encodeToByteArray().joinToString("") { byte -> byte.toUByte().toString(16).padStart(2, '0') }
-
-        fun String.asFileUri(): String = "file://$this"
 
         fun nowEpochMillis(): Long =
             kotlin.js

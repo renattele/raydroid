@@ -1,18 +1,18 @@
 {
   "$schema": "../../../../../api/plugin-manifest.schema.json",
-  "name": "ru.raydroid.plugin.impl.apps",
+  "name": "ru.raydroid.plugin.impl.shortcuts",
   "title": "app.name",
   "description": "app.description",
   "author": "app.author",
   "version": -1,
-  "platforms": ["Android"],
+  "platforms": ["IOS"],
   "categories": [],
   "license": "",
   "commands": [
     {
-      "service": "AppsCommand",
-      "title": "command.apps.title",
-      "description": "command.apps.description",
+      "service": "ShortcutsCommand",
+      "title": "command.shortcuts.title",
+      "description": "command.shortcuts.description",
       "placeholder": null,
       "mode": "NoView",
       "match": null,
@@ -23,11 +23,11 @@
   ],
   "resources": {
     "strings": {
-      "app.name": "Apps",
-      "app.description": "Installed applications index",
+      "app.name": "Shortcuts",
+      "app.description": "System shortcuts and deep links",
       "app.author": "Raydroid",
-      "command.apps.title": "Apps",
-      "command.apps.description": "Installed applications"
+      "command.shortcuts.title": "Shortcuts",
+      "command.shortcuts.description": "System shortcuts and deep links"
     }
   },
   "access": {

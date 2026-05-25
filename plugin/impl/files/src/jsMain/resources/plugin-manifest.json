@@ -40,24 +40,11 @@
     "filesystem": {
       "permissions": ["read"],
       "allowed_paths": [
-        "/storage/emulated/0/Download(/.*)?",
-        "/storage/emulated/0/Downloads(/.*)?",
-        "/storage/emulated/0/Documents(/.*)?",
-        "/storage/emulated/0/DCIM(/.*)?",
-        "/storage/emulated/0/Pictures(/.*)?",
-        "/storage/emulated/0/Movies(/.*)?",
-        "/storage/emulated/0/Music(/.*)?",
-        "/storage/emulated/0/Recordings(/.*)?"
+        "fs://.*"
       ]
     },
     "notification": {
       "show_alerts": true
-    },
-    "system": {
-      "permissions": ["open_resource"],
-      "allowed_urls": [
-        "file:///storage/emulated/0/.*"
-      ]
     },
     "runtime": {
       "requested_stack_size": 1024

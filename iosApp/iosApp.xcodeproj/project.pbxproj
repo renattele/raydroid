@@ -152,7 +152,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"$SRCROOT/..\"\nif [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\nelse\n  ./gradlew :feature:search:embedAndSignAppleFrameworkForXcode\nfi\nif [ \"$PLATFORM_NAME\" = \"iphonesimulator\" ]; then\n  KOTLIN_TARGET=\"iosSimulatorArm64\"\nelse\n  KOTLIN_TARGET=\"iosArm64\"\nfi\nPLUGIN_RESOURCES_SRC=\"$SRCROOT/../plugin/host/impl/build/processedResources/$KOTLIN_TARGET/main/composeResources\"\nPLUGIN_RESOURCES_DST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/compose-resources/composeResources\"\nif [ -d \"$PLUGIN_RESOURCES_SRC\" ]; then\n  mkdir -p \"$PLUGIN_RESOURCES_DST\"\n  rsync -a \"$PLUGIN_RESOURCES_SRC/\" \"$PLUGIN_RESOURCES_DST/\"\nfi\n";
+			shellScript = "cd \"$SRCROOT/..\"\nif [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\nelse\n  ./gradlew :feature:search:embedAndSignAppleFrameworkForXcode\nfi\nPLUGIN_RESOURCES_SRC=\"$SRCROOT/../plugin/host/impl/build/generated/composeResources/pluginRext/development\"\nPLUGIN_RESOURCES_DST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/compose-resources/composeResources/raydroid.plugin.host.impl.generated.resources\"\nif [ -d \"$PLUGIN_RESOURCES_SRC\" ]; then\n  rm -rf \"$PLUGIN_RESOURCES_DST\"\n  mkdir -p \"$PLUGIN_RESOURCES_DST\"\n  rsync -a \"$PLUGIN_RESOURCES_SRC/\" \"$PLUGIN_RESOURCES_DST/\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

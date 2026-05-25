@@ -14,30 +14,32 @@ import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 
 internal class FileSystemServiceBridgeImpl(
     private val fileSystem: FileSystem,
-    private val allFilesAccessGateway: AllFilesAccessGateway,
+    private val platformFileSystemGateway: PlatformFileSystemGateway,
 ) : FileSystemServiceBridge {
-    override suspend fun hasAllFilesAccess(): Boolean = allFilesAccessGateway.hasAllFilesAccess()
+    override suspend fun hasAllFilesAccess(): Boolean = platformFileSystemGateway.hasAllFilesAccess()
 
     override suspend fun requestAllFilesAccess() {
-        allFilesAccessGateway.requestAllFilesAccess()
+        platformFileSystemGateway.requestAllFilesAccess()
     }
+
+    override suspend fun listRoots(): List<FileSystemServiceBridge.RawFileRoot> = platformFileSystemGateway.listRoots()
 
     override suspend fun exists(path: String): Boolean =
         withContext(Dispatchers.IO) {
-            fileSystem.exists(path.toPath())
+            fileSystem.exists(platformFileSystemGateway.resolveRealPath(path))
         }
 
     override suspend fun metadata(path: String): FileSystemServiceBridge.RawFileMetadata? =
         withContext(Dispatchers.IO) {
-            fileSystem.metadataOrNull(path.toPath())?.toRawMetadata()
+            fileSystem.metadataOrNull(platformFileSystemGateway.resolveRealPath(path))?.toRawMetadata()
         }
 
     override suspend fun list(path: String): List<FileSystemServiceBridge.RawFileEntry> =
         withContext(Dispatchers.IO) {
-            fileSystem.list(path.toPath()).mapNotNull { entry ->
+            fileSystem.list(platformFileSystemGateway.resolveRealPath(path)).mapNotNull { entry ->
                 fileSystem.metadataOrNull(entry)?.toRawMetadata()?.let { metadata ->
                     FileSystemServiceBridge.RawFileEntry(
-                        path = entry.toString(),
+                        path = platformFileSystemGateway.toVirtualPath(entry),
                         name = entry.name,
                         metadata = metadata,
                     )
@@ -47,7 +49,7 @@ internal class FileSystemServiceBridgeImpl(
 
     override suspend fun read(path: String): ByteArray =
         withContext(Dispatchers.IO) {
-            fileSystem.read(path.toPath()) {
+            fileSystem.read(platformFileSystemGateway.resolveRealPath(path)) {
                 readByteArray()
             }
         }
@@ -57,7 +59,7 @@ internal class FileSystemServiceBridgeImpl(
         content: ByteArray,
     ) {
         withContext(Dispatchers.IO) {
-            fileSystem.write(path.toPath()) {
+            fileSystem.write(platformFileSystemGateway.resolveRealPath(path)) {
                 write(content)
                 Unit
             }
@@ -66,7 +68,7 @@ internal class FileSystemServiceBridgeImpl(
 
     override suspend fun createFile(path: String) {
         withContext(Dispatchers.IO) {
-            fileSystem.write(path.toPath(), mustCreate = true) {
+            fileSystem.write(platformFileSystemGateway.resolveRealPath(path), mustCreate = true) {
                 write(ByteArray(0))
                 Unit
             }
@@ -75,19 +77,19 @@ internal class FileSystemServiceBridgeImpl(
 
     override suspend fun createDirectories(path: String) {
         withContext(Dispatchers.IO) {
-            fileSystem.createDirectories(path.toPath())
+            fileSystem.createDirectories(platformFileSystemGateway.resolveRealPath(path))
         }
     }
 
     override suspend fun delete(path: String) {
         withContext(Dispatchers.IO) {
-            fileSystem.delete(path.toPath())
+            fileSystem.delete(platformFileSystemGateway.resolveRealPath(path))
         }
     }
 
     override suspend fun watch(path: String): Flow<FileSystemServiceBridge.RawFileChangeEvent> =
         flow {
-            val target = path.toPath()
+            val target = platformFileSystemGateway.resolveRealPath(path)
             var previousSnapshot: FileSnapshot? = null
             while (true) {
                 val currentSnapshot =
@@ -106,6 +108,10 @@ internal class FileSystemServiceBridgeImpl(
                 delay(WATCH_INTERVAL_MILLIS)
             }
         }
+
+    override suspend fun open(path: String) {
+        platformFileSystemGateway.open(path)
+    }
 
     private fun FileSystem.snapshot(path: Path): FileSnapshot? {
         val metadata = metadataOrNull(path)?.toRawMetadata() ?: return null

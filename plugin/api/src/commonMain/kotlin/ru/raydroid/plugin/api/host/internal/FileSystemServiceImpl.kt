@@ -6,6 +6,7 @@ import ru.raydroid.plugin.api.host.service.FileChangeEvent
 import ru.raydroid.plugin.api.host.service.FileEntry
 import ru.raydroid.plugin.api.host.service.FileKind
 import ru.raydroid.plugin.api.host.service.FileMetadata
+import ru.raydroid.plugin.api.host.service.FileRoot
 import ru.raydroid.plugin.api.host.service.FileSystemService
 import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 
@@ -17,6 +18,8 @@ internal class FileSystemServiceImpl(
     override suspend fun requestAllFilesAccess() {
         bridge.requestAllFilesAccess()
     }
+
+    override suspend fun listRoots(): List<FileRoot> = bridge.listRoots().map { it.toServiceRoot() }
 
     override suspend fun exists(path: String): Boolean = bridge.exists(path)
 
@@ -46,7 +49,18 @@ internal class FileSystemServiceImpl(
     }
 
     override suspend fun watch(path: String): Flow<FileChangeEvent> = bridge.watch(path).map { it.toServiceEvent() }
+
+    override suspend fun open(path: String) {
+        bridge.open(path)
+    }
 }
+
+private fun FileSystemServiceBridge.RawFileRoot.toServiceRoot(): FileRoot =
+    FileRoot(
+        id = id,
+        name = name,
+        path = path,
+    )
 
 private fun FileSystemServiceBridge.RawFileMetadata.toServiceMetadata(): FileMetadata =
     FileMetadata(

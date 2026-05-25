@@ -6,6 +6,8 @@
 	<string>Automatic</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSContactsUsageDescription</key>
+	<string>Raydroid uses your contacts to search, open, call, and message people.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>App-prefs</string>

@@ -553,7 +553,7 @@ class SearchViewModelTest {
                             id = itemId,
                             icon = null,
                             title = PluginUiText.Plain("Reddit.apk"),
-                            description = PluginUiText.Plain("/storage/emulated/0/Download"),
+                            description = PluginUiText.Plain("fs://download"),
                         ),
                     presentation =
                         PluginCommandPresentation(
@@ -562,7 +562,7 @@ class SearchViewModelTest {
                                     id = itemId,
                                     icon = null,
                                     title = PluginUiText.Plain("Reddit.apk"),
-                                    description = PluginUiText.Plain("/storage/emulated/0/Download"),
+                                    description = PluginUiText.Plain("fs://download"),
                                 ),
                             primaryCallback = callback("open"),
                             actions = emptyList(),
@@ -643,6 +643,7 @@ private class SearchViewModelFixture(
                     pluginRepository = EmptyPluginRepository(),
                     pluginRuntimeRegistry = registry,
                     pluginLoader = EmptyPluginLoader(),
+                    hostPlatform = Platform.MacOS,
                 ),
             searchUseCase = SearchUseCase(registry, searchRepository, FakeSearchResultRanker(), aliasRepository),
             getPluginsUseCase = GetPluginsUseCase(registry),

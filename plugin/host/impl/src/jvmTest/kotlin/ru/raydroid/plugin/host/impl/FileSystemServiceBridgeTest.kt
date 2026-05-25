@@ -3,6 +3,7 @@ package ru.raydroid.plugin.host.impl
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import ru.raydroid.plugin.api.host.exception.PermissionDenied
@@ -16,7 +17,8 @@ import ru.raydroid.plugin.api.manifest.Platform
 import ru.raydroid.plugin.api.model.UiText
 import ru.raydroid.plugin.host.impl.permission.PermissionFileSystemServiceBridge
 import ru.raydroid.plugin.host.impl.services.FileSystemServiceBridgeImpl
-import ru.raydroid.plugin.host.impl.services.UnsupportedAllFilesAccessGateway
+import ru.raydroid.plugin.host.impl.services.PassthroughPlatformFileSystemGateway
+import ru.raydroid.plugin.host.impl.services.PlatformFileSystemGateway
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -27,7 +29,7 @@ class FileSystemServiceBridgeTest {
     fun `filesystem bridge supports file operations`() =
         runTest {
             val fs = FakeFileSystem()
-            val bridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway())
+            val bridge = FileSystemServiceBridgeImpl(fs, PassthroughPlatformFileSystemGateway())
             fs.createDirectories("/allowed".toPath())
 
             bridge.createFile("/allowed/file.txt")
@@ -47,7 +49,7 @@ class FileSystemServiceBridgeTest {
     @Test
     fun `filesystem permission bridge denies missing access`() =
         runTest {
-            val delegate = FileSystemServiceBridgeImpl(FakeFileSystem(), UnsupportedAllFilesAccessGateway())
+            val delegate = FileSystemServiceBridgeImpl(FakeFileSystem(), PassthroughPlatformFileSystemGateway())
             val bridge = PermissionFileSystemServiceBridge(delegate, testManifest())
 
             assertFailsWith<PermissionDenied> {
@@ -66,7 +68,11 @@ class FileSystemServiceBridgeTest {
             }
             val bridge =
                 PermissionFileSystemServiceBridge(
-                    fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway()),
+                    fileSystemServiceBridge =
+                        FileSystemServiceBridgeImpl(
+                            fs,
+                            rootGateway(realPath = "/allowed", virtualPath = "fs://documents"),
+                        ),
                     manifest =
                         testManifest(
                             permissions =
@@ -74,18 +80,18 @@ class FileSystemServiceBridgeTest {
                                     FileSystemAccessPermission.Read,
                                     FileSystemAccessPermission.Write,
                                 ),
-                            allowedPaths = listOf("/allowed(/.*)?"),
+                            allowedPaths = listOf("fs://documents(/.*)?"),
                         ),
                 )
 
-            assertEquals(true, bridge.exists("/allowed/file.txt"))
-            bridge.write("/allowed/file.txt", "next".encodeToByteArray())
+            assertEquals(true, bridge.exists("fs://documents/file.txt"))
+            bridge.write("fs://documents/file.txt", "next".encodeToByteArray())
 
             assertFailsWith<PermissionDenied> {
-                bridge.delete("/allowed/file.txt")
+                bridge.delete("fs://documents/file.txt")
             }
             assertFailsWith<PermissionDenied> {
-                bridge.exists("/blocked/file.txt")
+                bridge.exists("fs://blocked/file.txt")
             }
         }
 
@@ -100,7 +106,7 @@ class FileSystemServiceBridgeTest {
             }
             val bridge =
                 PermissionFileSystemServiceBridge(
-                    fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway()),
+                    fileSystemServiceBridge = FileSystemServiceBridgeImpl(fs, PassthroughPlatformFileSystemGateway()),
                     manifest =
                         testManifest(
                             permissions = listOf(FileSystemAccessPermission.Manage),
@@ -122,7 +128,7 @@ class FileSystemServiceBridgeTest {
                 writeUtf8("hello")
                 Unit
             }
-            val bridge = FileSystemServiceBridgeImpl(fs, UnsupportedAllFilesAccessGateway())
+            val bridge = FileSystemServiceBridgeImpl(fs, PassthroughPlatformFileSystemGateway())
             val deferred =
                 async {
                     bridge.watch("/allowed/file.txt").first { event ->
@@ -136,6 +142,26 @@ class FileSystemServiceBridgeTest {
             }
 
             assertEquals(4, deferred.await().metadata?.size)
+        }
+
+    @Test
+    fun `filesystem bridge exposes virtual roots and paths`() =
+        runTest {
+            val fs = FakeFileSystem()
+            fs.createDirectories("/allowed".toPath())
+            fs.write("/allowed/file.txt".toPath()) {
+                writeUtf8("hello")
+                Unit
+            }
+            val bridge =
+                FileSystemServiceBridgeImpl(
+                    fs,
+                    rootGateway(realPath = "/allowed", virtualPath = "fs://documents"),
+                )
+
+            assertEquals(listOf("fs://documents"), bridge.listRoots().map { it.path })
+            assertEquals(listOf("fs://documents/file.txt"), bridge.list("fs://documents").map { it.path })
+            assertContentEquals("hello".encodeToByteArray(), bridge.read("fs://documents/file.txt"))
         }
 
     private fun testManifest(
@@ -173,4 +199,44 @@ class FileSystemServiceBridgeTest {
                         ),
                 ),
         )
+
+    private fun rootGateway(
+        realPath: String,
+        virtualPath: String,
+    ): PlatformFileSystemGateway =
+        object : PlatformFileSystemGateway {
+            override suspend fun hasAllFilesAccess(): Boolean = true
+
+            override suspend fun requestAllFilesAccess() = Unit
+
+            override suspend fun listRoots(): List<FileSystemServiceBridge.RawFileRoot> =
+                listOf(
+                    FileSystemServiceBridge.RawFileRoot(
+                        id = virtualPath.removePrefix("fs://"),
+                        name = "Documents",
+                        path = virtualPath,
+                    ),
+                )
+
+            override suspend fun open(path: String) = Unit
+
+            override fun resolveRealPath(path: String): Path {
+                val relativePath = path.removePrefix(virtualPath).trimStart('/')
+                return if (relativePath.isEmpty()) {
+                    realPath.toPath()
+                } else {
+                    "$realPath/$relativePath".toPath()
+                }
+            }
+
+            override fun toVirtualPath(path: Path): String {
+                val text = path.toString()
+                val relativePath = text.removePrefix(realPath).trimStart('/')
+                return if (relativePath.isEmpty()) {
+                    virtualPath
+                } else {
+                    "$virtualPath/$relativePath"
+                }
+            }
+        }
 }

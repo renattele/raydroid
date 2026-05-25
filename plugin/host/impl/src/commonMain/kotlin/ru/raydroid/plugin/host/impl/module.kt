@@ -98,7 +98,14 @@ val pluginHostModule =
         singleOf(::GetSearchFieldRequestsUseCase)
         singleOf(::EmitEventUseCase)
         singleOf(::SyncCacheUseCase)
-        singleOf(::LoadRuntimesUseCase)
+        single {
+            LoadRuntimesUseCase(
+                pluginRepository = get(),
+                pluginRuntimeRegistry = get(),
+                pluginLoader = get(),
+                hostPlatform = get(named("hostPlatform")),
+            )
+        }
         singleOf(::SearchUseCase)
         singleOf(::ObserveSearchAliasesUseCase)
         singleOf(::SaveSearchAliasUseCase)

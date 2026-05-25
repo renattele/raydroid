@@ -11,6 +11,7 @@ import org.koin.dsl.module
 import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
 import ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge
 import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
+import ru.raydroid.plugin.api.manifest.Platform
 import ru.raydroid.plugin.host.impl.services.ClipboardServiceBridgeImpl
 import ru.raydroid.plugin.host.impl.services.EnvironmentServiceBridgeImpl
 import ru.raydroid.plugin.host.impl.services.SystemServiceBridgeImpl
@@ -21,6 +22,7 @@ internal actual val pluginPlatformModule =
         single<ClipboardServiceBridge> { ClipboardServiceBridgeImpl(get()) }
         single<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
         single<SystemServiceBridge> { SystemServiceBridgeImpl(get()) }
+        single<Platform>(named("hostPlatform")) { Platform.Android }
 
         single<FileSystem>(named("localFileSystem")) {
             FileSystem.SYSTEM

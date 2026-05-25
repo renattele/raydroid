@@ -9,7 +9,7 @@ import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 
 internal actual val platformHostServiceModule =
     module {
-        factory<AllFilesAccessGateway> { AndroidAllFilesAccessGateway(androidContext()) }
+        factory<PlatformFileSystemGateway> { AndroidFileSystemGateway(androidContext()) }
         factory<ClipboardServiceBridge> { ClipboardServiceBridgeImpl(androidContext()) }
         factory<ContactsServiceBridge> { AndroidContactsServiceBridgeImpl(androidContext()) }
         factory<EnvironmentServiceBridge> { EnvironmentServiceBridgeImpl() }
