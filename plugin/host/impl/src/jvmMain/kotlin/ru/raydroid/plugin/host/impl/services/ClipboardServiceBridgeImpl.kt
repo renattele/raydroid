@@ -74,7 +74,9 @@ private class AwtClipboardGateway(
                     )
                 }
 
-                else -> ClipboardServiceBridge.ClipboardContent()
+                else -> {
+                    ClipboardServiceBridge.ClipboardContent()
+                }
             }
         }.getOrElse {
             ClipboardServiceBridge.ClipboardContent()

@@ -59,7 +59,9 @@ internal class MacFileSystemGateway(
                     .getOrElse { path.removePrefix("file://").toPath() }
             }
 
-            else -> path.toPath()
+            else -> {
+                path.toPath()
+            }
         }
 
     override fun toVirtualPath(path: Path): String = path.toString()

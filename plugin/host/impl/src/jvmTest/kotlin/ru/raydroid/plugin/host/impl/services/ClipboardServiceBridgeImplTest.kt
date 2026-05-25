@@ -21,9 +21,10 @@ class ClipboardServiceBridgeImplTest {
     @Test
     fun `clear resets current clipboard content`() =
         runTest {
-            val gateway = FakeClipboardGateway(
-                content = ClipboardServiceBridge.ClipboardContent(text = "before"),
-            )
+            val gateway =
+                FakeClipboardGateway(
+                    content = ClipboardServiceBridge.ClipboardContent(text = "before"),
+                )
             val bridge = ClipboardServiceBridgeImpl(gateway)
 
             bridge.clear()
@@ -34,9 +35,10 @@ class ClipboardServiceBridgeImplTest {
     @Test
     fun `history offsets beyond current clipboard return empty content`() =
         runTest {
-            val gateway = FakeClipboardGateway(
-                content = ClipboardServiceBridge.ClipboardContent(text = "ignored"),
-            )
+            val gateway =
+                FakeClipboardGateway(
+                    content = ClipboardServiceBridge.ClipboardContent(text = "ignored"),
+                )
             val bridge = ClipboardServiceBridgeImpl(gateway)
 
             val content = bridge.read(historyOffset = 1)

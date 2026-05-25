@@ -48,29 +48,30 @@ internal class MacSystemServiceBridgeImpl(
 
     override suspend fun getApps(): List<SystemServiceBridge.RawApplication> =
         withContext(Dispatchers.IO) {
-            applicationDirs.flatMap { path ->
-                File(path)
-                    .listFiles { file -> file.extension == "app" }
-                    ?.mapNotNull { appDir ->
-                        val infoPlist = File(appDir, "Contents/Info.plist")
-                        if (!infoPlist.exists()) return@mapNotNull null
+            applicationDirs
+                .flatMap { path ->
+                    File(path)
+                        .listFiles { file -> file.extension == "app" }
+                        ?.mapNotNull { appDir ->
+                            val infoPlist = File(appDir, "Contents/Info.plist")
+                            if (!infoPlist.exists()) return@mapNotNull null
 
-                        val bundleId = readPlistValue(infoPlist, "CFBundleIdentifier")
-                        val appName =
-                            readPlistValue(infoPlist, "CFBundleName")
-                                ?: appDir.nameWithoutExtension
+                            val bundleId = readPlistValue(infoPlist, "CFBundleIdentifier")
+                            val appName =
+                                readPlistValue(infoPlist, "CFBundleName")
+                                    ?: appDir.nameWithoutExtension
 
-                        if (bundleId != null) {
-                            SystemServiceBridge.RawApplication(
-                                name = appName,
-                                id = bundleId,
-                                icon = resolveIcon(appDir, infoPlist, bundleId),
-                            )
-                        } else {
-                            null
-                        }
-                    } ?: emptyList()
-            }.distinctBy { app -> app.id }
+                            if (bundleId != null) {
+                                SystemServiceBridge.RawApplication(
+                                    name = appName,
+                                    id = bundleId,
+                                    icon = resolveIcon(appDir, infoPlist, bundleId),
+                                )
+                            } else {
+                                null
+                            }
+                        } ?: emptyList()
+                }.distinctBy { app -> app.id }
         }
 
     private fun findAppDirectory(appId: String): File? =
@@ -278,8 +279,13 @@ internal fun normalizeOpenTarget(target: String): String =
                 .getOrElse { target.removePrefix("file://") }
         }
 
-        File(target).isAbsolute -> File(target).absolutePath
-        else -> target
+        File(target).isAbsolute -> {
+            File(target).absolutePath
+        }
+
+        else -> {
+            target
+        }
     }
 
 internal fun runCommand(command: List<String>) {

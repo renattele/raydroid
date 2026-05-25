@@ -50,7 +50,12 @@ internal class MacContactsServiceBridgeImpl : ContactsServiceBridge {
             .mapNotNull { line ->
                 val parts = line.split('\t')
                 if (parts.size < 3) return@mapNotNull null
-                val phones = parts[2].split("|||").map(String::trim).filter(String::isNotBlank).distinct()
+                val phones =
+                    parts[2]
+                        .split("|||")
+                        .map(String::trim)
+                        .filter(String::isNotBlank)
+                        .distinct()
                 if (phones.isEmpty()) return@mapNotNull null
                 ContactsServiceBridge.RawContact(
                     id = parts[0],

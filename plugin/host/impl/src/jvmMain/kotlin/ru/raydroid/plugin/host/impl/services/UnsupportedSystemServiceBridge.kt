@@ -23,5 +23,7 @@ internal class UnsupportedSystemServiceBridge(
     }
 
     private fun unsupported(): Nothing =
-        throw UnsupportedOperationException("System bridge is not implemented for $platform desktop hosts")
+        throw UnsupportedOperationException(
+            "System bridge is not implemented for $platform desktop hosts",
+        )
 }

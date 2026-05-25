@@ -67,10 +67,10 @@ import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.core.designsystem.component.RTextField
 import ru.raydroid.core.designsystem.component.rContextActionInactiveLayer
-import ru.raydroid.feature.search.FocusedCommandAction
-import ru.raydroid.feature.search.SearchAliasEditorState
 import ru.raydroid.feature.search.DesktopSearchCommand
 import ru.raydroid.feature.search.DesktopSearchController
+import ru.raydroid.feature.search.FocusedCommandAction
+import ru.raydroid.feature.search.SearchAliasEditorState
 import ru.raydroid.feature.search.SearchFieldUiState
 import ru.raydroid.feature.search.SearchScreenEvent
 import ru.raydroid.feature.search.SearchScreenState
@@ -899,20 +899,25 @@ internal fun resolveDesktopSearchCommand(
     state: SearchScreenState,
 ): SearchScreenEvent? =
     when (command) {
-        DesktopSearchCommand.RequestFocus -> null
-        DesktopSearchCommand.HandleEscape ->
+        DesktopSearchCommand.RequestFocus -> {
+            null
+        }
+
+        DesktopSearchCommand.HandleEscape -> {
             when {
                 state.overlayState.showActions || state.overlayState.showContextActions -> SearchScreenEvent.HideActions
                 state.fullscreenContent != null -> SearchScreenEvent.CloseFullscreen
                 else -> null
             }
+        }
 
-        DesktopSearchCommand.CloseFullscreen ->
+        DesktopSearchCommand.CloseFullscreen -> {
             if (state.fullscreenContent != null) {
                 SearchScreenEvent.CloseFullscreen
             } else {
                 null
             }
+        }
     }
 
 @Preview

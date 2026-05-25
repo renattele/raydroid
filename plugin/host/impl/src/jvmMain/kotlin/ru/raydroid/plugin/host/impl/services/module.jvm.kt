@@ -15,6 +15,7 @@ internal actual val platformHostServiceModule =
         factory<PlatformFileSystemGateway> {
             when (get<DesktopPlatform>()) {
                 DesktopPlatform.MAC -> MacFileSystemGateway()
+
                 DesktopPlatform.WINDOWS,
                 DesktopPlatform.LINUX,
                 DesktopPlatform.OTHER,
@@ -25,6 +26,7 @@ internal actual val platformHostServiceModule =
         factory<ContactsServiceBridge> {
             when (get<DesktopPlatform>()) {
                 DesktopPlatform.MAC -> MacContactsServiceBridgeImpl()
+
                 DesktopPlatform.WINDOWS,
                 DesktopPlatform.LINUX,
                 DesktopPlatform.OTHER,
@@ -35,6 +37,7 @@ internal actual val platformHostServiceModule =
         factory<SystemServiceBridge> {
             when (get<DesktopPlatform>()) {
                 DesktopPlatform.MAC -> MacSystemServiceBridgeImpl()
+
                 DesktopPlatform.WINDOWS,
                 DesktopPlatform.LINUX,
                 DesktopPlatform.OTHER,
