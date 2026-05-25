@@ -40,7 +40,8 @@
     "filesystem": {
       "permissions": ["read"],
       "allowed_paths": [
-        "fs://.*"
+        "/.*",
+        "file://.*"
       ]
     },
     "notification": {

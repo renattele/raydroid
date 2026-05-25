@@ -6,10 +6,15 @@ import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
 import ru.raydroid.plugin.api.ui.Icon
 import java.awt.image.BufferedImage
 import java.io.File
+import java.net.URI
+import java.util.Base64
 import javax.imageio.ImageIO
 import javax.swing.filechooser.FileSystemView
 
-internal class MacSystemServiceBridgeImpl : SystemServiceBridge {
+internal class MacSystemServiceBridgeImpl(
+    private val commandExecutor: (List<String>) -> Unit = ::runCommand,
+    private val applicationDirs: List<String> = DefaultApplicationDirs,
+) : SystemServiceBridge {
     override suspend fun openApp(
         appId: String,
         options: SystemServiceBridge.OpenOptions,
@@ -23,18 +28,7 @@ internal class MacSystemServiceBridgeImpl : SystemServiceBridge {
                     listOf("open", "-b", appId)
                 }
 
-            try {
-                val process =
-                    ProcessBuilder(command)
-                        .redirectErrorStream(true)
-                        .start()
-                process.inputStream.bufferedReader().use { it.readText() }
-                process.waitFor()
-            } catch (_: Exception) {
-                // Keep parity with Android's best-effort implementation.
-            }
-
-            Unit
+            commandExecutor(command)
         }
     }
 
@@ -42,7 +36,14 @@ internal class MacSystemServiceBridgeImpl : SystemServiceBridge {
         target: String,
         options: SystemServiceBridge.OpenOptions,
     ) {
-        TODO("Not yet implemented")
+        withContext(Dispatchers.IO) {
+            commandExecutor(
+                listOf(
+                    "open",
+                    normalizeOpenTarget(target),
+                ),
+            )
+        }
     }
 
     override suspend fun getApps(): List<SystemServiceBridge.RawApplication> =
@@ -69,7 +70,7 @@ internal class MacSystemServiceBridgeImpl : SystemServiceBridge {
                             null
                         }
                     } ?: emptyList()
-            }
+            }.distinctBy { app -> app.id }
         }
 
     private fun findAppDirectory(appId: String): File? =
@@ -99,7 +100,15 @@ internal class MacSystemServiceBridgeImpl : SystemServiceBridge {
                 ?: resolveRenderableIconFile(genericApplicationIconFile, "generic")
                 ?: genericApplicationIconFile
 
-        return Icon.Url(resolvedFile.toURI().toString())
+        val base64 =
+            runCatching {
+                Base64.getEncoder().encodeToString(resolvedFile.readBytes())
+            }.getOrNull()
+        return if (base64 != null) {
+            Icon.Url("data:image/png;base64,$base64")
+        } else {
+            Icon.Url(resolvedFile.toURI().toString())
+        }
     }
 
     private fun resolveIconFile(
@@ -242,7 +251,7 @@ internal class MacSystemServiceBridgeImpl : SystemServiceBridge {
 
     private companion object {
         private const val DEFAULT_ICON_SIZE_PX = 256
-        private val applicationDirs =
+        private val DefaultApplicationDirs =
             listOf(
                 "/Applications",
                 "/System/Applications",
@@ -259,5 +268,29 @@ internal class MacSystemServiceBridgeImpl : SystemServiceBridge {
             File(
                 "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns",
             )
+    }
+}
+
+internal fun normalizeOpenTarget(target: String): String =
+    when {
+        target.startsWith("file://") -> {
+            runCatching { File(URI(target)).absolutePath }
+                .getOrElse { target.removePrefix("file://") }
+        }
+
+        File(target).isAbsolute -> File(target).absolutePath
+        else -> target
+    }
+
+internal fun runCommand(command: List<String>) {
+    try {
+        val process =
+            ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .start()
+        process.inputStream.bufferedReader().use { it.readText() }
+        process.waitFor()
+    } catch (_: Exception) {
+        // Best-effort bridge behavior matches other platforms.
     }
 }

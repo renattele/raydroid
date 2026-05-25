@@ -5,7 +5,7 @@
   "description": "app.description",
   "author": "app.author",
   "version": -1,
-  "platforms": ["Android"],
+  "platforms": ["Android", "MacOS"],
   "categories": [],
   "license": "",
   "commands": [

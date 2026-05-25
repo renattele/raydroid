@@ -69,6 +69,8 @@ import ru.raydroid.core.designsystem.component.RTextField
 import ru.raydroid.core.designsystem.component.rContextActionInactiveLayer
 import ru.raydroid.feature.search.FocusedCommandAction
 import ru.raydroid.feature.search.SearchAliasEditorState
+import ru.raydroid.feature.search.DesktopSearchCommand
+import ru.raydroid.feature.search.DesktopSearchController
 import ru.raydroid.feature.search.SearchFieldUiState
 import ru.raydroid.feature.search.SearchScreenEvent
 import ru.raydroid.feature.search.SearchScreenState
@@ -102,13 +104,17 @@ import ru.raydroid.plugin.host.impl.presentation.asText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(modifier: Modifier = Modifier) {
+fun SearchScreen(
+    modifier: Modifier = Modifier,
+    desktopSearchController: DesktopSearchController? = null,
+) {
     val viewModel = koinInject<SearchViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
     SearchScreen(
         state = state,
         onEvent = viewModel::onEvent,
         modifier = modifier,
+        desktopSearchController = desktopSearchController,
     )
 }
 
@@ -117,6 +123,7 @@ fun SearchScreen(
     state: SearchScreenState,
     onEvent: (SearchScreenEvent) -> Unit,
     modifier: Modifier = Modifier,
+    desktopSearchController: DesktopSearchController? = null,
 ) {
     ResourceResolverProvider(state.plugins) {
         val contextAnchors = remember { mutableStateMapOf<String, Rect>() }
@@ -152,6 +159,25 @@ fun SearchScreen(
                 val focus = remember { FocusRequester() }
                 LaunchedEffect(Unit) {
                     focus.requestFocus()
+                }
+                val latestState by rememberUpdatedState(state)
+                LaunchedEffect(desktopSearchController, state) {
+                    desktopSearchController?.update(state)
+                }
+                LaunchedEffect(desktopSearchController, focus) {
+                    desktopSearchController
+                        ?.commands
+                        ?.collectLatest { command ->
+                            when (command) {
+                                DesktopSearchCommand.RequestFocus -> {
+                                    focus.requestFocus()
+                                }
+
+                                else -> {
+                                    resolveDesktopSearchCommand(command, latestState)?.let(onEvent)
+                                }
+                            }
+                        }
                 }
                 LaunchedEffect(
                     searchField,
@@ -867,6 +893,27 @@ private fun FullscreenBackButton(
         }
     }
 }
+
+internal fun resolveDesktopSearchCommand(
+    command: DesktopSearchCommand,
+    state: SearchScreenState,
+): SearchScreenEvent? =
+    when (command) {
+        DesktopSearchCommand.RequestFocus -> null
+        DesktopSearchCommand.HandleEscape ->
+            when {
+                state.overlayState.showActions || state.overlayState.showContextActions -> SearchScreenEvent.HideActions
+                state.fullscreenContent != null -> SearchScreenEvent.CloseFullscreen
+                else -> null
+            }
+
+        DesktopSearchCommand.CloseFullscreen ->
+            if (state.fullscreenContent != null) {
+                SearchScreenEvent.CloseFullscreen
+            } else {
+                null
+            }
+    }
 
 @Preview
 @Composable

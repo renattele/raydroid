@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.bundles.koin.compose)
     implementation(compose.desktop.currentOs)
     implementation(projects.sharedUi)
+    implementation(projects.feature.search)
     implementation(projects.plugin.api)
     implementation(projects.plugin.host.api)
     implementation(projects.plugin.host.impl)
@@ -34,8 +35,22 @@ compose.desktop {
         mainClass = "ru.raydroid.desktop.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "RayDroid"
+            packageName = "Raydroid"
             packageVersion = "1.0.0"
+            modules(
+                "java.base",
+                "java.desktop",
+                "java.instrument",
+                "java.logging",
+                "java.management",
+                "java.net.http",
+                "java.sql",
+                "jdk.crypto.ec",
+                "jdk.unsupported",
+            )
+            macOS {
+                iconFile.set(project.file("src/main/resources/Raydroid.icns"))
+            }
         }
     }
 }
