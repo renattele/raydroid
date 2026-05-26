@@ -15,9 +15,7 @@ import ru.raydroid.plugin.api.runtime.CommandService
 import ru.raydroid.plugin.api.ui.Color
 import ru.raydroid.plugin.api.ui.Detail
 import ru.raydroid.plugin.api.ui.Icon
-import ru.raydroid.plugin.api.ui.Modifier
 import ru.raydroid.plugin.api.ui.RayScope
-import ru.raydroid.plugin.api.ui.actions
 
 class FilesCommand : CommandService() {
     private var indexedFiles = emptyList<IndexedFile>()
@@ -68,6 +66,12 @@ class FilesCommand : CommandService() {
             markdown = file.markdown(),
             navigationTitle = UiText.Plain(file.name),
         )
+    }
+
+    override fun CommandListScope.content() {
+        liveFiles.forEach { file ->
+            fileEntry(file)
+        }
     }
 
     override fun CommandActionScope.actions(target: CommandActionTarget) {
@@ -239,6 +243,19 @@ class FilesCommand : CommandService() {
             icon = icon(),
             iconColor = Color.OnSurfaceVariant,
         )
+
+    private fun CommandListScope.fileEntry(file: IndexedFile) {
+        val item = file.toCommandListItem()
+        entry(
+            id = item.id,
+            title = item.title,
+            description = item.description,
+            icon = item.icon,
+            iconColor = item.iconColor,
+            trailingText = item.trailingText,
+            quickAction = item.quickAction,
+        )
+    }
 
     private fun IndexedFile.markdown(): String =
         """
