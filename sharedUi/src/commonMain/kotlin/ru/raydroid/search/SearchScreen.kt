@@ -3,7 +3,6 @@ package ru.raydroid.search
 import androidx.compose.animation.animateBounds
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -57,6 +55,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import ru.raydroid.core.domain.analytics.AnalyticsLaunchTarget
+import ru.raydroid.core.domain.analytics.AnalyticsTracker
 import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.LocalRContextActionOverlayState
 import ru.raydroid.core.designsystem.component.RAlertDialog
@@ -126,6 +126,7 @@ fun SearchScreen(
     desktopSearchController: DesktopSearchController? = null,
 ) {
     ResourceResolverProvider(state.plugins) {
+        TrackLaunchEvents(state)
         val contextAnchors = remember { mutableStateMapOf<String, Rect>() }
         var rootBounds by remember { mutableStateOf<Rect?>(null) }
         val spacing = RaydroidTheme.spacing
@@ -631,6 +632,29 @@ fun SearchScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TrackLaunchEvents(state: SearchScreenState) {
+    val analyticsTracker = koinInject<AnalyticsTracker>()
+    var lastLoggedTarget by remember { mutableStateOf<AnalyticsLaunchTarget?>(null) }
+
+    fun logLaunch(target: AnalyticsLaunchTarget) {
+        if (lastLoggedTarget == target) return
+        lastLoggedTarget = target
+        analyticsTracker.logLaunch(target)
+    }
+
+    LaunchedEffect(state.fullscreenContent?.resultId) {
+        val target =
+            state.fullscreenContent
+                ?.resultId
+                ?.pluginId
+                ?.id
+                ?.let(AnalyticsLaunchTarget::fromPluginId)
+                ?: AnalyticsLaunchTarget.Home
+        logLaunch(target)
     }
 }
 

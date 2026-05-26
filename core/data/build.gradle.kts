@@ -9,6 +9,9 @@ kotlin {
     }
     sourceSets {
         androidMain.dependencies {
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.analytics)
+            implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {

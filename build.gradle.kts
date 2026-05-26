@@ -16,6 +16,8 @@ plugins {
     alias(libs.plugins.zipline) apply false
     alias(libs.plugins.atomicfu) apply false
     alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.googleServices) apply false
+    alias(libs.plugins.firebaseCrashlytics) apply false
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
 }

@@ -34,6 +34,9 @@ coil = "3.4.0"
 ksp = "2.3.2"
 room = "2.8.4"
 sqlite = "2.6.2"
+googleServices = "4.4.4"
+firebaseBom = "34.7.0"
+firebaseCrashlyticsPlugin = "3.0.6"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -89,6 +92,9 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 
 [bundles]
 composeAndroid = ["compose-uiToolingPreview", "androidx-activity-compose"]
@@ -130,6 +136,8 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
 
 raydroidAndroidApp = { id = "raydroid.android.app" }
 raydroidAndroidLib = { id = "raydroid.android.lib" }

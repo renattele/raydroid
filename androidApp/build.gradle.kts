@@ -3,6 +3,8 @@ import org.gradle.kotlin.dsl.configure
 
 plugins {
     alias(libs.plugins.raydroidAndroidApp)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 extensions.configure<ApplicationExtension> {
@@ -16,6 +18,9 @@ extensions.configure<ApplicationExtension> {
 }
 
 dependencies {
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
     implementation(libs.bundles.composeAndroid)
     implementation(libs.zipline.loader)
     implementation(libs.okHttp.core)

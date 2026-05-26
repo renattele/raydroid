@@ -15,11 +15,14 @@ import kotlinx.serialization.json.Json
 import okio.Path
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import ru.raydroid.core.data.analytics.analyticsPlatformModule
 
 private const val PREFERENCES_FILE_NAME = "raydroid.preferences_pb"
 
 val coreDataModule =
     module {
+        includes(analyticsPlatformModule)
+
         single<Json> {
             Json {
                 ignoreUnknownKeys = true
