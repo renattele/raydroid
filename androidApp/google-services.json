@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "5401599037",
+    "project_id": "x-raydroid",
+    "storage_bucket": "x-raydroid.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:5401599037:android:fe02a0eb2d4c5dc2a95e54",
+        "android_client_info": {
+          "package_name": "ru.raydroid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyOt6fG7eUmIAmZU6eBkdk_TQ44sqsZVo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
