@@ -55,8 +55,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import ru.raydroid.core.domain.analytics.AnalyticsLaunchTarget
-import ru.raydroid.core.domain.analytics.AnalyticsTracker
 import ru.raydroid.core.designsystem.RaydroidTheme
 import ru.raydroid.core.designsystem.component.LocalRContextActionOverlayState
 import ru.raydroid.core.designsystem.component.RAlertDialog
@@ -67,6 +65,8 @@ import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.core.designsystem.component.RTextField
 import ru.raydroid.core.designsystem.component.rContextActionInactiveLayer
+import ru.raydroid.core.domain.analytics.AnalyticsLaunchTarget
+import ru.raydroid.core.domain.analytics.AnalyticsTracker
 import ru.raydroid.feature.search.DesktopSearchCommand
 import ru.raydroid.feature.search.DesktopSearchController
 import ru.raydroid.feature.search.FocusedCommandAction
