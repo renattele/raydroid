@@ -20,6 +20,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.raydroid.core.domain.analytics.AnalyticsLaunchTarget
+import ru.raydroid.core.domain.analytics.AnalyticsTracker
+import ru.raydroid.core.domain.analytics.NoOpAnalyticsTracker
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.api.manifest.Command
 import ru.raydroid.plugin.api.presentation.CommandItemId
@@ -81,6 +84,7 @@ class SearchViewModel(
     private val saveSearchAliasUseCase: SaveSearchAliasUseCase,
     private val removeSearchAliasUseCase: RemoveSearchAliasUseCase,
     private val backCommandUseCase: BackCommandUseCase? = null,
+    private val analyticsTracker: AnalyticsTracker = NoOpAnalyticsTracker,
 ) {
     constructor(
         syncCacheUseCase: SyncCacheUseCase,
@@ -99,6 +103,7 @@ class SearchViewModel(
         updateCommandQueryUseCase: UpdateCommandQueryUseCase,
         saveSearchAliasUseCase: SaveSearchAliasUseCase,
         removeSearchAliasUseCase: RemoveSearchAliasUseCase,
+        analyticsTracker: AnalyticsTracker = NoOpAnalyticsTracker,
     ) : this(
         applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
         syncCacheUseCase = syncCacheUseCase,
@@ -117,6 +122,7 @@ class SearchViewModel(
         saveSearchAliasUseCase = saveSearchAliasUseCase,
         removeSearchAliasUseCase = removeSearchAliasUseCase,
         backCommandUseCase = backCommandUseCase,
+        analyticsTracker = analyticsTracker,
     )
 
     private val backingState = MutableStateFlow(SearchViewModelState())
@@ -145,6 +151,12 @@ class SearchViewModel(
         if (started) return
         started = true
 
+        scope.launch {
+            backingState
+                .map { uiState -> uiState.toScreenState().analyticsLaunchTarget() }
+                .distinctUntilChanged()
+                .collectLatest(analyticsTracker::logLaunch)
+        }
         scope.launch(Dispatchers.IO) {
             syncCacheUseCase()
         }
@@ -1421,6 +1433,14 @@ private fun SearchViewModelState.overlayState(): SearchOverlayState =
         activeContextSourceId = activeContextSourceId,
         aliasEditor = aliasEditor,
     )
+
+internal fun SearchScreenState.analyticsLaunchTarget(): AnalyticsLaunchTarget =
+    fullscreenContent
+        ?.resultId
+        ?.pluginId
+        ?.id
+        ?.let(AnalyticsLaunchTarget::fromPluginId)
+        ?: AnalyticsLaunchTarget.Home
 
 private fun SearchViewModelState.toScreenState(): SearchScreenState {
     val overlayState = overlayState()

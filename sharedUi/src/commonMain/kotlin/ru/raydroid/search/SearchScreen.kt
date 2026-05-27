@@ -65,8 +65,6 @@ import ru.raydroid.core.designsystem.component.RText
 import ru.raydroid.core.designsystem.component.RTextButton
 import ru.raydroid.core.designsystem.component.RTextField
 import ru.raydroid.core.designsystem.component.rContextActionInactiveLayer
-import ru.raydroid.core.domain.analytics.AnalyticsLaunchTarget
-import ru.raydroid.core.domain.analytics.AnalyticsTracker
 import ru.raydroid.feature.search.DesktopSearchCommand
 import ru.raydroid.feature.search.DesktopSearchController
 import ru.raydroid.feature.search.FocusedCommandAction
@@ -126,7 +124,6 @@ fun SearchScreen(
     desktopSearchController: DesktopSearchController? = null,
 ) {
     ResourceResolverProvider(state.plugins) {
-        TrackLaunchEvents(state)
         val contextAnchors = remember { mutableStateMapOf<String, Rect>() }
         var rootBounds by remember { mutableStateOf<Rect?>(null) }
         val spacing = RaydroidTheme.spacing
@@ -632,29 +629,6 @@ fun SearchScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun TrackLaunchEvents(state: SearchScreenState) {
-    val analyticsTracker = koinInject<AnalyticsTracker>()
-    var lastLoggedTarget by remember { mutableStateOf<AnalyticsLaunchTarget?>(null) }
-
-    fun logLaunch(target: AnalyticsLaunchTarget) {
-        if (lastLoggedTarget == target) return
-        lastLoggedTarget = target
-        analyticsTracker.logLaunch(target)
-    }
-
-    LaunchedEffect(state.fullscreenContent?.resultId) {
-        val target =
-            state.fullscreenContent
-                ?.resultId
-                ?.pluginId
-                ?.id
-                ?.let(AnalyticsLaunchTarget::fromPluginId)
-                ?: AnalyticsLaunchTarget.Home
-        logLaunch(target)
     }
 }
 

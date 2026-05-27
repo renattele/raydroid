@@ -11,6 +11,8 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
+import ru.raydroid.core.domain.analytics.AnalyticsLaunchTarget
+import ru.raydroid.core.domain.analytics.AnalyticsTracker
 import ru.raydroid.plugin.api.host.service.SearchFieldSelection
 import ru.raydroid.plugin.api.host.service.SearchFieldState
 import ru.raydroid.plugin.api.manifest.Command
@@ -89,6 +91,41 @@ class SearchViewModelTest {
             val state = fixture.viewModel.currentState()
             assertEquals("calculator", state.searchFieldState.query)
             assertEquals(SearchFieldSelection.CursorAtEnd, state.searchFieldState.selection)
+        }
+
+    @Test
+    fun `analytics launch target resolves from shared fullscreen state`() =
+        runTest {
+            val resultsState =
+                SearchScreenState.Results(
+                    content = SearchResultsContentState(),
+                )
+            val fullscreenState =
+                SearchScreenState.Fullscreen(
+                    content =
+                        SearchFullscreenContentState(
+                            resultId =
+                                SearchResultId(
+                                    pluginId = PluginId("ru.raydroid.plugin.impl.calculator"),
+                                    commandName = "calculator",
+                                    itemId = CommandItemId.CommandRoot,
+                                ),
+                            title = null,
+                            placeholder = null,
+                            searchFieldState = SearchFieldUiState(),
+                            exitBackspaceCount = 0,
+                            content = emptyList(),
+                            focusedItemId = null,
+                        ),
+                )
+            assertEquals(
+                AnalyticsLaunchTarget.Home,
+                resultsState.analyticsLaunchTarget(),
+            )
+            assertEquals(
+                AnalyticsLaunchTarget.Calculator,
+                fullscreenState.analyticsLaunchTarget(),
+            )
         }
 
     @Test
@@ -595,21 +632,24 @@ class SearchViewModelTest {
 
 private class SearchViewModelFixture(
     testScope: kotlinx.coroutines.test.TestScope,
+    pluginId: PluginId = PluginId("ru.raydroid.calculator"),
+    commandName: String = "calculator",
     commandMode: Command.Mode = Command.Mode.View,
 ) {
-    val pluginId = PluginId("ru.raydroid.calculator")
+    val pluginId = pluginId
     val resultId =
         SearchResultId(
             pluginId = pluginId,
-            commandName = "calculator",
+            commandName = commandName,
             itemId = CommandItemId.CommandRoot,
         )
+    val analyticsTracker = FakeAnalyticsTracker()
     val runtime =
         FakePluginRuntime(
             manifest =
                 manifest(
                     pluginId = pluginId,
-                    commandName = "calculator",
+                    commandName = commandName,
                     placeholder = UiText.Plain("Type a query"),
                     mode = commandMode,
                 ),
@@ -668,7 +708,16 @@ private class SearchViewModelFixture(
             updateCommandQueryUseCase = UpdateCommandQueryUseCase(registry),
             saveSearchAliasUseCase = SaveSearchAliasUseCase(aliasRepository),
             removeSearchAliasUseCase = RemoveSearchAliasUseCase(aliasRepository),
+            analyticsTracker = analyticsTracker,
         )
+}
+
+private class FakeAnalyticsTracker : AnalyticsTracker {
+    val targets = mutableListOf<AnalyticsLaunchTarget>()
+
+    override fun logLaunch(target: AnalyticsLaunchTarget) {
+        targets += target
+    }
 }
 
 private class FakePluginRuntimeCoordinator(

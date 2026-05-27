@@ -34,6 +34,7 @@ val raydroidSearchModule =
                 updateCommandQueryUseCase = get(),
                 saveSearchAliasUseCase = get(),
                 removeSearchAliasUseCase = get(),
+                analyticsTracker = get(),
             )
         }
     }

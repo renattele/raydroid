@@ -27,6 +27,8 @@ kotlin {
             iosTarget.binaries.framework {
                 baseName = "RaydroidShared"
                 isStatic = true
+                export(projects.core.data)
+                export(projects.core.domain)
                 export(projects.plugin.host.impl)
             }
         }
@@ -40,7 +42,8 @@ kotlin {
             implementation(libs.bundles.koin)
             implementation(libs.kotlinx.coroutines)
             implementation(libs.okio)
-            implementation(projects.core.data)
+            api(projects.core.data)
+            api(projects.core.domain)
             implementation(projects.plugin.api)
             implementation(projects.plugin.host.api)
             api(projects.plugin.host.impl)

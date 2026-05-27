@@ -11,6 +11,7 @@ final class RaydroidAppContainer {
     let searchViewModelClient: SearchViewModelClient
 
     private init() {
+        FirebaseBootstrap.configureIfNeeded()
         RaydroidBootstrapKt.InitKoin()
 
         let router = AppRouter()
