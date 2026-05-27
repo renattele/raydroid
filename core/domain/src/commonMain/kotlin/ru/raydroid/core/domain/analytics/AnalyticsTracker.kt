@@ -13,11 +13,11 @@ enum class AnalyticsLaunchTarget(
     Notes("launch_notes", "ru.raydroid.plugin.impl.notes"),
     Weather("launch_weather", "ru.raydroid.plugin.impl.weather"),
     Files("launch_files", "ru.raydroid.plugin.impl.files"),
-    Contacts("launch_contacts", "ru.raydroid.plugin.impl.contacts");
+    Contacts("launch_contacts", "ru.raydroid.plugin.impl.contacts"),
+    ;
 
     companion object {
-        fun fromPluginId(pluginId: String): AnalyticsLaunchTarget? =
-            entries.firstOrNull { target -> target.pluginId == pluginId }
+        fun fromPluginId(pluginId: String): AnalyticsLaunchTarget? = entries.firstOrNull { target -> target.pluginId == pluginId }
     }
 }
 
