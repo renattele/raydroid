@@ -136,6 +136,9 @@ fun SearchScreen(
         val activeSearchFieldState = state.searchFieldState
         val latestSearchFieldState by rememberUpdatedState(activeSearchFieldState)
         val searchField = remember(fullscreen?.resultId) { TextFieldState() }
+        var pendingSearchFieldSnapshot by remember(fullscreen?.resultId) {
+            mutableStateOf<SearchFieldSnapshot?>(null)
+        }
         CompositionLocalProvider(
             LocalRContextActionOverlayState provides
                 RContextActionOverlayState(
@@ -183,7 +186,12 @@ fun SearchScreen(
                     activeSearchFieldState.query,
                     activeSearchFieldState.selection,
                 ) {
-                    searchField.apply(activeSearchFieldState)
+                    val incomingSnapshot = activeSearchFieldState.asSnapshot()
+                    if (incomingSnapshot == pendingSearchFieldSnapshot) {
+                        pendingSearchFieldSnapshot = null
+                    } else if (pendingSearchFieldSnapshot == null) {
+                        searchField.apply(activeSearchFieldState)
+                    }
                 }
                 LaunchedEffect(searchField, fullscreen?.resultId) {
                     snapshotFlow {
@@ -194,6 +202,7 @@ fun SearchScreen(
                     }.distinctUntilChanged()
                         .collectLatest { snapshot ->
                             if (snapshot != latestSearchFieldState.asSnapshot()) {
+                                pendingSearchFieldSnapshot = snapshot
                                 onEvent(
                                     SearchScreenEvent.UpdateQuery(
                                         query = snapshot.query,
@@ -664,16 +673,6 @@ private fun AliasEditorSheet(
                     onEvent(SearchScreenEvent.UpdateAliasEditorInput(value))
                 }
             }
-    }
-    LaunchedEffect(state.resultId, state.input) {
-        if (fieldState.text.toString() != state.input) {
-            fieldState.edit {
-                replace(0, length, state.input)
-                selection =
-                    androidx.compose.ui.text
-                        .TextRange(state.input.length)
-            }
-        }
     }
     ModalBottomSheet(
         sheetState = sheetState,

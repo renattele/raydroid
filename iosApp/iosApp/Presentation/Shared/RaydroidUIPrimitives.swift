@@ -274,8 +274,15 @@ struct SearchInputField: UIViewRepresentable {
         context.coordinator.onMoveFocusDown = onMoveFocusDown
         context.coordinator.retainFocusWhenBlurred = retainFocusWhenBlurred
         context.coordinator.desiredFocus = desiredFocus
-        if uiView.text != text {
+        let canApplyExternalText =
+            !uiView.isFirstResponder ||
+            context.coordinator.pendingTextChange == nil ||
+            text == context.coordinator.pendingTextChange
+        if canApplyExternalText, uiView.text != text {
             uiView.text = text
+        }
+        if text == context.coordinator.pendingTextChange {
+            context.coordinator.pendingTextChange = nil
         }
         applyVisibleTextStyling(to: uiView)
         uiView.returnKeyType = canSubmit ? .go : .search
@@ -292,6 +299,7 @@ struct SearchInputField: UIViewRepresentable {
         let selectionSignature = selectionName.lowercased() + "\u{1F}" + text
         if uiView.window != nil,
            uiView.markedTextRange == nil,
+           !uiView.isFirstResponder || selectionName.lowercased() != "cursoratend",
            context.coordinator.lastAppliedSelectionSignature != selectionSignature {
             context.coordinator.isApplyingSelection = true
             applySelection(selectionName, to: uiView)
@@ -354,6 +362,7 @@ struct SearchInputField: UIViewRepresentable {
         var onMoveFocusUp: () -> Void
         var onMoveFocusDown: () -> Void
         var lastAppliedSelectionSignature: String?
+        var pendingTextChange: String?
         var isApplyingSelection = false
 
         init(
@@ -374,11 +383,14 @@ struct SearchInputField: UIViewRepresentable {
 
         @objc func textDidChange(_ textField: UITextField) {
             let nextValue = textField.text ?? ""
+            pendingTextChange = nextValue
             onTextChange(nextValue, selectionName(in: textField))
         }
 
         func textFieldDidMutate(_ textField: UITextField) {
-            onTextChange(textField.text ?? "", selectionName(in: textField))
+            let nextValue = textField.text ?? ""
+            pendingTextChange = nextValue
+            onTextChange(nextValue, selectionName(in: textField))
         }
 
         func textField(
@@ -388,7 +400,9 @@ struct SearchInputField: UIViewRepresentable {
         ) -> Bool {
             DispatchQueue.main.async { [weak self, weak textField] in
                 guard let self, let textField else { return }
-                self.onTextChange(textField.text ?? "", self.selectionName(in: textField))
+                let nextValue = textField.text ?? ""
+                self.pendingTextChange = nextValue
+                self.onTextChange(nextValue, self.selectionName(in: textField))
             }
             return true
         }
@@ -407,7 +421,9 @@ struct SearchInputField: UIViewRepresentable {
 
         func textFieldDidChangeSelection(_ textField: UITextField) {
             guard !isApplyingSelection else { return }
-            onTextChange(textField.text ?? "", selectionName(in: textField))
+            let nextValue = textField.text ?? ""
+            pendingTextChange = nextValue
+            onTextChange(nextValue, selectionName(in: textField))
         }
 
         func textFieldDidBackspaceOnEmpty() {

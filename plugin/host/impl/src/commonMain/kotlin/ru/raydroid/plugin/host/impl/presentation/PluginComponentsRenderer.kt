@@ -147,6 +147,9 @@ internal fun EditableTextRenderer(
     val state = remember(data.id) { TextFieldState(data.value) }
     val scrollState = rememberScrollState()
     val latestData by rememberUpdatedState(data)
+    var pendingEditableTextSnapshot by remember(data.id) {
+        mutableStateOf<Pair<String, Int>?>(null)
+    }
     val outputTransformation =
         remember(data.displayFormatter, data.value, data.displayValue) {
             when (data.displayFormatter) {
@@ -163,6 +166,14 @@ internal fun EditableTextRenderer(
         }
     LaunchedEffect(data.value, data.selection) {
         val selection = data.selection.coerceIn(0, data.value.length)
+        val incomingSnapshot = data.value to selection
+        if (incomingSnapshot == pendingEditableTextSnapshot) {
+            pendingEditableTextSnapshot = null
+            return@LaunchedEffect
+        }
+        if (pendingEditableTextSnapshot != null) {
+            return@LaunchedEffect
+        }
         if (state.text.toString() != data.value || state.selection.end != selection) {
             state.edit {
                 replace(0, length, data.value)
@@ -176,6 +187,7 @@ internal fun EditableTextRenderer(
                 val currentData = latestData
                 val currentSelection = currentData.selection.coerceIn(0, currentData.value.length)
                 if (text == currentData.value && selection == currentSelection) return@collect
+                pendingEditableTextSnapshot = text to selection
                 currentData.onChange(
                     mapOf(
                         currentData.id to PluginFormValue.Text(text),

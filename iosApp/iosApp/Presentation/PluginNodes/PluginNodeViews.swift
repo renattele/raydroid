@@ -179,15 +179,26 @@ private struct EditablePluginTextInput: UIViewRepresentable {
         uiView.textColor = .label
         uiView.tintColor = .systemBlue
 
-        if uiView.text != data.value {
+        let selection = min(data.selection, data.value.count)
+        if context.coordinator.pendingValue == data.value,
+           context.coordinator.pendingSelection == selection {
+            context.coordinator.pendingValue = nil
+            context.coordinator.pendingSelection = nil
+        }
+
+        let hasPendingChange = context.coordinator.pendingValue != nil || context.coordinator.pendingSelection != nil
+        let canApplyExternalValue = !uiView.isFirstResponder || !hasPendingChange
+
+        if canApplyExternalValue, uiView.text != data.value {
             context.coordinator.isApplyingUpdate = true
             uiView.text = data.value
             context.coordinator.isApplyingUpdate = false
         }
 
-        let selection = min(data.selection, uiView.text.count)
-        if context.coordinator.selectionOffset(in: uiView) != selection,
-           let start = uiView.position(from: uiView.beginningOfDocument, offset: selection),
+        let appliedSelection = min(selection, uiView.text.count)
+        if canApplyExternalValue,
+           context.coordinator.selectionOffset(in: uiView) != appliedSelection,
+           let start = uiView.position(from: uiView.beginningOfDocument, offset: appliedSelection),
            let range = uiView.textRange(from: start, to: start) {
             context.coordinator.isApplyingUpdate = true
             uiView.selectedTextRange = range
@@ -213,6 +224,8 @@ private struct EditablePluginTextInput: UIViewRepresentable {
         var onChange: ((String, Int) -> Void)?
         var isMultiline: Bool
         var isApplyingUpdate = false
+        var pendingValue: String?
+        var pendingSelection: Int?
 
         init(onChange: ((String, Int) -> Void)?, isMultiline: Bool) {
             self.onChange = onChange
@@ -242,6 +255,8 @@ private struct EditablePluginTextInput: UIViewRepresentable {
 
         private func notifyChange(_ textView: UITextView) {
             let selection = textView.selectedRange.location
+            pendingValue = textView.text
+            pendingSelection = selection
             onChange?(textView.text, selection)
         }
 
