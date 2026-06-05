@@ -8,23 +8,31 @@ import kotlinx.coroutines.flow.emptyFlow
 import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
 
 internal class RuntimeCacheServiceImpl : CacheServiceBridge {
-    private val cache = mutableMapOf<String, MutableStateFlow<String?>>().withDefault {
-        MutableStateFlow(null)
-    }
+    private val cache =
+        mutableMapOf<String, MutableStateFlow<String?>>().withDefault {
+            MutableStateFlow(null)
+        }
     private val lock = SynchronizedObject()
-    override suspend fun get(key: String): String? = synchronized(lock) {
-        cache[key]?.value
-    }
 
-    override suspend fun set(key: String, value: String) = synchronized(lock) {
+    override suspend fun get(key: String): String? =
+        synchronized(lock) {
+            cache[key]?.value
+        }
+
+    override suspend fun set(
+        key: String,
+        value: String,
+    ) = synchronized(lock) {
         cache[key]?.value = value
     }
 
-    override suspend fun clear() = synchronized(lock) {
-        cache.clear()
-    }
+    override suspend fun clear() =
+        synchronized(lock) {
+            cache.clear()
+        }
 
-    override suspend fun flowOf(key: String): Flow<String?> = synchronized(lock) {
-        cache[key] ?: emptyFlow()
-    }
+    override suspend fun flowOf(key: String): Flow<String?> =
+        synchronized(lock) {
+            cache[key] ?: emptyFlow()
+        }
 }

@@ -12,31 +12,38 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
+import okio.Path
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import ru.raydroid.core.data.analytics.analyticsPlatformModule
 
-val coreDataModule = module {
-    single<Json> {
-        Json {
-            ignoreUnknownKeys = true
+private const val PREFERENCES_FILE_NAME = "raydroid.preferences_pb"
+
+val coreDataModule =
+    module {
+        includes(analyticsPlatformModule)
+
+        single<Json> {
+            Json {
+                ignoreUnknownKeys = true
+            }
         }
-    }
 
-    single<HttpClient> {
-        HttpClient {
-            install(ContentNegotiation) {
-                json(get(), contentType = ContentType.Any)
+        single<HttpClient> {
+            HttpClient {
+                install(ContentNegotiation) {
+                    json(get(), contentType = ContentType.Any)
+                }
+            }
+        }
+
+        single<CoroutineScope> {
+            CoroutineScope(Dispatchers.IO + SupervisorJob())
+        }
+
+        single<DataStore<Preferences>> {
+            PreferenceDataStoreFactory.createWithPath {
+                get<Path>(named("localPath")) / PREFERENCES_FILE_NAME
             }
         }
     }
-
-    single<CoroutineScope> {
-        CoroutineScope(Dispatchers.IO + SupervisorJob())
-    }
-
-    single<DataStore<Preferences>> {
-        PreferenceDataStoreFactory.createWithPath {
-            get(named("localPath"))
-        }
-    }
-}

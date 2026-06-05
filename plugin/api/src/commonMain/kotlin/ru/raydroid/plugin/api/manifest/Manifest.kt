@@ -11,7 +11,7 @@ enum class Platform {
     IOS,
     Linux,
     Windows,
-    MacOS
+    MacOS,
 }
 
 @Serializable
@@ -29,7 +29,7 @@ data class Manifest(
     val license: String,
     val commands: List<Command>,
     val resources: Resources,
-    val access: Access = Access()
+    val access: Access = Access(),
 )
 
 typealias Resources = Map<String, Map<String, String>>
@@ -38,7 +38,9 @@ typealias Resources = Map<String, Map<String, String>>
 data class Access(
     val clipboard: ClipboardAccess? = null,
     val cache: SizedAccess? = null,
+    val contacts: ContactsAccess? = null,
     val environment: EnvironmentAccess? = null,
+    val filesystem: FileSystemAccess? = null,
     val network: NetworkAccess? = null,
     val notification: NotificationAccess? = null,
     val preferences: SizedAccess? = null,
@@ -46,43 +48,68 @@ data class Access(
     val searchField: SearchFieldAccess? = null,
     val storage: SizedAccess? = null,
     val system: SystemAccess? = null,
-    val runtime: RuntimeAccess? = null
+    val runtime: RuntimeAccess? = null,
 )
 
 @Serializable
 data class ClipboardAccess(
-    val permissions: List<Permission>? = null
+    val permissions: List<Permission>? = null,
 )
 
-fun List<Permission>.readable(): Boolean =
-    contains(Permission.Read) || contains(Permission.Manage)
+@Serializable
+data class ContactsAccess(
+    val permissions: List<Permission>? = null,
+)
 
-fun List<Permission>.writable(): Boolean =
-    contains(Permission.Write) || contains(Permission.Manage)
+fun List<Permission>.readable(): Boolean = contains(Permission.Read) || contains(Permission.Manage)
+
+fun List<Permission>.writable(): Boolean = contains(Permission.Write) || contains(Permission.Manage)
 
 @Serializable
 data class SizedAccess(
     val permissions: List<Permission>? = null,
     @SerialName("requested_size")
-    val requestedSize: String? = null
+    val requestedSize: String? = null,
 )
 
 @Serializable
 data class EnvironmentAccess(
     val permissions: List<Permission>? = null,
-    val access: List<String>? = null
+    val access: List<String>? = null,
 )
+
+@Serializable
+data class FileSystemAccess(
+    val permissions: List<FileSystemAccessPermission>? = null,
+    @SerialName("allowed_paths")
+    val allowedPaths: List<String>? = null,
+)
+
+@Serializable
+enum class FileSystemAccessPermission {
+    @SerialName("read")
+    Read,
+
+    @SerialName("write")
+    Write,
+
+    @SerialName("manage")
+    Manage,
+
+    @SerialName("watch")
+    Watch,
+}
 
 @Serializable
 data class NetworkAccess(
     val permissions: List<Permission>? = null,
     @SerialName("allowed_urls")
-    val allowedUrls: List<String>? = null
+    val allowedUrls: List<String>? = null,
 )
 
 @Serializable
 data class SearchFieldAccess(
-    val permissions: List<Permission>? = null
+    val permissions: List<Permission>? = null,
 )
 
 @Serializable
@@ -91,23 +118,25 @@ data class SystemAccess(
     @SerialName("visible_apps")
     val visibleApps: List<String>? = null,
     @SerialName("allowed_urls")
-    val allowedUrls: List<String>? = null
+    val allowedUrls: List<String>? = null,
 )
 
 @Serializable
 enum class SystemAccessPermission {
     @SerialName("get_apps")
     GetApps,
+
     @SerialName("open_resource")
     OpenResource,
+
     @SerialName("open_app")
-    OpenApp
+    OpenApp,
 }
 
 @Serializable
 data class RuntimeAccess(
     @SerialName("requested_stack_size")
-    val requestedStackSize: Int? = null
+    val requestedStackSize: Int? = null,
 )
 
 @Serializable
@@ -125,9 +154,9 @@ enum class Permission {
     Write,
 
     @SerialName("manage")
-    Manage
+    Manage,
 }
 
-interface ManifestService: ZiplineService {
+interface ManifestService : ZiplineService {
     fun getManifest(): Manifest
 }

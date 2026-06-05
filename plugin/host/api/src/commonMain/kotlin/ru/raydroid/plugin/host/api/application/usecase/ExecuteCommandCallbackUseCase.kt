@@ -5,12 +5,12 @@ import ru.raydroid.plugin.host.api.domain.repository.SearchIndexRepository
 import ru.raydroid.plugin.host.api.ui.PluginCommandCallback
 
 class ExecuteCommandCallbackUseCase(
-    private val searchIndexRepository: SearchIndexRepository
+    private val searchIndexRepository: SearchIndexRepository,
 ) {
     suspend operator fun invoke(
         resultId: SearchResultId,
         callback: PluginCommandCallback,
-        updateUsage: Boolean = true
+        updateUsage: Boolean = true,
     ) {
         callback()
         if (updateUsage) {

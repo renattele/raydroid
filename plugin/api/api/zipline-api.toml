@@ -1,0 +1,307 @@
+[ru.raydroid.plugin.api.host.transport.CacheServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun clear(): kotlin.Unit
+  "8IIgUqU1",
+
+  # suspend fun flowOf(kotlin.String): kotlinx.coroutines.flow.Flow<kotlin.String>
+  "ZTpHbX/q",
+
+  # suspend fun get(kotlin.String): kotlin.String
+  "60Uxjr31",
+
+  # suspend fun set(kotlin.String, kotlin.String): kotlin.Unit
+  "KGRizk0u",
+]
+
+[ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun clear(): kotlin.Unit
+  "8IIgUqU1",
+
+  # suspend fun copy(ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge.ClipboardContent, kotlin.Boolean): kotlin.Unit
+  "sTU/RXx/",
+
+  # suspend fun read(kotlin.Int): ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge.ClipboardContent
+  "hq0CNN5X",
+]
+
+[ru.raydroid.plugin.api.host.transport.ContactsServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun dial(kotlin.String): kotlin.Unit
+  "plEa6uAn",
+
+  # suspend fun getContacts(): kotlin.collections.List<ru.raydroid.plugin.api.host.transport.ContactsServiceBridge.RawContact>
+  "wCgYy9EF",
+
+  # suspend fun hasContactsAccess(): kotlin.Boolean
+  "eFKfkLK5",
+
+  # suspend fun message(kotlin.String): kotlin.Unit
+  "q0eY3heG",
+
+  # suspend fun openContact(kotlin.String): kotlin.Unit
+  "/bqsvxqm",
+
+  # suspend fun openContactsSettings(): kotlin.Unit
+  "vSfqujLj",
+
+  # suspend fun requestContactsAccess(): kotlin.Unit
+  "xydHyFsT",
+]
+
+[ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # fun get(kotlin.String): kotlin.String
+  "wP6/qCvK",
+
+  # val platform: ru.raydroid.plugin.api.manifest.Platform
+  "LOL1xNbk",
+]
+
+[ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun createDirectories(kotlin.String): kotlin.Unit
+  "e7vBygpW",
+
+  # suspend fun createFile(kotlin.String): kotlin.Unit
+  "BTVVzGNd",
+
+  # suspend fun delete(kotlin.String): kotlin.Unit
+  "A5Bed7Bu",
+
+  # suspend fun exists(kotlin.String): kotlin.Boolean
+  "ekfd27tJ",
+
+  # suspend fun hasAllFilesAccess(): kotlin.Boolean
+  "Gnve7JgS",
+
+  # suspend fun list(kotlin.String): kotlin.collections.List<ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge.RawFileEntry>
+  "FFhv7plE",
+
+  # suspend fun metadata(kotlin.String): ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge.RawFileMetadata
+  "OOEA+FD3",
+
+  # suspend fun read(kotlin.String): kotlin.ByteArray
+  "bNOFsazj",
+
+  # suspend fun requestAllFilesAccess(): kotlin.Unit
+  "JCNgDSBz",
+
+  # suspend fun watch(kotlin.String): kotlinx.coroutines.flow.Flow<ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge.RawFileChangeEvent>
+  "ZDttH84c",
+
+  # suspend fun write(kotlin.String, kotlin.ByteArray): kotlin.Unit
+  "q0JiSLta",
+]
+
+[ru.raydroid.plugin.api.host.transport.HostServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # val cacheBridge: ru.raydroid.plugin.api.host.transport.CacheServiceBridge
+  "H59ES6rE",
+
+  # val clipboardBridge: ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
+  "GnJHtyiH",
+
+  # val contactsBridge: ru.raydroid.plugin.api.host.transport.ContactsServiceBridge
+  "bqcB28Yl",
+
+  # val environmentBridge: ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge
+  "mPaNXYn3",
+
+  # val filesystemBridge: ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
+  "bLN5T098",
+
+  # val networkBridge: ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
+  "TgDK9S4C",
+
+  # val notificationBridge: ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
+  "HFfDOX3B",
+
+  # val preferencesBridge: ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
+  "kjEpRRpZ",
+
+  # val searchFieldBridge: ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
+  "lLdwQ4L8",
+
+  # val storageBridge: ru.raydroid.plugin.api.host.transport.StorageServiceBridge
+  "Xijs/O98",
+
+  # val systemBridge: ru.raydroid.plugin.api.host.transport.SystemServiceBridge
+  "4SZpHw/+",
+]
+
+[ru.raydroid.plugin.api.host.transport.NetworkServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun request(ru.raydroid.plugin.api.host.transport.NetworkServiceBridge.RawNetworkRequest): ru.raydroid.plugin.api.host.transport.NetworkServiceBridge.RawNetworkResponse
+  "PV3gAdG8",
+]
+
+[ru.raydroid.plugin.api.host.transport.NotificationServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun alert(ru.raydroid.plugin.api.model.UiText, ru.raydroid.plugin.api.model.UiText, ru.raydroid.plugin.api.host.transport.NotificationServiceBridge.AlertAction, ru.raydroid.plugin.api.host.transport.NotificationServiceBridge.AlertAction): ru.raydroid.plugin.api.host.transport.NotificationServiceBridge.AlertAction
+  "LsYxuHAm",
+
+  # suspend fun hideToast(kotlin.String): kotlin.Unit
+  "0rM+nekH",
+
+  # suspend fun showToast(ru.raydroid.plugin.api.host.transport.NotificationServiceBridge.Toast): ru.raydroid.plugin.api.host.transport.NotificationServiceBridge.ToastHandle
+  "Q169Foxk",
+]
+
+[ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # fun get(kotlin.String): kotlinx.coroutines.flow.Flow<kotlin.String>
+  "mUBcva47",
+
+  # suspend fun set(kotlin.String, kotlin.String): kotlin.Unit
+  "KGRizk0u",
+]
+
+[ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun setState(ru.raydroid.plugin.api.host.service.SearchFieldState): kotlin.Unit
+  "6itzZqNk",
+]
+
+[ru.raydroid.plugin.api.host.transport.StorageServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun get(kotlin.String): kotlin.String
+  "60Uxjr31",
+
+  # suspend fun has(kotlin.String): kotlin.Boolean
+  "OOqFRifW",
+
+  # suspend fun set(kotlin.String, kotlin.String): kotlin.Unit
+  "KGRizk0u",
+]
+
+[ru.raydroid.plugin.api.host.transport.SystemServiceBridge]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # suspend fun getApps(): kotlin.collections.List<ru.raydroid.plugin.api.host.transport.SystemServiceBridge.RawApplication>
+  "ZWgOyK6n",
+
+  # suspend fun open(kotlin.String, ru.raydroid.plugin.api.host.transport.SystemServiceBridge.OpenOptions): kotlin.Unit
+  "rrY2xOoK",
+
+  # suspend fun openApp(kotlin.String, ru.raydroid.plugin.api.host.transport.SystemServiceBridge.OpenOptions): kotlin.Unit
+  "yBWltXr4",
+]
+
+[ru.raydroid.plugin.api.manifest.ManifestService]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # fun getManifest(): ru.raydroid.plugin.api.manifest.Manifest
+  "uR/mq9ce",
+]
+
+[ru.raydroid.plugin.api.runtime.CommandServiceBridge]
+
+functions = [
+  # fun actions(ru.raydroid.plugin.api.presentation.CommandActionTarget): kotlin.collections.List<ru.raydroid.plugin.api.presentation.CommandListAction>
+  "ru1l2xWl",
+
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # fun content(): ru.raydroid.plugin.api.presentation.CommandPresentationMap
+  "tkNRmsin",
+
+  # fun fullscreen(): kotlin.collections.List<ru.raydroid.plugin.api.ui.RayNodeData>
+  "rW9mfMfT",
+
+  # fun getServiceName(): kotlin.String
+  "IeqoPbHF",
+
+  # fun initialize(ru.raydroid.plugin.api.runtime.CommandServiceBridge.RenderRequest, ru.raydroid.plugin.api.runtime.CommandServiceBridge.FullscreenRenderRequest, ru.raydroid.plugin.api.runtime.CommandServiceBridge.InvalidateCacheRequest): kotlin.Unit
+  "XNdr14PR",
+
+  # suspend fun back(): kotlin.Boolean
+  "pNvM/11f",
+
+  # suspend fun cachedItems(kotlin.collections.List<ru.raydroid.plugin.api.presentation.CommandItemId>, kotlin.Int): kotlinx.coroutines.flow.Flow<kotlin.collections.List<ru.raydroid.plugin.api.presentation.CommandListItem>>
+  "/OQfkZPl",
+
+  # suspend fun update(ru.raydroid.plugin.api.runtime.CommandActionBridge): kotlin.Unit
+  "bDD9XJ4F",
+]
+
+[ru.raydroid.plugin.api.runtime.CommandServiceBridge.FullscreenRenderRequest]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # fun requestFullscreenRender(): kotlin.Unit
+  "+h2RCKMz",
+]
+
+[ru.raydroid.plugin.api.runtime.CommandServiceBridge.InvalidateCacheRequest]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # fun requestInvalidation(kotlin.collections.List<ru.raydroid.plugin.api.presentation.CommandItemId>): kotlin.Unit
+  "krL+HOAc",
+]
+
+[ru.raydroid.plugin.api.runtime.CommandServiceBridge.RenderRequest]
+
+functions = [
+  # fun close(): kotlin.Unit
+  "moYx+T3e",
+
+  # fun requestRender(): kotlin.Unit
+  "ObZHB3YH",
+]

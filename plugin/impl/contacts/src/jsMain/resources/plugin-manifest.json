@@ -1,0 +1,48 @@
+{
+  "$schema": "../../../../../api/plugin-manifest.schema.json",
+  "name": "ru.raydroid.plugin.impl.contacts",
+  "title": "app.name",
+  "description": "app.description",
+  "author": "app.author",
+  "version": -1,
+  "platforms": ["Android", "IOS", "MacOS"],
+  "categories": ["Contacts"],
+  "license": "",
+  "commands": [
+    {
+      "service": "ContactsCommand",
+      "title": "command.contacts.title",
+      "description": "command.contacts.description",
+      "placeholder": null,
+      "icon": {
+        "value": "Contacts",
+        "type": "Builtin"
+      },
+      "mode": "NoView",
+      "match": null,
+      "searchable": true,
+      "arguments": [],
+      "preferences": []
+    }
+  ],
+  "resources": {
+    "strings": {
+      "app.name": "Contact search",
+      "app.description": "Contacts index",
+      "app.author": "Raydroid",
+      "command.contacts.title": "Contact search",
+      "command.contacts.description": "Search existing contacts",
+      "contacts.action.call": "Call",
+      "contacts.action.message": "Message",
+      "contacts.action.open": "Open contact"
+    }
+  },
+  "access": {
+    "contacts": {
+      "permissions": ["read"]
+    },
+    "runtime": {
+      "requested_stack_size": 1024
+    }
+  }
+}

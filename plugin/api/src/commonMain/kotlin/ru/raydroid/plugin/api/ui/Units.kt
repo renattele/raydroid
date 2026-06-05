@@ -5,7 +5,9 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-value class Dp(val value: Float) {
+value class Dp(
+    val value: Float,
+) {
     companion object {
         val Zero = Dp(0f)
     }
@@ -19,7 +21,9 @@ val Float.dp: Dp
 
 @Serializable
 @JvmInline
-value class Sp(val value: Float)
+value class Sp(
+    val value: Float,
+)
 
 val Int.sp: Sp
     get() = Sp(this.toFloat())

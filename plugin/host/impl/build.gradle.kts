@@ -1,4 +1,3 @@
-import java.util.zip.ZipFile
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFileProperty
@@ -7,6 +6,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import java.util.zip.ZipFile
 
 plugins {
     alias(libs.plugins.raydroidComposeMultiplatform)
@@ -20,9 +20,20 @@ plugins {
 
 val outlinedMaterialIconSources: Configuration by configurations.creating
 val generatedOutlinedIconsDir: Provider<Directory> = layout.buildDirectory.dir("generated/source/outlinedMaterialIcons/commonMain/kotlin")
-val generatedOutlinedIconsFile: Provider<RegularFile> = generatedOutlinedIconsDir.map {
-    it.file("ru/raydroid/plugin/host/impl/presentation/generated/GeneratedOutlinedMaterialIconRegistry.kt")
-}
+val generatedOutlinedIconsFile: Provider<RegularFile> =
+    generatedOutlinedIconsDir.map {
+        it.file("ru/raydroid/plugin/host/impl/presentation/generated/GeneratedOutlinedMaterialIconRegistry.kt")
+    }
+val appleTargetsEnabled =
+    providers
+        .gradleProperty("raydroid.plugin.host.impl.appleTargets")
+        .orNull
+        ?.toBooleanStrictOrNull()
+        ?: providers
+            .gradleProperty("raydroid.appleTargets.default")
+            .orNull
+            ?.toBooleanStrictOrNull()
+        ?: true
 
 abstract class GenerateOutlinedMaterialIconRegistryTask : DefaultTask() {
     @get:InputFiles
@@ -34,23 +45,26 @@ abstract class GenerateOutlinedMaterialIconRegistryTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        val iconNames = sourceJars.files
-            .asSequence()
-            .flatMap { sourceJar ->
-                ZipFile(sourceJar).use { zipFile ->
-                    zipFile.entries().asSequence()
-                        .map { it.name }
-                        .filter { path ->
-                            path.startsWith("commonMain/androidx/compose/material/icons/outlined/")
-                                && path.endsWith(".kt")
-                        }
-                        .map { path -> path.substringAfterLast('/').removeSuffix(".kt") }
-                        .toList()
-                }.asSequence()
-            }
-            .distinct()
-            .sorted()
-            .toList()
+        val iconNames =
+            sourceJars.files
+                .asSequence()
+                .flatMap { sourceJar ->
+                    ZipFile(sourceJar)
+                        .use { zipFile ->
+                            zipFile
+                                .entries()
+                                .asSequence()
+                                .map { it.name }
+                                .filter { path ->
+                                    path.startsWith("commonMain/androidx/compose/material/icons/outlined/") &&
+                                        path.endsWith(".kt")
+                                }.map { path -> path.substringAfterLast('/').removeSuffix(".kt") }
+                                .filterNot { iconName -> iconName == "Addchart" }
+                                .toList()
+                        }.asSequence()
+                }.distinct()
+                .sorted()
+                .toList()
         val iconChunks = iconNames.chunked(200)
 
         val output = outputFile.get().asFile
@@ -72,7 +86,7 @@ abstract class GenerateOutlinedMaterialIconRegistryTask : DefaultTask() {
                     appendLine(
                         iconChunks.indices.joinToString(" ?: ") { index ->
                             "resolveChunk$index(name)"
-                        }
+                        },
                     )
                 }
                 appendLine("    }")
@@ -86,17 +100,18 @@ abstract class GenerateOutlinedMaterialIconRegistryTask : DefaultTask() {
                     appendLine("    }")
                 }
                 appendLine("}")
-            }
+            },
         )
     }
 }
 
-val generateOutlinedMaterialIconRegistry = tasks.register<GenerateOutlinedMaterialIconRegistryTask>(
-    "generateOutlinedMaterialIconRegistry"
-) {
-    sourceJars.from(outlinedMaterialIconSources)
-    outputFile.set(generatedOutlinedIconsFile)
-}
+val generateOutlinedMaterialIconRegistry =
+    tasks.register<GenerateOutlinedMaterialIconRegistryTask>(
+        "generateOutlinedMaterialIconRegistry",
+    ) {
+        sourceJars.from(outlinedMaterialIconSources)
+        outputFile.set(generatedOutlinedIconsFile)
+    }
 
 kotlin {
     android {
@@ -154,18 +169,20 @@ dependencies {
     outlinedMaterialIconSources("org.jetbrains.compose.material:material-icons-core:${libs.versions.composeIcons.get()}:sources@jar")
     outlinedMaterialIconSources("org.jetbrains.compose.material:material-icons-extended:${libs.versions.composeIcons.get()}:sources@jar")
     androidRuntimeClasspath(libs.compose.uiTooling)
-    add("kspCommonMainMetadata", libs.room.compiler)
     add("kspAndroid", libs.room.compiler)
     add("kspJvm", libs.room.compiler)
-    add("kspIosArm64", libs.room.compiler)
-    add("kspIosSimulatorArm64", libs.room.compiler)
+    if (appleTargetsEnabled) {
+        add("kspIosArm64", libs.room.compiler)
+        add("kspIosSimulatorArm64", libs.room.compiler)
+    }
 }
 
-tasks.matching { task ->
-    task.name.startsWith("compileKotlin") || task.name.startsWith("ksp")
-}.configureEach {
-    dependsOn(generateOutlinedMaterialIconRegistry)
-}
+tasks
+    .matching { task ->
+        task.name.startsWith("compileKotlin") || task.name.startsWith("ksp")
+    }.configureEach {
+        dependsOn(generateOutlinedMaterialIconRegistry)
+    }
 
 room {
     schemaDirectory("$projectDir/schemas")

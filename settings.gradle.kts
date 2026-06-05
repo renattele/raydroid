@@ -32,9 +32,9 @@ dependencyResolutionManagement {
     }
 }
 
-include(":composeApp")
-include(":server")
-include(":shared")
+include(":sharedUi")
+include(":feature:search")
+include(":sharedLogic")
 include(":androidApp")
 include(":desktopApp")
 include(":core:data")
@@ -44,4 +44,9 @@ include(":core:domain")
 include(":plugin:api")
 include(":plugin:host:api")
 include(":plugin:host:impl")
+include(":plugin:impl:apps")
 include(":plugin:impl:calculator")
+include(":plugin:impl:files")
+include(":plugin:impl:contacts")
+include(":plugin:impl:notes")
+include(":plugin:impl:weather")

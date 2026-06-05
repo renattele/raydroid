@@ -1,0 +1,315 @@
+import Foundation
+import RaydroidShared
+
+typealias ActionUiModel = FocusedCommandAction
+
+enum PluginAsset: Equatable {
+    case remoteURL(String)
+    case base64(String)
+    case binary(Data)
+    case builtinName(String)
+}
+
+enum PluginFormValueDraft: Equatable {
+    case text(String)
+    case boolean(Bool)
+    case date(String?)
+}
+
+final class SearchViewModelObservation {
+    private let cancelBlock: () -> Void
+
+    init(cancelBlock: @escaping () -> Void) {
+        self.cancelBlock = cancelBlock
+    }
+
+    func cancel() {
+        cancelBlock()
+    }
+}
+
+private final class SearchViewModelStateCollector: NSObject, Kotlinx_coroutines_coreFlowCollector {
+    private let onState: @MainActor (SearchScreenState) -> Void
+
+    init(onState: @escaping @MainActor (SearchScreenState) -> Void) {
+        self.onState = onState
+    }
+
+    func emit(value: Any?, completionHandler: @escaping (Error?) -> Void) {
+        if let state = value as? SearchScreenState {
+            Task { @MainActor in
+                onState(state)
+            }
+        }
+        completionHandler(nil)
+    }
+}
+
+@MainActor
+protocol SearchViewModelClient {
+    var currentState: SearchScreenState { get }
+
+    func start()
+    func stop()
+    func watch(_ observer: @escaping (SearchScreenState) -> Void) -> SearchViewModelObservation
+    func updateQuery(_ query: String, selectionName: String)
+    func openSearch(query: String)
+    func openCommand(commandId: String)
+    func submit(resultId: ApiSearchResultId?)
+    func submitForm(callback: ApiPluginFormSubmitCallback, values: [String: PluginFormValueDraft])
+    func closeFullscreen()
+    func toggleActions()
+    func hideActions()
+    func backspaceOnEmpty()
+    func moveFocusNext()
+    func moveFocusPrevious()
+    func enter(_ resultId: ApiSearchResultId?)
+    func enterAction(_ action: ActionUiModel)
+    func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool)
+    func focusPluginItem(_ itemId: Any)
+    func enterPluginItem(_ itemId: Any)
+    func showContextActions(resultId: ApiSearchResultId, sourceId: String, actions: [ApiPluginCommandListAction])
+    func showResultContextActions(resultId: ApiSearchResultId, sourceId: String)
+    func updateAliasEditorInput(_ value: String)
+    func saveAliasEditor()
+    func removeAlias()
+    func dismissAliasEditor()
+    func dismissAlert(_ alert: ApiNotificationEventAlert)
+    func confirmAlert(_ alert: ApiNotificationEventAlert)
+    func hideToast(_ toastId: String)
+    func resolveText(_ text: ApiPluginUiText?) -> String
+    func resolveIcon(_ icon: ApiPluginIcon?) -> PluginAsset?
+    func resolveImage(_ image: ApiPluginImage?) -> PluginAsset?
+}
+
+@MainActor
+final class KmpSearchViewModelClient: SearchViewModelClient {
+    private let viewModel: SearchViewModel
+    private var watchTask: Task<Void, Never>?
+
+    init(viewModel: SearchViewModel = RaydroidBootstrapKt.CreateSearchViewModel()) {
+        self.viewModel = viewModel
+    }
+
+    var currentState: SearchScreenState {
+        viewModel.currentState()
+    }
+
+    func start() {
+        viewModel.start()
+    }
+
+    func stop() {
+        watchTask?.cancel()
+        watchTask = nil
+    }
+
+    func watch(_ observer: @escaping (SearchScreenState) -> Void) -> SearchViewModelObservation {
+        watchTask?.cancel()
+        observer(viewModel.currentState())
+        let collector = SearchViewModelStateCollector(onState: observer)
+        let flow = viewModel.state
+        watchTask = Task {
+            await withCheckedContinuation { continuation in
+                flow.collect(collector: collector) { _ in
+                    continuation.resume()
+                }
+            }
+        }
+        return SearchViewModelObservation { [weak self] in
+            self?.watchTask?.cancel()
+            self?.watchTask = nil
+        }
+    }
+
+    func updateQuery(_ query: String, selectionName: String) {
+        viewModel.onEvent(
+            event: SearchScreenEventUpdateQuery(
+                query: query,
+                selection: selection(from: selectionName)
+            )
+        )
+    }
+
+    func openSearch(query: String) {
+        viewModel.openSearch(query: query)
+    }
+
+    func openCommand(commandId: String) {
+        viewModel.openCommand(query: commandId)
+    }
+
+    func submit(resultId: ApiSearchResultId? = nil) {
+        viewModel.onEvent(event: SearchScreenEventSubmit(resultId: resultId))
+    }
+
+    func submitForm(callback: ApiPluginFormSubmitCallback, values: [String: PluginFormValueDraft]) {
+        let builder = PluginFormValuesBuilder()
+        for (key, value) in values {
+            switch value {
+            case .text(let text):
+                builder.putText(key: key, value: text)
+            case .boolean(let value):
+                builder.putBoolean(key: key, value: value)
+            case .date(let value):
+                builder.putDate(key: key, value: value)
+            }
+        }
+        callback.invoke(values: builder.build()) { _ in }
+    }
+
+    func closeFullscreen() {
+        viewModel.onEvent(event: SearchScreenEventCloseFullscreen.shared)
+    }
+
+    func toggleActions() {
+        viewModel.onEvent(event: SearchScreenEventToggleActions.shared)
+    }
+
+    func hideActions() {
+        viewModel.onEvent(event: SearchScreenEventHideActions.shared)
+    }
+
+    func backspaceOnEmpty() {
+        viewModel.onEvent(event: SearchScreenEventBackspaceOnEmpty.shared)
+    }
+
+    func moveFocusNext() {
+        viewModel.onEvent(event: SearchScreenEventMoveFocusNext.shared)
+    }
+
+    func moveFocusPrevious() {
+        viewModel.onEvent(event: SearchScreenEventMoveFocusPrevious.shared)
+    }
+
+    func enter(_ resultId: ApiSearchResultId?) {
+        submit(resultId: resultId)
+    }
+
+    func enterAction(_ action: ActionUiModel) {
+        viewModel.onEvent(event: SearchScreenEventEnterAction(action: action))
+    }
+
+    func enterCallback(resultId: ApiSearchResultId, callback: ApiPluginCommandCallback, updateUsage: Bool = false) {
+        viewModel.onEvent(
+            event: SearchScreenEventEnterCallback(
+                resultId: resultId,
+                callback: callback,
+                updateUsage: updateUsage
+            )
+        )
+    }
+
+    func focusPluginItem(_ itemId: Any) {
+        viewModel.onEvent(event: SearchScreenEventFocusPluginItem(itemId: itemId))
+    }
+
+    func enterPluginItem(_ itemId: Any) {
+        viewModel.onEvent(event: SearchScreenEventEnterPluginItem(itemId: itemId))
+    }
+
+    func showContextActions(resultId: ApiSearchResultId, sourceId: String, actions: [ApiPluginCommandListAction]) {
+        viewModel.onEvent(
+            event: SearchScreenEventShowContextActions(
+                resultId: resultId,
+                sourceId: sourceId,
+                actions: actions
+            )
+        )
+    }
+
+    func showResultContextActions(resultId: ApiSearchResultId, sourceId: String) {
+        viewModel.onEvent(
+            event: SearchScreenEventShowResultContextActions(
+                resultId: resultId,
+                sourceId: sourceId
+            )
+        )
+    }
+
+    func updateAliasEditorInput(_ value: String) {
+        viewModel.onEvent(event: SearchScreenEventUpdateAliasEditorInput(value: value))
+    }
+
+    func saveAliasEditor() {
+        viewModel.onEvent(event: SearchScreenEventSaveAliasEditor.shared)
+    }
+
+    func removeAlias() {
+        viewModel.onEvent(event: SearchScreenEventRemoveAlias.shared)
+    }
+
+    func dismissAliasEditor() {
+        viewModel.onEvent(event: SearchScreenEventDismissAliasEditor.shared)
+    }
+
+    func dismissAlert(_ alert: ApiNotificationEventAlert) {
+        viewModel.onEvent(event: SearchScreenEventDismissAlert(alert: alert))
+    }
+
+    func confirmAlert(_ alert: ApiNotificationEventAlert) {
+        viewModel.onEvent(event: SearchScreenEventConfirmAlert(alert: alert))
+    }
+
+    func hideToast(_ toastId: String) {
+        viewModel.onEvent(event: SearchScreenEventDismissToast(toastId: toastId))
+    }
+
+    func resolveText(_ text: ApiPluginUiText?) -> String {
+        guard let text else { return "" }
+        return resolver.resolveText(text: text)
+    }
+
+    func resolveIcon(_ icon: ApiPluginIcon?) -> PluginAsset? {
+        guard let icon, let asset = resolver.resolveIcon(icon: icon) else { return nil }
+        return makeAsset(from: asset)
+    }
+
+    func resolveImage(_ image: ApiPluginImage?) -> PluginAsset? {
+        guard let image, let asset = resolver.resolveImage(image: image) else { return nil }
+        return makeAsset(from: asset)
+    }
+
+    private var resolver: PluginResourceResolver {
+        PluginResourceResolver(
+            plugins: viewModel.currentState().plugins,
+            language: Locale.current.language.languageCode?.identifier ?? "en"
+        )
+    }
+
+    private func makeAsset(from asset: ResolvedPluginAsset) -> PluginAsset? {
+        switch asset {
+        case let remote as ResolvedPluginAssetRemoteUrl:
+            return .remoteURL(remote.url)
+        case let base64 as ResolvedPluginAssetBase64Data:
+            return .base64(base64.base64)
+        case let binary as ResolvedPluginAssetBinaryData:
+            return .binary(Data(binary.bytes))
+        case let builtin as ResolvedPluginAssetBuiltinName:
+            return .builtinName(builtin.name)
+        default:
+            return nil
+        }
+    }
+
+    private func selection(from selectionName: String) -> ApiSearchFieldSelection {
+        switch selectionName.lowercased() {
+        case "cursoratstart":
+            return .cursoratstart
+        case "selectall":
+            return .selectall
+        default:
+            return .cursoratend
+        }
+    }
+}
+
+private extension Data {
+    init(_ bytes: KotlinByteArray) {
+        var raw = [UInt8](repeating: 0, count: Int(bytes.size))
+        for index in 0..<Int(bytes.size) {
+            raw[index] = UInt8(bitPattern: bytes.get(index: Int32(index)))
+        }
+        self.init(raw)
+    }
+}

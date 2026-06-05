@@ -1,54 +1,58 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Server.
+<p align="center">
+  <img src="./docs/readme/cover.png" alt="Raydroid cover" width="100%" />
+</p>
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+<p align="center">
+  <strong>Raydroid</strong><br />
+  A minimal, plugin-first command surface built with Kotlin Multiplatform.
+</p>
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+<p align="center">
+  Android · iOS · Desktop
+</p>
 
-* [/server](./server/src/main/kotlin) is for the Ktor server application.
+## Overview
 
-* [/shared](./shared/src) is for the code that will be shared between all targets in the project.
-  The most important subfolder is [commonMain](./shared/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
+Raydroid is a cross-platform command launcher and runtime with a shared search core, shared plugin system, and native shells per platform. It is built around one idea: type once, surface actions fast, and let plugins own the experience.
 
-### Build and Run Android Application
+## Highlights
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+- Search-first UI with inline results, fullscreen plugin views, context actions, and overlays
+- Shared plugin runtime powered by Zipline with permission-gated host bridges
+- Built-in commands for calculator, files, contacts, notes, and weather
+- iOS integration for Shortcuts and Spotlight indexing
+- Shared architecture across Android, iOS, and desktop modules
 
-### Build and Run Server
+## Stack
 
-To build and run the development version of the server, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :server:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :server:run
-  ```
+- Kotlin 2.3.10
+- Compose Multiplatform + Material 3
+- SwiftUI shell for iOS
+- Koin for dependency injection
+- Zipline for plugin execution
 
-### Build and Run iOS Application
+## Quick Start
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+```bash
+./gradlew :androidApp:assembleDebug
+./gradlew :desktopApp:run
+```
 
----
+For iOS, open [`iosApp`](./iosApp) in Xcode and run the app from there.
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## Project Layout
+
+- [`androidApp`](./androidApp) Android entry point and packaging
+- [`sharedUi`](./sharedUi/src) shared Compose UI for Android and desktop
+- [`iosApp`](./iosApp) native iOS shell and integrations
+- [`desktopApp`](./desktopApp) desktop target
+- [`feature/search`](./feature/search) command search feature and view model flow
+- [`plugin`](./plugin) plugin API, host bridges, and built-in plugins
+- [`core`](./core) shared data, domain, model, and design system modules
+- [`sharedLogic`](./sharedLogic/src) common cross-platform non-UI utilities
+
+## Android Release Signing
+
+Local release builds default to the committed test keystore at [`androidApp/signing/test-release.keystore`](./androidApp/signing/test-release.keystore). Real signing credentials can be supplied through environment variables, Gradle properties, or `local.properties`.
+
+See [`androidApp/signing/README.md`](./androidApp/signing/README.md) for exact keys and setup.

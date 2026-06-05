@@ -13,45 +13,45 @@ sealed interface NotificationEvent {
     ) : NotificationEvent
 
     data class AlertResult(
-        val selection: Selection?
+        val selection: Selection?,
     ) : NotificationEvent
 
     data class AlertAction(
         val title: PluginUiText,
-        val style: Style
+        val style: Style,
     ) {
         enum class Style {
             Default,
             Destructive,
-            Cancel
+            Cancel,
         }
     }
 
     enum class Selection {
         Confirm,
-        Dismiss
+        Dismiss,
     }
 
     data class ShowToast(
         val pluginId: PluginId,
         val toastId: String,
-        val toast: Toast
+        val toast: Toast,
     ) : NotificationEvent
 
     data class HideToast(
         val pluginId: PluginId,
-        val toastId: String
+        val toastId: String,
     ) : NotificationEvent
 
     data class Toast(
         val message: PluginUiText,
         val style: Style,
-        val autoDismissMillis: Long?
+        val autoDismissMillis: Long?,
     ) {
         enum class Style {
             Animated,
             Success,
-            Failure
+            Failure,
         }
     }
 }

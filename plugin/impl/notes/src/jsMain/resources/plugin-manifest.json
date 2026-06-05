@@ -1,0 +1,73 @@
+{
+  "$schema": "../../../../../api/plugin-manifest.schema.json",
+  "name": "ru.raydroid.plugin.impl.notes",
+  "title": "app.name",
+  "description": "app.description",
+  "author": "Raydroid",
+  "version": -1,
+  "platforms": [],
+  "categories": ["Productivity"],
+  "license": "",
+  "commands": [
+    {
+      "service": "NotesCommand",
+      "title": "command.notes.title",
+      "description": "command.notes.description",
+      "placeholder": "command.notes.placeholder",
+      "icon": {
+        "value": "icons/notes.png",
+        "type": "Resource"
+      },
+      "mode": "Inline",
+      "match": ".*",
+      "arguments": [],
+      "preferences": []
+    }
+  ],
+  "resources": {
+    "strings": {
+      "app.name": "Notes",
+      "app.description": "Quick notes",
+      "command.notes.title": "Notes",
+      "command.notes.description": "Create, search, and manage notes",
+      "command.notes.placeholder": "Search notes...",
+      "notes.new.title": "New note",
+      "notes.edit.title": "Edit note",
+      "notes.field.title": "Title",
+      "notes.field.title.placeholder": "Note title",
+      "notes.field.body": "Body",
+      "notes.field.body.placeholder": "Write something...",
+      "notes.action.save": "Save",
+      "notes.action.edit": "Edit",
+      "notes.action.delete": "Delete",
+      "notes.filter.placeholder": "Filter notes",
+      "notes.empty.title": "No notes yet",
+      "notes.empty.description": "Create your first note from the form above.",
+      "notes.edit.unchanged.title": "Ready to edit",
+      "notes.edit.unchanged.description": "Change the title or body, then press Edit.",
+      "notes.toast.saved": "Note saved",
+      "notes.toast.deleted": "Note deleted",
+      "notes.toast.updated": "Note updated"
+    },
+    "strings-ru": {
+      "app.name": "Заметки",
+      "app.description": "Быстрые заметки",
+      "command.notes.title": "Заметки",
+      "command.notes.description": "Создание, поиск и управление заметками",
+      "command.notes.placeholder": "Найти заметки..."
+    }
+  },
+  "access": {
+    "storage": {
+      "permissions": ["manage"],
+      "requested_size": "1mb"
+    },
+    "notification": {
+      "show_alerts": false,
+      "show_toasts": true
+    },
+    "runtime": {
+      "requested_stack_size": 1024
+    }
+  }
+}

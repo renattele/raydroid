@@ -2,7 +2,7 @@ package ru.raydroid.plugin.api.manifest
 
 import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.model.UiText
-
+import ru.raydroid.plugin.api.ui.Icon
 
 @Serializable
 data class Command(
@@ -13,6 +13,7 @@ data class Command(
     val description: UiText,
     @Serializable(with = ManifestUiTextSerializer::class)
     val placeholder: UiText? = null,
+    val icon: Icon? = null,
     val mode: Mode,
     val match: String?,
     val searchable: Boolean = true,
@@ -23,7 +24,7 @@ data class Command(
     enum class Mode {
         View,
         NoView,
-        Inline
+        Inline,
     }
 
     @Serializable
@@ -31,13 +32,13 @@ data class Command(
         val name: String,
         val placeholder: String,
         val type: Type,
-        val required: Boolean
+        val required: Boolean,
     ) {
         @Serializable
         enum class Type {
             Text,
             Password,
-            Dropdown
+            Dropdown,
         }
     }
 
@@ -48,7 +49,7 @@ data class Command(
         val description: String,
         val type: Type,
         val placeholder: String?,
-        val default: String
+        val default: String,
     ) {
         enum class Type {
             Text,
@@ -57,7 +58,7 @@ data class Command(
             Dropdown,
             AppPicker,
             File,
-            Directory
+            Directory,
         }
     }
 }

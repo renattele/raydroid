@@ -7,11 +7,8 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.getByType
 
-internal fun Project.libsCatalog(): VersionCatalog =
-    extensions.getByType<VersionCatalogsExtension>().named("libs")
+internal fun Project.libsCatalog(): VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
-internal fun VersionCatalog.versionInt(alias: String): Int =
-    findVersion(alias).get().requiredVersion.toInt()
+internal fun VersionCatalog.versionInt(alias: String): Int = findVersion(alias).get().requiredVersion.toInt()
 
-internal fun VersionCatalog.library(alias: String): Provider<MinimalExternalModuleDependency> =
-    findLibrary(alias).get()
+internal fun VersionCatalog.library(alias: String): Provider<MinimalExternalModuleDependency> = findLibrary(alias).get()

@@ -28,12 +28,13 @@ interface PluginScope {
 
 @PluginMarker
 fun plugin(content: PluginScope.() -> Unit) {
-    val scope = object : PluginScope {
-        override fun command(commandService: CommandService) {
-            val serviceName = commandService::class.simpleName!!
-            zipline.bind(serviceName, commandService.toBridge(serviceName))
+    val scope =
+        object : PluginScope {
+            override fun command(commandService: CommandService) {
+                val serviceName = commandService::class.simpleName!!
+                zipline.bind(serviceName, commandService.toBridge(serviceName))
+            }
         }
-    }
     scope.content()
 }
 
@@ -45,57 +46,68 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
 
         override suspend fun cachedItems(
             requestedItems: List<CommandItemId>?,
-            chunkSize: Int
-        ): Flow<List<CommandListItem>> {
-            return this@toBridge.cachedItems(requestedItems, chunkSize)
-        }
+            chunkSize: Int,
+        ): Flow<List<CommandListItem>> = this@toBridge.cachedItems(requestedItems, chunkSize)
 
         override fun content(): CommandPresentationMap {
             val presentations = mutableMapOf<CommandItemId, CommandPresentation>()
             val frame = contentCallbacks.beginFrame()
-            val scope = object : CommandListScope {
-                override fun entry(
-                    id: CommandItemId,
-                    title: UiText?,
-                    description: UiText?,
-                    icon: Icon?,
-                    modifier: Modifier,
-                    content: RayScope.() -> Unit
-                ) {
-                    val entryPath = "$entryIdPrefix${id.value}"
-                    val entryModifier = modifier.toRayModifier(entryPath, frame::register)
-                    val actions = if (modifier.hasActions()) {
-                        entryModifier?.actions.orEmpty()
-                    } else {
-                        buildCommandActions(
-                            path = "$entryPath:actions",
-                            registerCallback = frame::register,
-                        ) {
-                            with(this@toBridge) {
-                                actions(CommandActionTarget(id))
+            val scope =
+                object : CommandListScope {
+                    override fun entry(
+                        id: CommandItemId,
+                        title: UiText?,
+                        description: UiText?,
+                        icon: Icon?,
+                        iconColor: ru.raydroid.plugin.api.ui.Color?,
+                        trailingText: UiText?,
+                        quickAction: ru.raydroid.plugin.api.presentation.CommandListQuickAction?,
+                        modifier: Modifier,
+                        content: RayScope.() -> Unit,
+                    ) {
+                        val entryPath = "$entryIdPrefix${id.value}"
+                        val entryModifier = modifier.toRayModifier(entryPath, frame::register)
+                        val actions =
+                            if (modifier.hasActions()) {
+                                entryModifier?.actions.orEmpty()
+                            } else {
+                                buildCommandActions(
+                                    path = "$entryPath:actions",
+                                    registerCallback = frame::register,
+                                ) {
+                                    with(this@toBridge) {
+                                        actions(CommandActionTarget(id))
+                                    }
+                                }
                             }
-                        }
+                        val primaryCallback =
+                            actions.firstOrNull { it.primary }?.callback
+                                ?: actions.firstOrNull()?.callback
+                        val listEntry =
+                            CommandListItem(
+                                id = id,
+                                title = title,
+                                description = description,
+                                icon = icon,
+                                iconColor = iconColor,
+                                trailingText = trailingText,
+                                quickAction = quickAction,
+                                enabled = entryModifier?.enabled ?: true,
+                            )
+                        presentations[id] =
+                            CommandPresentation(
+                                listEntry = listEntry,
+                                primaryCallback = primaryCallback,
+                                actions = actions,
+                                content =
+                                    buildRayNodes(
+                                        registerCallback = frame::register,
+                                        registerFormCallback = frame::registerForm,
+                                        content = content,
+                                    ),
+                            )
                     }
-                    val primaryCallback = actions.firstOrNull { it.primary }?.callback
-                        ?: actions.firstOrNull()?.callback
-                    val listEntry = CommandListItem(
-                        id = id,
-                        title = title,
-                        description = description,
-                        icon = icon,
-                        enabled = entryModifier?.enabled ?: true,
-                    )
-                    presentations[id] = CommandPresentation(
-                        listEntry = listEntry,
-                        primaryCallback = primaryCallback,
-                        actions = actions,
-                        content = buildRayNodes(
-                            registerCallback = frame::register,
-                            content = content
-                        )
-                    )
                 }
-            }
             scope.content()
             return presentations
         }
@@ -112,17 +124,21 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
 
         override fun fullscreen(): List<RayNodeData> {
             val frame = fullscreenCallbacks.beginFrame()
-            return buildRayNodes(registerCallback = frame::register, content = fullscreenContent@{
-                with(this@toBridge) {
-                    this@fullscreenContent.fullscreen()
-                }
-            })
+            return buildRayNodes(
+                registerCallback = frame::register,
+                registerFormCallback = frame::registerForm,
+                content = fullscreenContent@{
+                    with(this@toBridge) {
+                        this@fullscreenContent.fullscreen()
+                    }
+                },
+            )
         }
 
         override fun initialize(
             request: CommandServiceBridge.RenderRequest,
             fullscreenRenderRequest: CommandServiceBridge.FullscreenRenderRequest,
-            invalidateCacheRequest: CommandServiceBridge.InvalidateCacheRequest
+            invalidateCacheRequest: CommandServiceBridge.InvalidateCacheRequest,
         ) {
             onRenderRequest = request::requestRender
             onFullscreenRenderRequest = fullscreenRenderRequest::requestFullscreenRender
@@ -132,4 +148,6 @@ internal fun CommandService.toBridge(serviceName: String): CommandServiceBridge 
         override suspend fun update(action: CommandActionBridge) {
             this@toBridge.update(action)
         }
+
+        override suspend fun back(): Boolean = this@toBridge.back()
     }

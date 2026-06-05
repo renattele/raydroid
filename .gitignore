@@ -15,5 +15,11 @@ captures
 !*.xcodeproj/xcshareddata/
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
+!*.xcworkspace/xcshareddata/
+!*.xcworkspace/xcshareddata/swiftpm/
+!*.xcworkspace/xcshareddata/swiftpm/Package.resolved
 **/xcshareddata/WorkspaceSettings.xcsettings
+**/xcshareddata/swiftpm/configuration
 node_modules/
+zipline-api.toml
+**/zipline-api.toml

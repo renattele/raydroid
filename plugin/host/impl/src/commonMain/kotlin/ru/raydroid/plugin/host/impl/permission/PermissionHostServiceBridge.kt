@@ -1,9 +1,10 @@
 package ru.raydroid.plugin.host.impl.permission
 
-import ru.raydroid.plugin.api.manifest.Manifest
 import ru.raydroid.plugin.api.host.transport.CacheServiceBridge
 import ru.raydroid.plugin.api.host.transport.ClipboardServiceBridge
+import ru.raydroid.plugin.api.host.transport.ContactsServiceBridge
 import ru.raydroid.plugin.api.host.transport.EnvironmentServiceBridge
+import ru.raydroid.plugin.api.host.transport.FileSystemServiceBridge
 import ru.raydroid.plugin.api.host.transport.HostServiceBridge
 import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 import ru.raydroid.plugin.api.host.transport.NotificationServiceBridge
@@ -11,17 +12,22 @@ import ru.raydroid.plugin.api.host.transport.PreferencesServiceBridge
 import ru.raydroid.plugin.api.host.transport.SearchFieldServiceBridge
 import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 import ru.raydroid.plugin.api.host.transport.SystemServiceBridge
+import ru.raydroid.plugin.api.manifest.Manifest
 
 internal class PermissionHostServiceBridge(
     private val bridge: HostServiceBridge,
-    private val manifest: Manifest
+    private val manifest: Manifest,
 ) : HostServiceBridge {
     override val cacheBridge: CacheServiceBridge =
         PermissionCacheServiceBridge(bridge.cacheBridge, manifest)
     override val clipboardBridge: ClipboardServiceBridge =
         PermissionClipboardServiceBridge(bridge.clipboardBridge, manifest)
+    override val contactsBridge: ContactsServiceBridge =
+        PermissionContactsServiceBridge(bridge.contactsBridge, manifest)
     override val environmentBridge: EnvironmentServiceBridge =
         PermissionEnvironmentServiceBridge(bridge.environmentBridge, manifest)
+    override val filesystemBridge: FileSystemServiceBridge =
+        PermissionFileSystemServiceBridge(bridge.filesystemBridge, manifest)
     override val networkBridge: NetworkServiceBridge =
         PermissionNetworkServiceBridge(bridge.networkBridge, manifest)
     override val notificationBridge: NotificationServiceBridge =
@@ -32,8 +38,9 @@ internal class PermissionHostServiceBridge(
         PermissionSearchFieldServiceBridge(bridge.searchFieldBridge, manifest)
     override val storageBridge: StorageServiceBridge =
         PermissionStorageServiceBridge(bridge.storageBridge, manifest)
-    override val systemBridge: SystemServiceBridge = PermissionSystemServiceBridge(
-        bridge.systemBridge, manifest
-    )
-
+    override val systemBridge: SystemServiceBridge =
+        PermissionSystemServiceBridge(
+            bridge.systemBridge,
+            manifest,
+        )
 }

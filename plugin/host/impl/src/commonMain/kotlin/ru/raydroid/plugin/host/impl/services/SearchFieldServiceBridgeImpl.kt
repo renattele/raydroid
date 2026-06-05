@@ -8,14 +8,14 @@ import ru.raydroid.plugin.host.api.event.SearchFieldRequest
 
 internal class SearchFieldServiceBridgeImpl(
     private val pluginId: PluginId,
-    private val searchFieldGateway: SearchFieldGateway
+    private val searchFieldGateway: SearchFieldGateway,
 ) : SearchFieldServiceBridge {
     override suspend fun setState(state: SearchFieldState) {
         searchFieldGateway.emit(
             SearchFieldRequest(
                 pluginId = pluginId,
-                state = state
-            )
+                state = state,
+            ),
         )
     }
 }

@@ -6,16 +6,19 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
 
 class UpdateCommandQueryUseCase(
-    private val pluginRuntimeRegistry: PluginRuntimeRegistry
+    private val pluginRuntimeRegistry: PluginRuntimeRegistry,
 ) {
-    suspend operator fun invoke(resultId: SearchResultId, query: String) {
+    suspend operator fun invoke(
+        resultId: SearchResultId,
+        query: String,
+    ) {
         val runtimes = pluginRuntimeRegistry.get().runtimes().value
         runtimes
             .filter { runtime -> runtime.pluginId == resultId.pluginId }
             .forEach { runtime ->
                 runtime.update(
                     commandName = resultId.commandName,
-                    action = CommandActionBridge.Regular(CommandAction.Type(query))
+                    action = CommandActionBridge.Regular(CommandAction.Type(query)),
                 )
             }
     }

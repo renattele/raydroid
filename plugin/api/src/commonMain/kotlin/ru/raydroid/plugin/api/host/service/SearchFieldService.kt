@@ -17,12 +17,12 @@ interface SearchFieldService {
 @Serializable
 data class SearchFieldState(
     val text: String,
-    val selection: SearchFieldSelection = SearchFieldSelection.CursorAtEnd
+    val selection: SearchFieldSelection = SearchFieldSelection.CursorAtEnd,
 )
 
 @Serializable
 enum class SearchFieldSelection {
     CursorAtStart,
     CursorAtEnd,
-    SelectAll
+    SelectAll,
 }

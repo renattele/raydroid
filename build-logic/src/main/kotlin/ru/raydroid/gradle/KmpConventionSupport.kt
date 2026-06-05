@@ -6,8 +6,8 @@ import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.PluginManager
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 internal fun Project.applyKmpBaseConvention() {
@@ -31,8 +31,10 @@ internal fun Project.applyKmpBaseConvention() {
 internal fun Project.configureMultiplatformTargetsWhenKmpIsPresent() {
     pluginManager.configureWhenKmpPresent(this) {
         jvm()
-        iosArm64()
-        iosSimulatorArm64()
+        if (appleTargetsEnabled()) {
+            iosArm64()
+            iosSimulatorArm64()
+        }
     }
 }
 
@@ -59,4 +61,20 @@ private fun PluginManager.configureWhenKmpPresent(
     withPlugin("org.jetbrains.kotlin.multiplatform") {
         project.extensions.configure<KotlinMultiplatformExtension>(block)
     }
+}
+
+private fun Project.appleTargetsEnabled(): Boolean {
+    val projectPath = path.removePrefix(":").replace(':', '.')
+    val propertyName = "raydroid.$projectPath.appleTargets"
+    val moduleOverride =
+        providers
+            .gradleProperty(propertyName)
+            .orNull
+            ?.toBooleanStrictOrNull()
+    val globalDefault =
+        providers
+            .gradleProperty("raydroid.appleTargets.default")
+            .orNull
+            ?.toBooleanStrictOrNull()
+    return moduleOverride ?: globalDefault ?: true
 }

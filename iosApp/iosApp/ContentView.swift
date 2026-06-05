@@ -1,21 +1,25 @@
-import UIKit
 import SwiftUI
-import ComposeApp
 
-struct ComposeView: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UIViewController {
-        MainViewControllerKt.MainViewController()
-    }
-
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
-}
-
+@MainActor
 struct ContentView: View {
+    let container: RaydroidAppContainer
+
     var body: some View {
-        ComposeView()
-            .ignoresSafeArea()
+        if PreviewRuntime.isActive {
+            PreviewRootView()
+        } else {
+            SearchSceneView(container: container)
+        }
     }
 }
 
-
-
+private struct PreviewRootView: View {
+    var body: some View {
+        RaydroidBackground()
+            .overlay {
+                Text("Raydroid Preview Host")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+    }
+}

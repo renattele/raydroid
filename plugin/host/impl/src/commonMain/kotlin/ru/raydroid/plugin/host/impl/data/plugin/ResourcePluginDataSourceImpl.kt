@@ -9,15 +9,16 @@ import raydroid.plugin.host.impl.generated.resources.Res
 import ru.raydroid.plugin.host.api.domain.model.PluginId
 
 class ResourcePluginDataSourceImpl(
-    private val json: Json
-): ResourcePluginDataSource {
-    override suspend fun load(pluginId: PluginId): ByteArray? = withContext(Dispatchers.IO) {
-        return@withContext try {
-            Res.readBytes("files/${pluginId.id}.rext")
-        } catch (_: IOException) {
-            null
+    private val json: Json,
+) : ResourcePluginDataSource {
+    override suspend fun load(pluginId: PluginId): ByteArray? =
+        withContext(Dispatchers.IO) {
+            return@withContext try {
+                Res.readBytes("files/${pluginId.id}.rext")
+            } catch (_: IOException) {
+                null
+            }
         }
-    }
 
     override suspend fun listPlugins(): List<PluginId> {
         val pluginListBytes = Res.readBytes("files/plugin-list.json")

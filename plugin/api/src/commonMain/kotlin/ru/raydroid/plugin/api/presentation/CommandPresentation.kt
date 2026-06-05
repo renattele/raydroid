@@ -2,6 +2,7 @@ package ru.raydroid.plugin.api.presentation
 
 import kotlinx.serialization.Serializable
 import ru.raydroid.plugin.api.model.UiText
+import ru.raydroid.plugin.api.ui.Color
 import ru.raydroid.plugin.api.ui.Icon
 import ru.raydroid.plugin.api.ui.Modifier
 import ru.raydroid.plugin.api.ui.Ray
@@ -13,7 +14,9 @@ import kotlin.uuid.Uuid
 
 @Serializable
 @JvmInline
-value class CommandItemId(val value: String) {
+value class CommandItemId(
+    val value: String,
+) {
     companion object {
         @OptIn(ExperimentalUuidApi::class)
         fun random() = CommandItemId(Uuid.generateV4().toHexString())
@@ -25,16 +28,20 @@ value class CommandItemId(val value: String) {
 
 @Serializable
 @JvmInline
-value class CommandCallbackId(val value: String)
+value class CommandCallbackId(
+    val value: String,
+)
 
 @Serializable
 @JvmInline
-value class CommandActionTarget(val itemId: CommandItemId)
+value class CommandActionTarget(
+    val itemId: CommandItemId,
+)
 
 @Serializable
 data class CommandCallbackRef(
     val id: CommandCallbackId,
-    val generation: Long
+    val generation: Long,
 )
 
 @Serializable
@@ -44,6 +51,15 @@ data class CommandListItem(
     val title: UiText?,
     val description: UiText?,
     val enabled: Boolean = true,
+    val iconColor: Color? = null,
+    val trailingText: UiText? = null,
+    val quickAction: CommandListQuickAction? = null,
+)
+
+@Serializable
+data class CommandListQuickAction(
+    val title: UiText,
+    val icon: Icon,
 )
 
 @Serializable
@@ -55,11 +71,12 @@ data class CommandListAction(
     val group: UiText? = null,
     val style: Style = Style.Default,
     val primary: Boolean = false,
+    val showPrimaryHint: Boolean = true,
     val enabled: Boolean = true,
 ) {
     enum class Style {
         Default,
-        Destructive
+        Destructive,
     }
 }
 
@@ -70,14 +87,20 @@ interface CommandListScope {
         title: UiText? = null,
         description: UiText? = null,
         icon: Icon? = null,
+        iconColor: Color? = null,
+        trailingText: UiText? = null,
+        quickAction: CommandListQuickAction? = null,
         modifier: Modifier = Modifier,
-        content: RayScope.() -> Unit = {}
+        content: RayScope.() -> Unit = {},
     )
 }
 
 interface CommandActionScope {
     @Ray
-    fun group(title: UiText, content: CommandActionScope.() -> Unit)
+    fun group(
+        title: UiText,
+        content: CommandActionScope.() -> Unit,
+    )
 
     @Ray
     fun action(
@@ -86,8 +109,9 @@ interface CommandActionScope {
         description: UiText? = null,
         style: CommandListAction.Style = CommandListAction.Style.Default,
         primary: Boolean = false,
+        showPrimaryHint: Boolean = true,
         enabled: Boolean = true,
-        onClick: suspend () -> Unit
+        onClick: suspend () -> Unit,
     )
 }
 
@@ -96,7 +120,7 @@ data class CommandPresentation(
     val listEntry: CommandListItem,
     val primaryCallback: CommandCallbackRef? = null,
     val actions: List<CommandListAction> = emptyList(),
-    val content: List<RayNodeData>
+    val content: List<RayNodeData>,
 )
 
 typealias CommandPresentationMap = Map<CommandItemId, CommandPresentation>
@@ -104,63 +128,71 @@ typealias CommandPresentationMap = Map<CommandItemId, CommandPresentation>
 internal fun buildCommandActions(
     path: String,
     registerCallback: (String, suspend () -> Unit) -> CommandCallbackRef,
-    content: CommandActionScope.() -> Unit
-): List<CommandListAction> {
-    return buildCommandActions(
+    content: CommandActionScope.() -> Unit,
+): List<CommandListAction> =
+    buildCommandActions(
         path = path,
         registerCallback = registerCallback,
         group = null,
         groupPath = emptyList(),
-        content = content
+        content = content,
     )
-}
 
 private fun buildCommandActions(
     path: String,
     registerCallback: (String, suspend () -> Unit) -> CommandCallbackRef,
     group: UiText?,
     groupPath: List<Int>,
-    content: CommandActionScope.() -> Unit
+    content: CommandActionScope.() -> Unit,
 ): List<CommandListAction> {
     val actions = mutableListOf<CommandListAction>()
     var groupIndex = 0
     var actionIndex = 0
-    val scope = object : CommandActionScope {
-        override fun group(title: UiText, content: CommandActionScope.() -> Unit) {
-            actions += buildCommandActions(
-                path = path,
-                registerCallback = registerCallback,
-                group = title,
-                groupPath = groupPath + groupIndex++,
-                content = content
-            )
-        }
+    val scope =
+        object : CommandActionScope {
+            override fun group(
+                title: UiText,
+                content: CommandActionScope.() -> Unit,
+            ) {
+                actions +=
+                    buildCommandActions(
+                        path = path,
+                        registerCallback = registerCallback,
+                        group = title,
+                        groupPath = groupPath + groupIndex++,
+                        content = content,
+                    )
+            }
 
-        override fun action(
-            title: UiText,
-            icon: Icon?,
-            description: UiText?,
-            style: CommandListAction.Style,
-            primary: Boolean,
-            enabled: Boolean,
-            onClick: suspend () -> Unit
-        ) {
-            actions += CommandListAction(
-                callback = registerCallback(
-                    "$path:${groupPath.joinToString(".")}:$actionIndex",
-                    onClick
-                ),
-                title = title,
-                icon = icon,
-                description = description,
-                group = group,
-                style = style,
-                primary = primary,
-                enabled = enabled
-            )
-            actionIndex++
+            override fun action(
+                title: UiText,
+                icon: Icon?,
+                description: UiText?,
+                style: CommandListAction.Style,
+                primary: Boolean,
+                showPrimaryHint: Boolean,
+                enabled: Boolean,
+                onClick: suspend () -> Unit,
+            ) {
+                actions +=
+                    CommandListAction(
+                        callback =
+                            registerCallback(
+                                "$path:${groupPath.joinToString(".")}:$actionIndex",
+                                onClick,
+                            ),
+                        title = title,
+                        icon = icon,
+                        description = description,
+                        group = group,
+                        style = style,
+                        primary = primary,
+                        showPrimaryHint = showPrimaryHint,
+                        enabled = enabled,
+                    )
+                actionIndex++
+            }
         }
-    }
     scope.content()
     return actions
 }

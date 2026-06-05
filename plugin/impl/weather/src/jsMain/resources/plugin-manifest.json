@@ -1,0 +1,78 @@
+{
+  "$schema": "../../../../../api/plugin-manifest.schema.json",
+  "name": "ru.raydroid.plugin.impl.weather",
+  "title": "app.name",
+  "description": "app.description",
+  "author": "Raydroid",
+  "version": -1,
+  "platforms": [],
+  "categories": ["Weather"],
+  "license": "",
+  "commands": [
+    {
+      "service": "WeatherCommand",
+      "title": "command.weather.title",
+      "description": "command.weather.description",
+      "placeholder": "command.weather.placeholder",
+      "icon": {
+        "value": "WbSunny",
+        "type": "Builtin"
+      },
+      "mode": "Inline",
+      "match": ".*",
+      "arguments": [],
+      "preferences": []
+    }
+  ],
+  "resources": {
+    "strings": {
+      "app.name": "Weather",
+      "app.description": "Weather by selected city",
+      "command.weather.title": "Weather",
+      "command.weather.description": "Choose a city and show its weather",
+      "command.weather.placeholder": "Search city...",
+      "weather.chooseCity": "Choose a city",
+      "weather.search.placeholder": "Search city",
+      "weather.action.choose": "Choose",
+      "weather.action.clear": "Clear selection",
+      "weather.action.save": "Save",
+      "weather.apiKey.description": "Add an OpenWeather API key to search cities and show current weather.",
+      "weather.apiKey.title": "OpenWeather API key",
+      "weather.apiKey.placeholder": "appid",
+      "weather.empty.noCities": "No cities found",
+      "weather.empty.typeCity": "Type a city name in the search field.",
+      "weather.empty.tryAnother": "Try another city name.",
+      "weather.toast.city.saved": "Weather city saved",
+      "weather.toast.city.cleared": "Weather city cleared",
+      "weather.toast.apiKey.empty": "OpenWeather API key is empty",
+      "weather.toast.apiKey.saved": "OpenWeather API key saved",
+      "weather.error.rejected": "OpenWeather rejected the request",
+      "weather.error.apiKey.invalid": "OpenWeather API key is invalid or not active yet",
+      "weather.error.limit": "OpenWeather request limit reached",
+      "weather.error.openWeather": "Could not load OpenWeather data",
+      "weather.error.timeout": "OpenWeather request timed out",
+      "weather.error.connection": "Could not connect to OpenWeather",
+      "weather.error.search": "Could not search cities",
+      "weather.error.load": "Could not load weather"
+    }
+  },
+  "access": {
+    "network": {
+      "permissions": ["manage"],
+      "allowed_urls": [
+        "https://api\\.openweathermap\\.org/.*"
+      ]
+    },
+    "storage": {
+      "permissions": ["manage"],
+      "requested_size": "256kb"
+    },
+    "notification": {
+      "show_alerts": false,
+      "show_toasts": true
+    },
+    "runtime": {
+      "requested_stack_size": 1024
+    }
+  }
+}

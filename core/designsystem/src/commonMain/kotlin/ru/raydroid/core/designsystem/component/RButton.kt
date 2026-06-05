@@ -17,7 +17,7 @@ fun RButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
-        content = content
+        content = content,
     )
 }
 
@@ -32,6 +32,6 @@ fun RTextButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
-        content = content
+        content = content,
     )
 }

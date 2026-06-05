@@ -10,7 +10,7 @@ enum class ShapeToken {
     Medium,
     Large,
     ExtraLarge,
-    Full
+    Full,
 }
 
 @Serializable
@@ -18,5 +18,5 @@ enum class MotionToken {
     None,
     Fast,
     Default,
-    Emphasized
+    Emphasized,
 }

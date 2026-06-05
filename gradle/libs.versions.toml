@@ -1,36 +1,42 @@
 [versions]
-agp = "9.0.1"
-android-compileSdk = "36"
+agp = "9.2.1"
+android-compileSdk = "37"
 android-minSdk = "26"
-android-targetSdk = "36"
-androidx-activity = "1.12.4"
+android-targetSdk = "37"
+androidx-activity = "1.13.0"
 androidx-appcompat = "1.7.1"
-androidx-core = "1.17.0"
+androidx-core = "1.19.0"
 androidx-espresso = "3.7.0"
-androidx-lifecycle = "2.9.6"
+androidx-lifecycle = "2.10.0"
 androidx-testExt = "1.3.0"
-composeMultiplatform = "1.10.1"
+composeMultiplatform = "1.11.1"
 composeIcons = "1.7.3"
 junit = "4.13.2"
-kotlin = "2.3.10"
-ktor = "3.4.0"
-logback = "1.5.32"
+kotlin = "2.3.20"
+detekt = "2.0.0-alpha.3"
+ktlint = "1.8.0"
+ktlint-gradle = "14.2.0"
+ktor = "3.5.0"
+logback = "1.5.34"
 material3 = "1.10.0-alpha05"
-zipline = "1.25.0"
+zipline = "1.27.0"
 okHttp = "5.3.2"
-koin = "4.1.1"
+koin = "4.2.1"
 koin-annotations = "2.3.1"
 koin-plugin = "0.3.0"
-datastore = "1.2.0"
+datastore = "1.2.1"
 kotlinx-io = "0.9.0"
-kotlinx-serialization = "1.10.0"
-kotlinx-coroutines = "1.10.2"
-kotlinx-atomicfu = "0.31.0"
-okio = "3.16.2"
+kotlinx-serialization = "1.11.0"
+kotlinx-coroutines = "1.11.0"
+kotlinx-atomicfu = "0.33.0"
+okio = "3.17.0"
 coil = "3.4.0"
-ksp = "2.3.2"
+ksp = "2.3.4"
 room = "2.8.4"
 sqlite = "2.6.2"
+googleServices = "4.4.4"
+firebaseBom = "34.14.0"
+firebaseCrashlyticsPlugin = "3.0.7"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -53,9 +59,6 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
-ktor-serverCore = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
-ktor-serverNetty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
-ktor-serverTestHost = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-contentnegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
@@ -89,6 +92,9 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 
 [bundles]
 composeAndroid = ["compose-uiToolingPreview", "androidx-activity-compose"]
@@ -111,9 +117,7 @@ koin-compose = [
 ]
 lifecycleCompose = ["androidx-lifecycle-viewmodelCompose", "androidx-lifecycle-runtimeCompose"]
 ziplineRuntime = ["zipline", "zipline-loader"]
-ktorServer = ["ktor-serverCore", "ktor-serverNetty"]
 ktorClient = ["ktor-client-core", "ktor-client-contentnegotiation", "ktor-client-serialization-json"]
-serverTest = ["ktor-serverTestHost", "kotlin-testJunit"]
 dataStore = ["datastore", "datastore-preferences"]
 kotlinxIo = ["kotlinx-io-core", "kotlinx-io-okio"]
 
@@ -123,7 +127,6 @@ androidLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref 
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 zipline = { id = "app.cash.zipline", version.ref = "zipline" }
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
@@ -131,6 +134,10 @@ atomicfu = { id = "org.jetbrains.kotlinx.atomicfu", version.ref = "kotlinx-atomi
 koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }
 
 raydroidAndroidApp = { id = "raydroid.android.app" }
 raydroidAndroidLib = { id = "raydroid.android.lib" }

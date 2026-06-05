@@ -9,23 +9,24 @@ import io.ktor.http.headers
 import ru.raydroid.plugin.api.host.transport.NetworkServiceBridge
 
 internal class NetworkServiceBridgeImpl(
-    private val httpClient: HttpClient
-): NetworkServiceBridge {
+    private val httpClient: HttpClient,
+) : NetworkServiceBridge {
     override suspend fun request(request: NetworkServiceBridge.RawNetworkRequest): NetworkServiceBridge.RawNetworkResponse {
-        val response = httpClient.request(request.url) {
-            method = HttpMethod.parse(request.method)
-            headers {
-                request.headers.forEach { (key, value) ->
-                    append(key, value)
+        val response =
+            httpClient.request(request.url) {
+                method = HttpMethod.parse(request.method)
+                headers {
+                    request.headers.forEach { (key, value) ->
+                        append(key, value)
+                    }
+                }
+                if (request.body != null) {
+                    setBody(request.body)
                 }
             }
-            if (request.body != null) {
-                setBody(request.body)
-            }
-        }
         return NetworkServiceBridge.RawNetworkResponse(
             statusCode = response.status.value,
-            body = response.bodyAsBytes()
+            body = response.bodyAsBytes(),
         )
     }
 }

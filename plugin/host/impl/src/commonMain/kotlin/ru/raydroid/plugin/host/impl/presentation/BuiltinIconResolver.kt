@@ -11,7 +11,8 @@ internal interface BuiltinIconResolver {
 }
 
 internal class OutlinedMaterialBuiltinIconResolver : BuiltinIconResolver {
-    override fun resolve(name: String): ImageVector {
-        return GeneratedOutlinedMaterialIconRegistry.resolve(name) ?: Icons.AutoMirrored.Outlined.HelpOutline
-    }
+    override fun resolve(name: String): ImageVector =
+        GeneratedOutlinedMaterialIconRegistry.resolve(BuiltinIconMappings.materialIconName(name) ?: name)
+            ?: GeneratedOutlinedMaterialIconRegistry.resolve(name)
+            ?: Icons.AutoMirrored.Outlined.HelpOutline
 }

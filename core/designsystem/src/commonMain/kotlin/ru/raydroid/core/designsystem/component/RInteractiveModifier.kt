@@ -1,59 +1,153 @@
 package ru.raydroid.core.designsystem.component
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import ru.raydroid.core.designsystem.RaydroidTheme
+import kotlin.math.min
 
 internal object RInteractiveDefaults {
-    const val FocusedScale = 1.02f
-    const val DefaultScale = 1f
+    const val PRESSED_SCALE = 1.02f
+    const val FOCUSED_SCALE = 1.02f
+    const val CONTEXT_MENU_SCALE = 1.06f
+    const val DEFAULT_SCALE = 1f
 
-    fun targetScale(focused: Boolean): Float = if (focused) FocusedScale else DefaultScale
+    fun targetScale(
+        focused: Boolean,
+        pressed: Boolean,
+        contextMenuActive: Boolean,
+    ): Float =
+        when {
+            contextMenuActive -> CONTEXT_MENU_SCALE
+            pressed -> PRESSED_SCALE
+            focused -> FOCUSED_SCALE
+            else -> DEFAULT_SCALE
+        }
+
+    fun targetOverflowPadding(
+        focused: Boolean,
+        pressed: Boolean,
+        contextMenuActive: Boolean,
+    ) = when {
+        contextMenuActive -> 12.dp
+        focused || pressed -> 8.dp
+        else -> 0.dp
+    }
+
+    fun cappedScale(
+        targetScale: Float,
+        widthPx: Int,
+        heightPx: Int,
+        overflowPaddingPx: Int,
+    ): Float {
+        if (targetScale <= DEFAULT_SCALE || widthPx <= 0 || heightPx <= 0 || overflowPaddingPx <= 0) {
+            return targetScale.coerceAtLeast(DEFAULT_SCALE)
+        }
+        val maxScaleX = DEFAULT_SCALE + (overflowPaddingPx * 2f / widthPx)
+        val maxScaleY = DEFAULT_SCALE + (overflowPaddingPx * 2f / heightPx)
+        return min(targetScale, min(maxScaleX, maxScaleY))
+    }
 }
 
 fun Modifier.rInteractable(
     enabled: Boolean = true,
     focused: Boolean = false,
+    contextMenuSourceId: String? = null,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
-): Modifier = composed {
-    val interactionSource = remember { MutableInteractionSource() }
-    var isFocused by remember(focused) { mutableStateOf(focused) }
-    LaunchedEffect(Unit) {
-        interactionSource.interactions.collectLatest { interaction ->
-            when (interaction) {
-                is FocusInteraction.Focus -> isFocused = true
-                is FocusInteraction.Unfocus -> isFocused = false
+): Modifier =
+    composed {
+        val overlayState = LocalRContextActionOverlayState.current
+        val interactionSource = remember { MutableInteractionSource() }
+        val interactionFocused by interactionSource.collectIsFocusedAsState()
+        val interactionPressed by interactionSource.collectIsPressedAsState()
+        val isFocused = focused || interactionFocused
+        val isPressed = interactionPressed
+        val contextMenuActive = overlayState.visible && overlayState.activeSourceId == contextMenuSourceId
+        var measuredWidthPx by remember { mutableIntStateOf(0) }
+        var measuredHeightPx by remember { mutableIntStateOf(0) }
+        val motion = RaydroidTheme.motionScheme.fast
+        val density = LocalDensity.current
+        val scale by animateFloatAsState(
+            RInteractiveDefaults.targetScale(
+                focused = isFocused,
+                pressed = isPressed,
+                contextMenuActive = contextMenuActive,
+            ),
+            animationSpec = motion.floatSpec(),
+        )
+        val overflowPadding by animateDpAsState(
+            targetValue =
+                RInteractiveDefaults.targetOverflowPadding(
+                    focused = isFocused,
+                    pressed = isPressed,
+                    contextMenuActive = contextMenuActive,
+                ),
+            animationSpec = motion.dpSpec(),
+        )
+        val overflowPaddingPx = with(density) { overflowPadding.roundToPx() }
+        val cappedScale =
+            RInteractiveDefaults.cappedScale(
+                targetScale = scale,
+                widthPx = measuredWidthPx,
+                heightPx = measuredHeightPx,
+                overflowPaddingPx = overflowPaddingPx,
+            )
+        val color =
+            if (isFocused || isPressed || contextMenuActive) {
+                RaydroidTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
+            } else {
+                Color.Transparent
             }
-        }
+        val shape = RaydroidTheme.shapes.medium
+        rContextActionAnchor(contextMenuSourceId)
+            .rContextActionInactiveItem(contextMenuSourceId)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled,
+                onLongClick = onLongClick,
+                onClick = onClick,
+            ).layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                val paddingPx = overflowPaddingPx
+                val width = placeable.width + paddingPx * 2
+                val height = placeable.height + paddingPx * 2
+                layout(width, height) {
+                    placeable.placeRelative(paddingPx, paddingPx)
+                }
+            }.onSizeChanged { size ->
+                measuredWidthPx = size.width
+                measuredHeightPx = size.height
+            }.offset {
+                IntOffset(0, -overflowPaddingPx)
+            }.graphicsLayer {
+                scaleX = cappedScale
+                scaleY = cappedScale
+            }.drawWithContent {
+                if (color.alpha > 0f) {
+                    drawRoundRect(color, cornerRadius = CornerRadius(shape.topStart.toPx(size, this)))
+                }
+                drawContent()
+            }
     }
-    val scale by animateFloatAsState(
-        RInteractiveDefaults.targetScale(isFocused),
-        animationSpec = RaydroidTheme.motionScheme.fast.floatSpec()
-    )
-    val color = RaydroidTheme.colorScheme.primary.copy(alpha = 0.1f)
-    val shape = RaydroidTheme.shapes.medium
-    combinedClickable(interactionSource, indication = null, enabled = enabled, onClick = onClick)
-        .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
-        .drawWithContent {
-            drawContent()
-            if (isFocused) {
-                drawRoundRect(color, cornerRadius = CornerRadius(shape.topStart.toPx(size, this)))
-            }
-        }
-}

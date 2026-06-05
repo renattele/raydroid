@@ -1,0 +1,55 @@
+{
+  "$schema": "../../../../../api/plugin-manifest.schema.json",
+  "name": "ru.raydroid.plugin.impl.files",
+  "title": "app.name",
+  "description": "app.description",
+  "author": "app.author",
+  "version": -1,
+  "platforms": [],
+  "categories": ["Files"],
+  "license": "",
+  "commands": [
+    {
+      "service": "FilesCommand",
+      "title": "command.files.title",
+      "description": "command.files.description",
+      "placeholder": null,
+      "icon": {
+        "value": "FolderOpen",
+        "type": "Builtin"
+      },
+      "mode": "NoView",
+      "match": null,
+      "searchable": true,
+      "arguments": [],
+      "preferences": []
+    }
+  ],
+  "resources": {
+    "strings": {
+      "app.name": "File System",
+      "app.description": "Local file system index",
+      "app.author": "Raydroid",
+      "command.files.title": "File System",
+      "command.files.description": "Search indexed local files",
+      "files.action.open": "Open",
+      "files.action.info": "Info"
+    }
+  },
+  "access": {
+    "filesystem": {
+      "permissions": ["read"],
+      "allowed_paths": [
+        "fs://.*",
+        "/.*",
+        "file://.*"
+      ]
+    },
+    "notification": {
+      "show_alerts": true
+    },
+    "runtime": {
+      "requested_stack_size": 1024
+    }
+  }
+}

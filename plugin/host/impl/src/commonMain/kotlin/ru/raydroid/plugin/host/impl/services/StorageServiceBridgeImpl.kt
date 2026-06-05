@@ -10,8 +10,8 @@ import ru.raydroid.plugin.api.host.transport.StorageServiceBridge
 
 internal class StorageServiceBridgeImpl(
     private val basePath: Path,
-    private val filePrefix: String
-): StorageServiceBridge {
+    private val filePrefix: String,
+) : StorageServiceBridge {
     override suspend fun get(key: String): String? {
         return withContext(Dispatchers.IO) {
             if (!has(key)) {
@@ -23,21 +23,22 @@ internal class StorageServiceBridgeImpl(
         }
     }
 
-    override suspend fun set(key: String, value: String) {
+    override suspend fun set(
+        key: String,
+        value: String,
+    ) {
         withContext(Dispatchers.IO) {
             FileSystem.SYSTEM.write(getFilePath(key)) {
                 write(value.encodeToByteArray())
             }
+            Unit
         }
     }
 
-    override suspend fun has(key: String): Boolean {
-        return withContext(Dispatchers.IO) {
+    override suspend fun has(key: String): Boolean =
+        withContext(Dispatchers.IO) {
             FileSystem.SYSTEM.exists(getFilePath(key))
         }
-    }
 
-    private fun getFilePath(key: String): Path {
-        return basePath / (filePrefix + key)
-    }
+    private fun getFilePath(key: String): Path = basePath / (filePrefix + key)
 }

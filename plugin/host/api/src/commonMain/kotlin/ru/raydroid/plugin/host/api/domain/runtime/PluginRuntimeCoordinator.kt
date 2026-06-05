@@ -9,7 +9,7 @@ import ru.raydroid.plugin.host.api.ui.PluginCommandListItem
 import ru.raydroid.plugin.host.api.ui.PluginCommandPresentation
 
 interface PluginRuntimeCoordinator {
-    fun cachedItems(): Flow<Map<PluginRuntime, List<SearchIndexMutation>>>
+    fun cachedItems(): Flow<List<SearchIndexMutation>>
 
     fun runtimes(): StateFlow<List<PluginRuntime>>
 
@@ -23,12 +23,12 @@ interface PluginRuntimeCoordinator {
         val runtime: PluginRuntime,
         val presentation: PluginCommandPresentation,
         val listEntry: PluginCommandListItem,
-        val resultId: SearchResultId
+        val resultId: SearchResultId,
     )
 
     data class CommandItem(
         val runtime: PluginRuntime,
         val listEntry: PluginCommandListItem,
-        val resultId: SearchResultId
+        val resultId: SearchResultId,
     )
 }

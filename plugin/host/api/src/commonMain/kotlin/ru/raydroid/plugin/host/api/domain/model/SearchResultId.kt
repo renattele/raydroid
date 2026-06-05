@@ -5,5 +5,5 @@ import ru.raydroid.plugin.api.presentation.CommandItemId
 data class SearchResultId(
     val pluginId: PluginId,
     val commandName: String,
-    val itemId: CommandItemId
+    val itemId: CommandItemId,
 )

@@ -236,8 +236,14 @@
         "cache": {
           "$ref": "#/definitions/sizedAccess"
         },
+        "contacts": {
+          "$ref": "#/definitions/contactsAccess"
+        },
         "environment": {
           "$ref": "#/definitions/environmentAccess"
+        },
+        "filesystem": {
+          "$ref": "#/definitions/fileSystemAccess"
         },
         "network": {
           "$ref": "#/definitions/networkAccess"
@@ -273,6 +279,21 @@
             "enum": [
               "read",
               "write"
+            ]
+          }
+        }
+      }
+    },
+    "contactsAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "read"
             ]
           }
         }
@@ -331,6 +352,30 @@
           }
         },
         "allowed_urls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "fileSystemAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write",
+              "manage",
+              "watch"
+            ]
+          }
+        },
+        "allowed_paths": {
           "type": "array",
           "items": {
             "type": "string"

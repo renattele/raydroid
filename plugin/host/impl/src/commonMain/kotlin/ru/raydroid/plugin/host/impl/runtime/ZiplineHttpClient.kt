@@ -10,11 +10,12 @@ import okio.buffer
 import okio.openZip
 import okio.use
 
-
-class RextZiplineHttpClient(private val fs: FileSystem): ZiplineHttpClient() {
+class RextZiplineHttpClient(
+    private val fs: FileSystem,
+) : ZiplineHttpClient() {
     override suspend fun download(
         url: String,
-        requestHeaders: List<Pair<String, String>>
+        requestHeaders: List<Pair<String, String>>,
     ): ByteString {
         val uri = Url(url)
         // Dropping "/"
@@ -23,6 +24,4 @@ class RextZiplineHttpClient(private val fs: FileSystem): ZiplineHttpClient() {
             readByteString()
         }
     }
-
 }
-

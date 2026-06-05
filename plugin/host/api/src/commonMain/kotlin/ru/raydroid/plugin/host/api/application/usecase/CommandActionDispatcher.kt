@@ -5,11 +5,11 @@ import ru.raydroid.plugin.host.api.domain.model.SearchResultId
 import ru.raydroid.plugin.host.api.domain.runtime.PluginRuntimeRegistry
 
 class CommandActionDispatcher(
-    private val pluginRuntimeRegistry: PluginRuntimeRegistry
+    private val pluginRuntimeRegistry: PluginRuntimeRegistry,
 ) {
     suspend fun dispatch(
         resultId: SearchResultId,
-        action: CommandActionBridge
+        action: CommandActionBridge,
     ) {
         val runtimes = pluginRuntimeRegistry.get().runtimes().value
         runtimes

@@ -7,17 +7,26 @@ import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.register
 
 class RaydroidPluginConventionPlugin : Plugin<Project> {
-    override fun apply(target: Project) = with(target) {
-        pluginManager.apply("raydroid.zipline")
+    override fun apply(target: Project) =
+        with(target) {
+            pluginManager.apply("raydroid.zipline")
+            configureJsWebpackTaskDependencies()
 
-        registerPluginVariantTasks(
-            variantName = "Development",
-            outputVariantName = "development",
-        )
-        registerPluginVariantTasks(
-            variantName = "Production",
-            outputVariantName = "production",
-        )
+            registerPluginVariantTasks(
+                variantName = "Development",
+                outputVariantName = "development",
+            )
+            registerPluginVariantTasks(
+                variantName = "Production",
+                outputVariantName = "production",
+            )
+        }
+}
+
+private fun Project.configureJsWebpackTaskDependencies() {
+    tasks.configureEach {
+        if (name != "jsBrowserProductionWebpack") return@configureEach
+        dependsOn("jsDevelopmentExecutableCompileSync")
     }
 }
 

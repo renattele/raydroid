@@ -1,7 +1,7 @@
 package ru.raydroid.core.designsystem
 
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -44,8 +44,8 @@ class RaydroidThemeTest {
 
         assertEquals(180, normal.spec(RaydroidMotionToken.Default).durationMillis)
         assertEquals(0.03f, normal.spec(RaydroidMotionToken.Default).scaleDelta)
-        assertEquals(false, normal.spec(RaydroidMotionToken.Default).usesExpressiveSpatialMotion)
-        assertEquals(Spring.DampingRatioNoBouncy, normal.spec(RaydroidMotionToken.Default).dampingRatio)
+        assertEquals(true, normal.spec(RaydroidMotionToken.Default).usesExpressiveSpatialMotion)
+        assertEquals(Spring.DampingRatioMediumBouncy, normal.spec(RaydroidMotionToken.Default).dampingRatio)
         assertEquals(true, normal.spec(RaydroidMotionToken.Emphasized).usesExpressiveSpatialMotion)
         assertEquals(Spring.DampingRatioLowBouncy, normal.spec(RaydroidMotionToken.Emphasized).dampingRatio)
         assertEquals(120, reduced.spec(RaydroidMotionToken.Default).durationMillis)
@@ -55,7 +55,63 @@ class RaydroidThemeTest {
 
     @Test
     fun `interactive scale follows focused state`() {
-        assertEquals(1f, RInteractiveDefaults.targetScale(focused = false))
-        assertEquals(1.02f, RInteractiveDefaults.targetScale(focused = true))
+        assertEquals(
+            1f,
+            RInteractiveDefaults.targetScale(
+                focused = false,
+                pressed = false,
+                contextMenuActive = false,
+            ),
+        )
+        assertEquals(
+            1.02f,
+            RInteractiveDefaults.targetScale(
+                focused = true,
+                pressed = false,
+                contextMenuActive = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `interactive overflow padding covers focused and context menu states`() {
+        assertEquals(
+            8.dp,
+            RInteractiveDefaults.targetOverflowPadding(
+                focused = true,
+                pressed = false,
+                contextMenuActive = false,
+            ),
+        )
+        assertEquals(
+            12.dp,
+            RInteractiveDefaults.targetOverflowPadding(
+                focused = false,
+                pressed = false,
+                contextMenuActive = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `interactive scale is capped to available overflow room`() {
+        assertEquals(
+            1.06f,
+            RInteractiveDefaults.cappedScale(
+                targetScale = 1.06f,
+                widthPx = 200,
+                heightPx = 80,
+                overflowPaddingPx = 12,
+            ),
+        )
+        assertEquals(
+            1.02f,
+            RInteractiveDefaults.cappedScale(
+                targetScale = 1.06f,
+                widthPx = 1200,
+                heightPx = 80,
+                overflowPaddingPx = 12,
+            ),
+        )
     }
 }
